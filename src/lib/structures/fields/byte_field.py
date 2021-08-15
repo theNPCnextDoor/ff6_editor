@@ -14,7 +14,7 @@ class ByteField:
     def __get__(self, instance, owner):
         start = self.start(instance)
         output = Binary()[start : start + self.length]
-        return bytes(output)
+        return Bytes(value=output, length=self.length, endianness=self.endianness)
 
     def start(self, instance):
         return self.base_location + len(instance) * instance.id + self.position
