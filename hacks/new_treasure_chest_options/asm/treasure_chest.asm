@@ -36,7 +36,7 @@ is_gold
   LDY $4216     
   STY $22       
   STZ $24
-  JSR $D61F
+  JSR $D653
   JSR $02E5
   LDX #$0010
   BRA normal_event_bank
@@ -63,7 +63,7 @@ is_esper
   BEQ is_rare_item
   LDA $1A
   STA $0584
-  JSR $D70F
+  JSR $D68D
   LDX #$000C
   BRA normal_event_bank
 
@@ -72,7 +72,7 @@ is_rare_item
   BEQ is_empty
   LDA $1A
   STA $0584
-  JSR $D80A
+  JSR $D621
   LDX #$D613
   BRA expanded_event_bank
 

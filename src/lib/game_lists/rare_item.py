@@ -1,14 +1,12 @@
-
-
-class RareItems:
+class RareItem:
     CIDER = 0x00
     OLD_CLOCK_KEY = 0x01
-    FISH_0X02 = 0x02
-    FISH_0X03 = 0x03
-    FISH_0X04 = 0x04
-    FISH_0X05 = 0x05
+    YUMMY_FISH = 0x02
+    JUST_A_FISH = 0x03
+    ROTTEN_FISH = 0x04
+    FISH = 0x05
     LUMP_OF_METAL = 0x06
-    LOLA_S_LETTER = 0x07
+    LOLAS_LETTER = 0x07
     CORAL = 0x08
     BOOKS = 0x09
     ROYAL_LETTER = 0x0A
@@ -24,6 +22,4 @@ class RareItems:
 
     @classmethod
     def all(cls):
-        rare_items = list(range(cls.PENDANT + 1))
-        del rare_items[cls.CORAL]
-        return rare_items
+        return list(range(cls.PENDANT + 1))
