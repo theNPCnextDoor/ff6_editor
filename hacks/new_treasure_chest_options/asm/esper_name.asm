@@ -3,18 +3,18 @@ m=true,x=false
 start=C0/840F
   CMP #$1B
   BNE is_rare_item_name
-  JSR $DC00
+  JSR $D6A3
   BRA jumping
 is_rare_item_name
   CMP #$1C
   BNE label_844B
-  JSR $DC3A
+  JSR $D6DD
 jumping
   JMP $8263
 
 label_844B=C0/844B
 
-character_1B=C0/DC00
+character_1B=C0/D6A3
   LDA $0584
   CMP #$54
   STA $4202
@@ -51,7 +51,7 @@ label_843F
   RTS
   JMP $8263     
 
-character_1C=C0/DC3A
+character_1C=C0/D6DD
   LDA $0584
   CMP #$54
   STA $4202

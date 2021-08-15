@@ -1,10 +1,11 @@
-from src.lib.structures.fields import Bytes
-from src.lib.structures.fields import Binary
+from src.lib.structures import Bytes
+from src.lib.structures import Binary
 
 
 class ByteField:
-
-    def __init__(self, base_location, position: int = 0, length: int = 1, endianness: str = "little"):
+    def __init__(
+        self, base_location, position: int, length: int = 1, endianness: str = "little"
+    ):
         self.base_location = base_location
         self.length = length
         self.endianness = endianness
@@ -12,7 +13,8 @@ class ByteField:
 
     def __get__(self, instance, owner):
         start = self.start(instance)
-        return bytes(Binary()[start:start + self.length])
+        output = Binary()[start : start + self.length]
+        return bytes(output)
 
     def start(self, instance):
         return self.base_location + len(instance) * instance.id + self.position
@@ -20,5 +22,4 @@ class ByteField:
     def __set__(self, instance, value):
         value = Bytes(value=value, length=self.length, endianness=self.endianness)
         start = self.start(instance)
-        Binary()[start:start + self.length] = bytes(value)
-
+        Binary()[start : start + self.length] = bytes(value)
