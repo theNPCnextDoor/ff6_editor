@@ -31,9 +31,7 @@ class Rom:
         if strict:
             header_size = len(self.file) % (1024 * 1024)
             if header_size == 0x200:
-                raise ValueError(
-                    "File size suggests that the rom already has a header."
-                )
+                raise ValueError("File size suggests that the rom already has a header.")
             elif header_size:
                 raise ValueError("File size suggests unconventional file size.")
         self.header = True
@@ -42,9 +40,7 @@ class Rom:
         if strict:
             header_size = len(self.file) % (1024 * 1024)
             if not header_size:
-                raise ValueError(
-                    "File size suggests that the rom already has no header."
-                )
+                raise ValueError("File size suggests that the rom already has no header.")
             elif header_size != 0x200:
                 raise ValueError("File size suggests unconventional file size.")
 

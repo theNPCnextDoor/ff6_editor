@@ -277,12 +277,8 @@ class FieldDte:
                 output.append(0x13)
                 position += len(regex.group(0))
 
-            elif regex := re.search(
-                r"^(<[^:>]+(: ([0-9A-F]{1,2}))?>)", string[position:]
-            ):
-                special_character = re.sub(
-                    r"(.+): [0-9A-F]{1,2}(.+)", r"\1: _\2", regex.group(1)
-                )
+            elif regex := re.search(r"^(<[^:>]+(: ([0-9A-F]{1,2}))?>)", string[position:]):
+                special_character = re.sub(r"(.+): [0-9A-F]{1,2}(.+)", r"\1: _\2", regex.group(1))
                 output.append(cls.get_by_name(special_character))
                 if regex.groups()[2]:
                     quantity = int(Bytes(regex.group(3), length=1, endianness="big"))

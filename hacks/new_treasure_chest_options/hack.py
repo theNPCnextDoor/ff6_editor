@@ -15,12 +15,8 @@ if __name__ == "__main__":
             name=f"gen_act_{i:02X}", filename="asm/general_actions.asm"
         ).relative_address
         rom.general_actions[i].pointer = relative_address
-    rom.dialogs[
-        0xB86
-    ].message = "\n<SPACES: 08>Obtained the Esper\n<SPACES: 0D>«<SKILL>!»<END>"
-    rom.dialogs.append(
-        "\n<SPACES: 06>Obtained the Rare Item\n<SPACES: 0B>«<RARE ITEM>!»<END>"
-    )
+    rom.dialogs[0xB86].message = "\n<SPACES: 08>Obtained the Esper\n<SPACES: 0D>«<SKILL>!»<END>"
+    rom.dialogs.append("\n<SPACES: 06>Obtained the Rare Item\n<SPACES: 0B>«<RARE ITEM>!»<END>")
     rom.file[0xD613:0xD617] = b"\x4B\x0C\x0C\xFE"
     rom.save_as("test3.sfc")
     ips = Ips.compare("ff3.sfc", "test3.sfc")
