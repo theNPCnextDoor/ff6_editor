@@ -38,11 +38,7 @@ class Label:
 
     @classmethod
     def get_from_name(cls, name: str, filename: str):
-        candidates = [
-            label
-            for label in cls._list
-            if label.name == name and label.filename == filename
-        ]
+        candidates = [label for label in cls._list if label.name == name and label.filename == filename]
         if not len(candidates):
             return None
         elif len(candidates) > 1:

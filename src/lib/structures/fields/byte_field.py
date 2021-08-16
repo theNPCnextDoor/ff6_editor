@@ -4,7 +4,11 @@ from src.lib.structures import Binary
 
 class ByteField:
     def __init__(
-        self, base_location, position: int, length: int = 1, endianness: str = "little"
+        self,
+        base_location,
+        position: int,
+        length: int = 1,
+        endianness: str = "little",
     ):
         self.base_location = base_location
         self.length = length
