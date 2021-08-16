@@ -33,9 +33,7 @@ class Script:
     ):
         script = cls(m=m, x=x)
         script.labels.add(Label(position=Bytes(start), name="start"))
-        script.labels.add(
-            Label(position=Bytes(last_instruction_position + 1), name="end")
-        )
+        script.labels.add(Label(position=Bytes(last_instruction_position + 1), name="end"))
         position = start
         while position <= last_instruction_position:
             instruction = Instruction(
@@ -47,9 +45,7 @@ class Script:
             position += 1
             if instruction.length:
                 read_bytes = Binary()[position : position + instruction.length]
-                instruction.data = Bytes(
-                    read_bytes, length=instruction.length, endianness="little"
-                )
+                instruction.data = Bytes(read_bytes, length=instruction.length, endianness="little")
             position += instruction.length
             if type(instruction) == BranchingInstruction:
                 script.labels.add(
@@ -66,18 +62,9 @@ class Script:
     def to_script(self, filename: str):
         file_content = f"m={str(self.m).lower()},x={str(self.x).lower()}\n"
         labels_before_script = sorted(
-            [
-                label
-                for label in self.labels
-                if label < self.get_label(by="name", value="start")
-            ]
+            [label for label in self.labels if label < self.get_label(by="name", value="start")]
         )
-        file_content += "\n".join(
-            [
-                f"{label.name}={label.position.to_address()}"
-                for label in labels_before_script
-            ]
-        )
+        file_content += "\n".join([f"{label.name}={label.position.to_address()}" for label in labels_before_script])
         file_content += "\n"
 
         for instruction in self.instructions:
@@ -86,20 +73,9 @@ class Script:
         end_label = self.get_label(by="name", value="end")
         file_content += f"\nend={end_label.position.to_address()}\n\n"
 
-        labels_after_script = sorted(
-            [
-                label
-                for label in self.labels
-                if label > self.get_label(by="name", value="end")
-            ]
-        )
+        labels_after_script = sorted([label for label in self.labels if label > self.get_label(by="name", value="end")])
 
-        file_content += "\n".join(
-            [
-                f"{label.name}={label.position.to_address()}"
-                for label in labels_after_script
-            ]
-        )
+        file_content += "\n".join([f"{label.name}={label.position.to_address()}" for label in labels_after_script])
 
         with open(filename, "w") as f:
             f.write(file_content)
@@ -108,7 +84,7 @@ class Script:
     def from_script(cls, filename: str):
         script = cls()
         with open(filename, "r") as f:
-            lines = [line for l in f.readlines() if (line := l.rstrip())]
+            lines = [stripped_line for line in f.readlines() if (stripped_line := line.rstrip())]
             script.labels = script.extract_labels(lines, filename=filename)
             script.instructions = script.extract_instructions(lines)
         return script
@@ -141,6 +117,7 @@ class Script:
     def extract_instructions(self, lines: List[str]):
         instructions = []
         position = self.get_label(by="name", value="start").position
+        m, x = None, None
         for line in lines:
             if re.search(r"^[\w\d_]{4,}$", line):
                 pass
@@ -162,9 +139,7 @@ class Script:
                     x=x,
                     destination_label=destination_label,
                 )
-                instruction.label = self.get_label(
-                    by="position", value=instruction.position
-                )
+                instruction.label = self.get_label(by="position", value=instruction.position)
                 position += instruction.length + 1
                 m, x = self.update_flags(instruction, m, x)
                 instructions.append(instruction)
@@ -190,20 +165,14 @@ class Script:
     def assign_labels(self):
         for instruction in self.instructions:
             if not instruction.label:
-                instruction.label = self.get_label(
-                    by="position", value=instruction.position
-                )
+                instruction.label = self.get_label(by="position", value=instruction.position)
                 if instruction.label:
                     logging.info(f"Label found: {instruction.label.name}")
             if type(instruction) == BranchingInstruction:
                 if instruction.destination:
-                    instruction.destination_label = self.get_label(
-                        by="position", value=instruction.destination
-                    )
+                    instruction.destination_label = self.get_label(by="position", value=instruction.destination)
                 else:
-                    instruction.destination_label = self.get_label(
-                        by="name", value=instruction.destination_label_name
-                    )
+                    instruction.destination_label = self.get_label(by="name", value=instruction.destination_label_name)
                     instruction.set_data()
 
     def get_label(self, by: str, value: Union[int, str]):
@@ -213,12 +182,6 @@ class Script:
         return None
 
     def pad(self, opcode: int = 0xEA):
-        last_position = (
-            self.instructions[-1].position + self.instructions[-1].length + 1
-        )
-        for offset in range(
-            int(self.get_label(by="name", value="end").position - last_position)
-        ):
-            self.instructions.append(
-                Instruction(opcode=opcode, position=offset + last_position)
-            )
+        last_position = self.instructions[-1].position + self.instructions[-1].length + 1
+        for offset in range(int(self.get_label(by="name", value="end").position - last_position)):
+            self.instructions.append(Instruction(opcode=opcode, position=offset + last_position))
