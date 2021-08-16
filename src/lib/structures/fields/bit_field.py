@@ -13,9 +13,7 @@ class BitField(ByteField):
 
     def __get__(self, instance, owner):
         start = self.start(instance)
-        return (
-            int(Bytes(Binary()[start : start + 1])) & self.bit_value
-        ) >> self.first_bit
+        return (int(Bytes(Binary()[start : start + 1])) & self.bit_value) >> self.first_bit
 
     def __set__(self, instance, value):
         value = int(Bytes(value=value, length=1, endianness="little")) << self.first_bit

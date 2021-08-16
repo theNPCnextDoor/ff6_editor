@@ -15,12 +15,8 @@ class ReleaseNotes:
     ips: Ips
     description: str
     how_to_use: str
-    applies_to: List[Game] = field(default_factory=list)
+    applies_to: list = field(default_factory=list)
     credits: List[Contributor] = field(default_factory=list)
 
     def __str__(self):
-        return (
-            f"Title: {self.title}\n"
-            f"Author: {self.author}\n"
-            f"Version: {self.version_history[-1]}\n"
-        )
+        return f"Title: {self.title}\n" f"Author: {self.author}\n" f"Version: {self.version_history[-1]}\n"

@@ -104,9 +104,7 @@ class Instruction:
         else:
             return cls(
                 opcode=opcode[0],
-                data=cls.destination_to_data(
-                    command, destination_label.position, position
-                ),
+                data=cls.destination_to_data(command, destination_label.position, position),
                 position=position,
                 m=m,
                 x=x,
@@ -137,11 +135,7 @@ class Instruction:
     def find_opcode(cls, command: str, chunk: str, m: bool, x: bool):
         if chunk is None:
             chunk = ""
-        opcodes = {
-            opcode: instruction
-            for opcode, instruction in Opcodes.items()
-            if instruction["command"] == command
-        }
+        opcodes = {opcode: instruction for opcode, instruction in Opcodes.items() if instruction["command"] == command}
         if command not in BRANCHING_OPCODES.values() or (
             command in BRANCHING_OPCODES.values() and cls.is_branching_chunk_data(chunk)
         ):
@@ -152,8 +146,7 @@ class Instruction:
                 (opcode, instruction)
                 for opcode, instruction in opcodes.items()
                 if instruction["mode"] == mode
-                and instruction["length"] - instruction["m"] * m - instruction["x"] * x
-                == length
+                and instruction["length"] - instruction["m"] * m - instruction["x"] * x == length
             ]
         else:
             opcodes = [(opcode, instruction) for opcode, instruction in opcodes.items()]
@@ -233,12 +226,7 @@ class Instruction:
     @staticmethod
     def reverse_pairs(string):
         reverse_string = string[::-1]
-        return "".join(
-            [
-                reverse_string[2 * i + 1] + reverse_string[2 * i]
-                for i in range(len(reverse_string) // 2)
-            ]
-        )
+        return "".join([reverse_string[2 * i + 1] + reverse_string[2 * i] for i in range(len(reverse_string) // 2)])
 
 
 class BranchingInstruction(Instruction):
@@ -254,18 +242,14 @@ class BranchingInstruction(Instruction):
     @destination_label.setter
     def destination_label(self, label: Label):
         self._destination_label = label
-        self.destination_to_data(
-            self.command, self._destination_label.position, self.position
-        )
+        self.destination_to_data(self.command, self._destination_label.position, self.position)
 
     @property
     def destination(self):
         if self.data.value is not None:
             offset = int(self.data)
             if self.opcode == 0x82:
-                self._destination = (
-                    (offset + 0x8000) % 0x010000 + int(self.position) - 0x7FFD
-                )
+                self._destination = (offset + 0x8000) % 0x010000 + int(self.position) - 0x7FFD
             else:
                 self._destination = (offset + 0x80) % 0x0100 + int(self.position) - 0x7E
             return self._destination
@@ -275,7 +259,9 @@ class BranchingInstruction(Instruction):
     def destination(self, destination):
         self._destination = destination % 0x010000 + self.bank
         self.data = self.destination_to_data(
-            command=self.command, destination=self._destination, position=self.position
+            command=self.command,
+            destination=self._destination,
+            position=self.position,
         )
 
     def __str__(self):
