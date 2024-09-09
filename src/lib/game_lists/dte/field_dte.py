@@ -317,14 +317,13 @@ class FieldDte:
         return output
 
     @classmethod
-    def get_by_name(cls, value):
-        candidates = [(k, v) for k, v in cls.char_map.items() if value == v]
+    def get_by_name(cls, value: str) -> int:
+        candidates = [k for k, v in cls.char_map.items() if value == v]
         if not len(candidates):
             raise ValueError(f"Character '{value}' has not been found.")
-        return candidates[0][0]
+        return candidates[0]
 
 
 if __name__ == "__main__":
     print(FieldDte.to_bytes("\n<TERRA><WAIT 15 FRAMES TIMES: AA> t"))
     print(FieldDte.to_string(b"\x01\x02\x11\xAA\x81"))
-    print(3 ** 3 ** 3 ** 3)
