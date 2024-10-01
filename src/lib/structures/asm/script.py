@@ -41,6 +41,7 @@ class Script:
                 position=position,
                 m=m,
                 x=x,
+                comment=hex(position)
             )
             position += 1
             if instruction.length:

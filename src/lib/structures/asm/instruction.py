@@ -213,7 +213,7 @@ class Instruction:
             response += "\n"
         response += f"  {self.command} {self.details.ljust(10, ' ')}"
         if self.comment:
-            response += f' "{self.comment}"'
+            response += f'; {self.comment}'
         return response
 
     @property
