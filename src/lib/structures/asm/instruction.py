@@ -1,289 +1,221 @@
-import logging
 import re
-from typing import Union
+from re import Match
+from typing import Self
 
+from src.lib.structures.asm.flags import Flags
 from src.lib.structures.asm.label import Label
-from src.lib.structures import Bytes
 from src.lib.structures.asm.opcodes import Opcodes
-
-BRANCHING_OPCODES = {
-    0x10: "BPL",
-    0x30: "BMI",
-    0x50: "BVC",
-    0x70: "BVS",
-    0x80: "BRA",
-    0x82: "BRL",
-    0x90: "BCC",
-    0xB0: "BCS",
-    0xD0: "BNE",
-    0xF0: "BEQ",
-}
+from src.lib.structures.asm.regex import Regex
+from src.lib.structures.asm.script_line import (
+    ScriptLine, DataMixin, BankMixin, ImpossibleDestination, DestinationMixin
+)
+from src.lib.structures.bytes import Bytes, Endian, Position, BytesType
 
 
-class Instruction:
-    def __new__(cls, *args, **kwargs):
-        opcode = Bytes(kwargs["opcode"]) if "opcode" in kwargs else int(args[0])
-        if int(opcode) in BRANCHING_OPCODES.keys():
-            return super().__new__(BranchingInstruction)
-        return super().__new__(cls)
-
-    def __init__(
-        self,
-        opcode: Union[Bytes, int, str, bytes],
-        data: Union[Bytes, int, str, bytes] = None,
-        position: Union[Bytes, int, str, bytes] = None,
-        comment: str = None,
-        m: bool = False,
-        x: bool = False,
-        label: Label = None,
-        length: int = None,
-        endianness: str = "little",
-    ):
-
-        self.opcode = Bytes(opcode)
-        if length:
-            self.data = Bytes(data, length=length, endianness=endianness)
-        else:
-            self.data = Bytes(data, endianness=endianness)
-        self.position = Bytes(position)
-        self.comment = comment
-        self.m = m
-        self.x = x
-        self.label = label
+class Instruction(ScriptLine, DataMixin):
+    def __init__(self, opcode: BytesType, position: Position | None = None, data: Bytes | None = None):
+        super().__init__(position=position)
+        self.opcode = opcode
+        self.data = data
 
     @classmethod
-    def from_line(
-        cls,
-        command: str,
-        chunk: str = None,
-        position: int = None,
-        comment: str = None,
-        m: bool = False,
-        x: bool = False,
-        destination_label: Label = None,
-    ):
-        if command == "MVP":
-            match = re.search(r"\$([0-9A-F]{2}),\$([0-9A-F]{2})", chunk)
-            data = "".join([match.group(1), match.group(2)])
-            logging.warning("This part has been untested.")
-            return cls(
-                opcode=0x44,
-                data=data,
-                position=position,
-                m=m,
-                x=x,
-                comment=comment,
-                length=2,
-            )
-        opcode = cls.find_opcode(command, chunk, m, x)
-        length = opcode[1]["length"] - opcode[1]["m"] * m - opcode[1]["x"] * x
-        if command not in BRANCHING_OPCODES.values() or (
-            command in BRANCHING_OPCODES.values() and cls.is_branching_chunk_data(chunk)
-        ):
-            instruction = cls(
-                opcode=opcode[0],
-                data=cls.reverse_pairs(cls.get_data(chunk)),
-                position=position,
-                m=m,
-                x=x,
-                comment=comment,
-                length=length,
-            )
-            return instruction
-        elif cls.is_branching_chunk_destination(chunk):
-            destination = int(chunk.replace("$", ""), 16)
-            return cls(
-                opcode=opcode[0],
-                data=cls.destination_to_data(command, destination, position),
-                position=position,
-                m=m,
-                x=x,
-                comment=comment,
-                length=length,
-            )
+    def from_regex_match(cls, match: Match, position: Position, flags: Flags) -> Self:
+        command = match.group("command")
+        mode = cls.mode(match)
+        data, length = None, 0
+
+        if (data := cls.data(match)) is not None:
+            data = Bytes(data)
+            length = len(data)
+
+        opcode = cls.find_opcode(command=command, mode=mode, length=length, flags=flags)
+
+        return cls(position=position, opcode=opcode, data=data)
+
+    @classmethod
+    def from_bytes(cls, value: bytes, position: Position = None, flags: Flags = None) -> Self:
+        flags = flags or Flags()
+        value = Bytes(value, in_endian=Endian.BIG)
+        command = Opcodes[int(value[0])]
+        length = command["length"] - flags.m * command["m"] - flags.x * command["x"]
+        data = Bytes(value[1: length + 1]) if length else None
+        opcode = Bytes(value[0])
+
+        if cls._is_branching_instruction(opcode):
+            return BranchingInstruction(position=position, opcode=Bytes(value[0]), data=data)
         else:
-            return cls(
-                opcode=opcode[0],
-                data=cls.destination_to_data(command, destination_label.position, position),
-                position=position,
-                m=m,
-                x=x,
-                comment=comment,
-            )
+            return Instruction(position=position, opcode=Bytes(value[0]), data=data)
+
+    @classmethod
+    def _is_branching_instruction(cls, opcode: Bytes):
+        return cls.command(opcode) in [
+            "JMP", "JML", "JSR", "JSL", "BCC", "BCS", "BEQ", "BMI", "BNE", "BPL", "BRA", "BRL", "BVC", "BVS"
+        ]
+
+    def __bytes__(self) -> bytes:
+        output = bytes(self.opcode)
+        if self.data is not None:
+            output += bytes(self.data)
+        return output
+
+    def to_line(self, show_address: bool = False, labels: list[Label] | None = None) -> str:
+        output = f"  {str(self)}"
+        output += f" # {self.position.to_snes_address()}" if show_address else ""
+        return output
 
     @staticmethod
-    def is_branching_chunk_data(chunk):
-        return re.match(r"#\$([0-9A-F]{2}){1,2}", chunk)
+    def mode(match: Match) -> str:
+        if match is None or (data := match.group("chunk")) is None:
+            return "_"
+
+        return re.sub(Regex.DATA, "_", data)
 
     @staticmethod
-    def is_branching_chunk_destination(chunk):
-        return re.match(r"\$[0-9A-F]{4}", chunk)
+    def find_opcode(command: str, mode: str, length: int, flags: Flags) -> Bytes:
+        candidates = list()
+        for code, operation in Opcodes.items():
+            if operation["command"] == command and operation["mode"] == mode:
+                effective_length = operation["length"] - operation["m"] * flags.m - operation["x"] * flags.x
+                if effective_length == length:
+                    candidates.append(code)
+
+        if len(candidates) > 1:
+            raise TooManyCandidatesException(f"More than one candidate for {command=} and {mode=}. {candidates=}")
+        if len(candidates) == 0:
+            raise NoCandidateException(f"No candidate was found for {command=}, {mode=} and {length=}.")
+
+        return Bytes(candidates[0])
 
     @staticmethod
-    def extract_instruction_length_from_line(line: str) -> int:
-        matches = re.search(r"^ *(\w{3})( +([^( ]+))?", line)
-        if matches.group(1) == "BRL":
-            return 3
-        elif matches.group(1) in BRANCHING_OPCODES.values():
-            return 2
-        elif matches.group(3):
-            return len(re.sub(r"[ #\$\(\)\[\],SXY]", "", matches.group(3))) // 2 + 1
-        else:
+    def command(opcode: Bytes) -> str:
+        return Opcodes[int(opcode)]["command"]
+
+    def is_flag_setter(self) -> bool:
+        return self.command(self.opcode) in ["REP", "SEP"]
+
+    def set_flags(self, flags: Flags) -> Flags:
+        flag_state = True if self.command(self.opcode) == "SEP" else False
+        if int(self.data) & 0x10:
+            flags.x = flag_state
+        if int(self.data) & 0x20:
+            flags.m = flag_state
+        return flags
+
+    def __len__(self) -> int:
+        if self.data is None:
             return 1
+        return len(self.data) + 1
+
+    def __eq__(self, other: Self) -> bool:
+        return self.position == other.position and self.opcode == other.opcode and self.data == other.data
+
+    def __str__(self) -> str:
+        output = Opcodes[int(self.opcode)]["command"]
+        mode = Opcodes[int(self.opcode)]["mode"]
+        if mode == "#$_,#$_":
+            output += f" #${str(self.data[1])},#${str(self.data[0])}"
+        elif self.data:
+            output += " " + mode.replace("_", str(self.data))
+        return output
+
+    def __repr__(self) -> str:
+        return f"{self.position}: {self} ({self.opcode} {self.data})"
+
+class BranchingInstruction(Instruction, BankMixin, DestinationMixin):
+    def __init__(self, position: Position, opcode: Bytes, data: Bytes = None, destination: Position = None):
+        if data is None and destination is None:
+            raise ValueError("Please provide either data or destination.")
+        super().__init__(position=position, opcode=opcode)
+        self.data = data if data is not None else self.destination_to_data(destination=destination)
+        self.destination = destination if destination is not None else self.data_to_destination(data=data)
+
 
     @classmethod
-    def find_opcode(cls, command: str, chunk: str, m: bool, x: bool):
-        if chunk is None:
-            chunk = ""
-        opcodes = {opcode: instruction for opcode, instruction in Opcodes.items() if instruction["command"] == command}
-        if command not in BRANCHING_OPCODES.values() or (
-            command in BRANCHING_OPCODES.values() and cls.is_branching_chunk_data(chunk)
-        ):
-            data_str = cls.get_data(chunk)
-            length = int(len(data_str) / 2)
-            mode = chunk.replace(data_str, "_")
-            opcodes = [
-                (opcode, instruction)
-                for opcode, instruction in opcodes.items()
-                if instruction["mode"] == mode
-                and instruction["length"] - instruction["m"] * m - instruction["x"] * x == length
-            ]
-        else:
-            opcodes = [(opcode, instruction) for opcode, instruction in opcodes.items()]
+    def from_regex_match(cls, match: Match, position: Position, labels: list[Label]) -> Self:
+        command = match.group("command")
+        data, destination = None, None
 
-        if not opcodes:
-            raise ValueError(
-                f"Can't find an opcode with the following information: {command=}, {length=}, {mode=}, {m=}, {x=}."
-            )
-        if len(opcodes) > 1:
-            raise ValueError(
-                "Found too many opcodes that satisfies the following information: "
-                f"{command=}, {length=}, {mode=}, {m=}, {x=}. Opcodes={opcodes}"
-            )
-        return opcodes[0]
+        if label_name := match.group("label"):
+            destination = cls.find_destination(label_name, labels)
+            mode = cls.command_to_mode(command)
+
+            if not cls.is_destination_possible(position, destination, command):
+                raise ImpossibleDestination(
+                    f"Destination '{destination.to_snes_address()}' can't be reached with pointer"
+                    f" at position '{position.to_snes_address()}'")
+
+            length = cls.find_length(command=command)
+        else:
+            data = Bytes(cls.data(match))
+            mode = cls.mode(match)
+            length = len(data)
+
+        opcode = cls.find_opcode(command=command, mode=mode, length=length, flags=Flags())
+
+        return cls(position=position, opcode=opcode, data=data, destination=destination)
 
     @classmethod
-    def get_data(cls, chunk: str) -> str:
-        if chunk:
-            return re.sub(r"[$#,\(\)\[\]SXY]", "", chunk)
-        else:
-            return ""
+    def is_destination_possible(cls, position: Position, destination: Position, command: str) -> bool:
+        if command in ["JMP", "JML", "JSL"]:
+            return True
+        if command in ["BRL", "JSR"]:
+            return cls.bank(position) == cls.bank(destination)
+        return int(position) - 0x7E <= int(destination) <= int(position) + 0x81
 
-    @property
-    def command(self):
-        return Opcodes[int(self.opcode)]["command"]
-
-    @property
-    def bank(self):
-        return self.position // 0x010000
-
-    @property
-    def address(self):
-        return self.position.to_address()
-
-    @property
-    def length(self):
-        code = Opcodes[int(self.opcode)]
-        return code["length"] - code["m"] * self.m - code["x"] * self.x
-
-    @property
-    def details(self):
-        details = Opcodes[int(self.opcode)]["mode"]
-        if self.opcode == 0x44:
-            return f"${self.data[0]:02X},${self.data[1]:02X}"
-        else:
-            return details.replace("_", self.data.string("big"))
-
-    @classmethod
-    def destination_to_data(cls, command, destination, position):
+    def data_to_destination(self, data: Bytes) -> Position:
+        command = self.command(self.opcode)
+        if command in ["JSL", "JML"]:
+            return Position(value=data)
+        if command in ["JMP", "JSR"]:
+            return Position(value=int(data) + self.position.bank())
         if command == "BRL":
-            delta = (destination - position - 0x03) % 0x010000
-            data = Bytes(delta, length=2, endianness="little")
+            return Position(value=(int(data) + 0x8000) % 0x010000 + int(self.position) - 0x7FFD)
+        return Position(value=(int(data) + 0x80) % 0x0100 + int(self.position) - 0x7E)
+
+    def destination_to_data(self, destination: Position) -> Bytes:
+        command = self.command(self.opcode)
+        if command in ["JSL", "JML"]:
+            return Bytes(value=destination, out_endian=Endian.LITTLE)
+        if command in ["JMP", "JSR"]:
+            return Bytes(value=int(destination[1:]), length=2)
+        if command == "BRL":
+            return Bytes(value=(int(destination) - int(self.position) - 3) % 0x010000, length=2)
+        return Bytes(value=((int(destination) - int(self.position) % 0x0100) - 2) % 0x0100, length=1)
+
+    @classmethod
+    def find_length(cls, command: str) -> int:
+        if command in ["BRL", "JSR", "JMP"]:
+            return 2
+        if command.startswith("B"):
+            return 1
+        return 3 # JSL, JML
+
+    @classmethod
+    def command_to_mode(cls, command: str) -> str:
+        if command.startswith("B"):
+            return "#$_"
+        return "$_"
+
+    def to_line(self, show_address: bool = False, labels: list[Label]| None = None):
+        output = f"  {Opcodes[int(self.opcode)]['command']}"
+        label = None
+
+        if labels:
+            label = self.find_label(destination=self.destination, labels=labels)
+
+        if label:
+            output += f" {label.name}"
         else:
-            delta = (destination - position + 0x100 - 0x02) % 0x0100
-            data = Bytes(delta, length=1, endianness="little")
-        return data
+            mode = Opcodes[int(self.opcode)]["mode"]
+            output += f" {mode.replace('_', str(self.data))}"
 
-    def __str__(self):
-        response = ""
-        if self.label:
-            response += f"\n{self.label}"
-            if self.label.name == "start":
-                response += f"={self.address}"
-            response += "\n"
-        response += f"  {self.command} {self.details.ljust(10, ' ')}"
-        if self.comment:
-            response += f' "{self.comment}"'
-        return response
-
-    @property
-    def debug_string(self):
-        return (
-            f"{self.address} {str(self.opcode)}{self.data.string('little').ljust(6, ' ')} "
-            f"{self.command} {self.details.strip()}"
-        )
-
-    @staticmethod
-    def reverse_pairs(string):
-        reverse_string = string[::-1]
-        return "".join([reverse_string[2 * i + 1] + reverse_string[2 * i] for i in range(len(reverse_string) // 2)])
+        output += f" # {self.position.to_snes_address()}" if show_address else ""
+        return output
 
 
-class BranchingInstruction(Instruction):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self._destination = None
-        self._destination_label = None
+class TooManyCandidatesException(Exception):
+    pass
 
-    @property
-    def destination_label(self):
-        return self._destination_label
 
-    @destination_label.setter
-    def destination_label(self, label: Label):
-        self._destination_label = label
-        self.destination_to_data(self.command, self._destination_label.position, self.position)
-
-    @property
-    def destination(self):
-        if self.data.value is not None:
-            offset = int(self.data)
-            if self.opcode == 0x82:
-                self._destination = (offset + 0x8000) % 0x010000 + int(self.position) - 0x7FFD
-            else:
-                self._destination = (offset + 0x80) % 0x0100 + int(self.position) - 0x7E
-            return self._destination
-        return None
-
-    @destination.setter
-    def destination(self, destination):
-        self._destination = destination % 0x010000 + self.bank
-        self.data = self.destination_to_data(
-            command=self.command,
-            destination=self._destination,
-            position=self.position,
-        )
-
-    def __str__(self):
-        response = f"  {self.command}"
-
-        if self.destination_label:
-            response += f" {self.destination_label.name.ljust(10, ' ')}"
-        elif self.destination:
-            destination = f" {self.destination:02X}"[-4:]
-            response += f" ${destination.ljust(10, ' ')}"
-        else:
-            response += f" {self.details.ljust(10, ' ')}"
-        if self.comment:
-            response += f" ({self.comment})"
-        return response
-
-    @property
-    def debug_string(self):
-        if self.destination:
-            return (
-                f"{self.address} {str(self.opcode)}{self.data.string('little').ljust(6, ' ')} "
-                f"{self.command} ${self.destination:02X}"
-            )
-        else:
-            return super().__str__()
+class NoCandidateException(Exception):
+    pass
