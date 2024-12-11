@@ -396,7 +396,7 @@ Opcodes = {
         "length": 2,
         "m": False,
         "x": False,
-        "mode": "$_,$_",
+        "mode": "#$_,#$_",
     },
     0x45: {
         "command": "EOR",
@@ -490,7 +490,7 @@ Opcodes = {
         "length": 2,
         "m": False,
         "x": False,
-        "mode": "$_,$@2",
+        "mode": "#$_,#$_",
     },
     0x55: {
         "command": "EOR",
@@ -524,7 +524,7 @@ Opcodes = {
     0x5A: {"command": "PHY", "length": 0, "m": False, "x": False, "mode": "_"},
     0x5B: {"command": "TCD", "length": 0, "m": False, "x": False, "mode": "_"},
     0x5C: {
-        "command": "JMP",
+        "command": "JML",
         "length": 3,
         "m": False,
         "x": False,
@@ -587,7 +587,7 @@ Opcodes = {
         "x": False,
         "mode": "$_",
     },
-    0x66: {"command": "ROR", "length": 0, "m": False, "x": False, "mode": "_"},
+    0x66: {"command": "ROR", "length": 1, "m": False, "x": False, "mode": "$_"},
     0x67: {
         "command": "ADC",
         "length": 1,
@@ -1480,3 +1480,4 @@ Opcodes = {
         "mode": "$_,X",
     },
 }
+
