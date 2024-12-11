@@ -1,187 +1,184 @@
-import logging
+from __future__ import annotations
 import re
-from typing import List, Union
+from enum import Enum, auto
+from pathlib import Path
+from typing import Self
 
-from src.lib.structures import Binary, Bytes
-from src.lib.structures.asm import Instruction, BranchingInstruction, Label
-from src.lib.structures.asm.instruction import BRANCHING_OPCODES
+from src.lib.structures.asm.pointer import Pointer
+from src.lib.structures.asm.instruction import BranchingInstruction, Instruction
+from src.lib.structures.asm.flags import Flags
+from src.lib.structures.asm.label import Label
+from src.lib.structures.asm.regex import Regex
+from src.lib.structures.asm.script_line import ScriptLine
+from src.lib.structures.bytes import BytesType, Position
+
+
+class ScriptMode(Enum):
+    INSTRUCTIONS = auto()
+    POINTERS = auto()
+
+class ScriptSection:
+    def __init__(self, start: BytesType, end: BytesType, mode: ScriptMode, flags: Flags = None):
+        self.start = start
+        self.end = end
+        self.mode = mode
+        self.flags = flags or Flags()
 
 
 class Script:
-    def __init__(self, m: bool = False, x: bool = False):
-        self.instructions = []
-        self.labels = set()
-        self.m = m
-        self.x = x
-
-    def assemble(self, pad: bool = True):
-        if pad and self.get_label(by="name", value="end"):
-            self.pad()
-        for instruction in self.instructions:
-            logging.debug(f"Writing {instruction.debug_string} @ {instruction.address}")
-            start = int(instruction.position)
-            end = start + 1 + len(instruction.data)
-            Binary()[start:end] = bytes(instruction.opcode) + bytes(instruction.data)
+    def __init__(self):
+        self.instructions = list()
+        self.branching_instructions = list()
+        self.pointers = list()
+        self.labels = list()
 
     @classmethod
-    def disassemble(
-        cls,
-        start: int,
-        last_instruction_position: int,
-        m: bool = False,
-        x: bool = False,
-    ):
-        script = cls(m=m, x=x)
-        script.labels.add(Label(position=Bytes(start), name="start"))
-        script.labels.add(Label(position=Bytes(last_instruction_position + 1), name="end"))
-        position = start
-        while position <= last_instruction_position:
-            instruction = Instruction(
-                opcode=Binary()[position],
-                position=position,
-                m=m,
-                x=x,
-            )
-            position += 1
-            if instruction.length:
-                read_bytes = Binary()[position : position + instruction.length]
-                instruction.data = Bytes(read_bytes, length=instruction.length, endianness="little")
-            position += instruction.length
-            if type(instruction) == BranchingInstruction:
-                script.labels.add(
-                    Label(
-                        position=Bytes(instruction.destination),
-                        name=f"label_{instruction.destination % 0x010000:02X}",
-                    )
-                )
-            script.instructions.append(instruction)
-            m, x = script.update_flags(instruction, m, x)
-        script.assign_labels()
+    def from_script_file(cls, filename: str | Path, flags: Flags = None) -> Self:
+        with open(filename) as f:
+            lines = f.readlines()
+
+        script = cls()
+
+        cursor = 0
+        flags = flags or Flags()
+        lines_with_labels = list()
+
+        for line in lines:
+            if match := re.search(Regex.FLAGS, line):
+                flags = Flags.from_regex_match(match=match)
+
+            elif match := re.search(Regex.LABEL_LINE, line):
+                label = Label.from_regex_match(match=match, position=Position(cursor))
+                cursor = int(label.position)
+                script.labels.append(label)
+
+            elif re.search(Regex.POINTER, line):
+                lines_with_labels.append((line, cursor))
+                cursor += 2
+
+            elif match := re.search(Regex.BRANCHING_INSTRUCTION, line):
+                command = match.group("command")
+
+                if match.group("label"):
+                    lines_with_labels.append((line, cursor))
+                else:
+                    instruction = BranchingInstruction.from_regex_match(match=match, position=Position(cursor))
+                    script.branching_instructions.append(instruction)
+
+                cursor += BranchingInstruction.find_length(command=command) + 1
+
+            elif match := re.match(Regex.INSTRUCTION, line):
+                instruction = Instruction.from_regex_match(match=match, position=Position(cursor), flags=flags)
+                cursor += len(instruction)
+                script.instructions.append(instruction)
+
+                if instruction.is_flag_setter():
+                    flags = instruction.set_flags(flags)
+
+        for line, cursor in lines_with_labels:
+            if match := re.match(Regex.BRANCHING_INSTRUCTION, line):
+                instruction = BranchingInstruction.from_regex_match(match=match, position=Position(cursor), labels=script.labels)
+                script.branching_instructions.append(instruction)
+
+            elif match := re.match(Regex.POINTER, line):
+                pointer = Pointer.from_regex_match(match=match, position=Position(cursor), labels=script.labels)
+                script.pointers.append(pointer)
+
+        script.instructions.sort()
+        script.branching_instructions.sort()
+        script.pointers.sort()
+
         return script
 
-    def to_script(self, filename: str):
-        file_content = f"m={str(self.m).lower()},x={str(self.x).lower()}\n"
-        labels_before_script = sorted(
-            [label for label in self.labels if label < self.get_label(by="name", value="start")]
-        )
-        file_content += "\n".join([f"{label.name}={label.position.to_address()}" for label in labels_before_script])
-        file_content += "\n"
+    def to_script_file(self, filename: str | Path, flags: Flags):
+        self._extract_labels()
+        lines = self.labels + self.pointers + self.instructions + self.branching_instructions
+        lines.sort(key=lambda x: ScriptLine.sort(x))
+        output = [flags.to_line()]
 
-        for instruction in self.instructions:
-            file_content += f"{instruction}\n"
+        cursor = int(lines[0].position)
 
-        end_label = self.get_label(by="name", value="end")
-        file_content += f"\nend={end_label.position.to_address()}\n\n"
+        if not isinstance(lines[0], Label):
+            start_label = Label(name="start", position=lines[0].position)
+            self.labels.append(start_label)
+            output.append(start_label.to_line(show_address=True))
 
-        labels_after_script = sorted([label for label in self.labels if label > self.get_label(by="name", value="end")])
+        output.append(lines[0].to_line(show_address=True))
+        cursor += len(lines[0])
 
-        file_content += "\n".join([f"{label.name}={label.position.to_address()}" for label in labels_after_script])
+        for line in lines[1:]:
+            if cursor != int(line.position):
+                if isinstance(line, Label):
+                    output.append(line.to_line(show_address=True))
+                    continue
+
+                label = Label(position=line.position)
+                self.labels.append(label)
+                output.append(label.to_line(show_address=True))
+
+            output.append(line.to_line(labels=self.labels))
+            cursor = int(line.position) + len(line)
 
         with open(filename, "w") as f:
-            f.write(file_content)
+            f.write("\n".join(output))
+
+    def to_rom(self, filename: str) -> None:
+        with open(filename, "rb+") as f:
+            for pointer in self.pointers:
+                f.seek(int(pointer.position))
+                f.write(bytes(pointer))
+            for instruction in self.instructions:
+                f.seek(int(instruction.position))
+                f.write(bytes(instruction))
+            for branching_instruction in self.branching_instructions:
+                f.seek(int(branching_instruction.position))
+                f.write(bytes(branching_instruction))
 
     @classmethod
-    def from_script(cls, filename: str):
+    def from_rom(cls, filename: str | Path, sections: list[ScriptSection]) -> Self:
         script = cls()
-        with open(filename, "r") as f:
-            lines = [stripped_line for line in f.readlines() if (stripped_line := line.rstrip())]
-            script.labels = script.extract_labels(lines, filename=filename)
-            script.instructions = script.extract_instructions(lines)
+        with open(filename, "rb") as f:
+            for section in sections:
+                cursor = section.start
+                f.seek(cursor)
+
+                if section.mode == ScriptMode.POINTERS:
+                    while cursor < section.end:
+                        pointer_bytes = f.read(2)
+                        pointer = Pointer.from_bytes(position=Position(cursor), value=pointer_bytes)
+                        script.labels.append(Label(position=Position(pointer.destination)))
+                        script.pointers.append(pointer)
+                        cursor += 2
+
+                elif section.mode == ScriptMode.INSTRUCTIONS:
+                    flags = section.flags
+                    while cursor < section.end:
+                        f.seek(cursor)
+                        value = f.read(4)
+
+                        instruction = Instruction.from_bytes(position=Position(cursor), value=value, flags=flags)
+
+                        if isinstance(instruction, BranchingInstruction):
+                            script.branching_instructions.append(instruction)
+                            label = Label(position=Position(instruction.destination))
+                            if label not in script.labels:
+                                script.labels.append(label)
+                        else:
+                            if instruction.is_flag_setter():
+                                flags = instruction.set_flags(flags)
+
+                            script.instructions.append(instruction)
+                        cursor += len(instruction)
+
+        script.labels = list(set(sorted(script.labels)))
+        script.pointers.sort()
+        script.instructions.sort()
+        script.branching_instructions.sort()
+
         return script
 
-    @staticmethod
-    def extract_labels(lines: List, filename: str):
-        labels = set()
-        for line in lines:
-            fixed_position = False
-            if match := re.search(r"^([\w\d_]+)(=([C-F][0-9A-F]/[0-9A-F]{4}))?$", line):
-                if match.group(2):
-                    position = Bytes.from_address(match.group(3))
-                    fixed_position = True
-                name = match.group(1)
-                labels.add(
-                    Label(
-                        position=position,
-                        filename=filename,
-                        name=name,
-                        fixed_position=fixed_position,
-                    )
-                )
-            elif re.search(r"^m=(\w+),x=(\w+)", line):
-                continue
-            else:
-                position += Instruction.extract_instruction_length_from_line(line)
-        logging.debug(labels)
-        return labels
-
-    def extract_instructions(self, lines: List[str]):
-        instructions = []
-        position = self.get_label(by="name", value="start").position
-        m, x = None, None
-        for line in lines:
-            if re.search(r"^[\w\d_]{4,}$", line):
-                pass
-            if match := re.search(r"^ +(\w{3})( +([^ \"]*))?( *\"([^\)]*)\")?", line):
-                command = match.group(1)
-                chunk = match.group(3)
-                comment = match.group(5)
-                logging.debug(chunk)
-                if command in BRANCHING_OPCODES.values():
-                    destination_label = self.get_label(by="name", value=chunk)
-                else:
-                    destination_label = None
-                instruction = Instruction.from_line(
-                    command=command,
-                    chunk=chunk,
-                    comment=comment,
-                    position=position,
-                    m=m,
-                    x=x,
-                    destination_label=destination_label,
-                )
-                instruction.label = self.get_label(by="position", value=instruction.position)
-                position += instruction.length + 1
-                m, x = self.update_flags(instruction, m, x)
-                instructions.append(instruction)
-            elif match := re.search(r"^[\w\d_]+=([C-F][0-9A-F]/[0-9A-F]{4})$", line):
-                position = Bytes.from_address(match.group(1))
-            elif match := re.search(r"^m=(\w+),x=(\w+)", line):
-                m = True if match.group(1).lower() == "true" else False
-                x = True if match.group(2).lower() == "true" else False
-        return instructions
-
-    @staticmethod
-    def update_flags(instruction: Instruction, m: bool, x: bool):
-        if int(instruction.opcode) == 0xC2:
-            flags = int(instruction.data)
-            m = not bool(flags & 0x20)
-            x = not bool(flags & 0x10)
-        elif int(instruction.opcode) == 0xE2:
-            flags = int(instruction.data)
-            m = bool(flags & 0x20)
-            x = bool(flags & 0x10)
-        return m, x
-
-    def assign_labels(self):
-        for instruction in self.instructions:
-            if not instruction.label:
-                instruction.label = self.get_label(by="position", value=instruction.position)
-                if instruction.label:
-                    logging.info(f"Label found: {instruction.label.name}")
-            if type(instruction) == BranchingInstruction:
-                if instruction.destination:
-                    instruction.destination_label = self.get_label(by="position", value=instruction.destination)
-                else:
-                    instruction.destination_label = self.get_label(by="name", value=instruction.destination_label_name)
-                    instruction.set_data()
-
-    def get_label(self, by: str, value: Union[int, str]):
-        for label in self.labels:
-            if value == getattr(label, by):
-                return label
-        return None
-
-    def pad(self, opcode: int = 0xEA):
-        last_position = self.instructions[-1].position + self.instructions[-1].length + 1
-        for offset in range(int(self.get_label(by="name", value="end").position - last_position)):
-            self.instructions.append(Instruction(opcode=opcode, position=offset + last_position))
+    def _extract_labels(self):
+        for script_line in self.pointers + self.branching_instructions:
+            label = Label(position=script_line.destination)
+            if label not in self.labels:
+                self.labels.append(label)
