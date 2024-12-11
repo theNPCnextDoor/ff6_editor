@@ -257,3 +257,5 @@ Thumbs.db
 
 # End of https://www.toptal.com/developers/gitignore/api/python,pycharm
 
+**/dummy_output_script.asm
+**/dummy_output_rom.sfc
