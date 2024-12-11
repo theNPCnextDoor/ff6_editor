@@ -8,7 +8,7 @@ from src.utils import Rom, Ips
 if __name__ == "__main__":
     rom = Rom("ff3.sfc")
     for filename in glob("asm/*.asm"):
-        script = Script.from_script(filename=filename)
+        script = Script.from_script_file(filename=filename)
         script.assemble(pad=True)
     for i in [0x66, 0x84, 0x86]:
         relative_address = Label.get_from_name(

@@ -1,46 +1,55 @@
-import logging
+from re import Match
+from typing import Self
 
-from src.lib.structures import Bytes
+from src.lib.structures.asm.script_line import ScriptLine
+from src.lib.structures.bytes import Position
 
 
-class Label:
-    _list = []
+class Label(ScriptLine):
 
     def __init__(
         self,
-        name: str,
-        filename: str = None,
-        position: Bytes = None,
-        fixed_position: bool = False,
+        position: Position,
+        name: str = None
     ):
-        logging.info(f'Creating label "{name}" with position {position.to_address()}')
-        self.position = position
-        self.name = name
-        self.filename = filename
-        self.fixed_position = fixed_position
-        self._list.append(self)
-
-    def __str__(self):
-        return f"{self.name}"
-
-    def __eq__(self, other):
-        return self.position == other.position
-
-    def __lt__(self, other):
-        return self.position < other.position
-
-    def __hash__(self):
-        return hash(self.position)
-
-    @property
-    def relative_address(self):
-        return int(Bytes(value=self.position % 0x010000, length=2, endianness="little"))
+        super().__init__(position=position)
+        self.name = (name or f"label_{self.position.to_snes_address().replace('/', '')}").lower()
 
     @classmethod
-    def get_from_name(cls, name: str, filename: str):
-        candidates = [label for label in cls._list if label.name == name and label.filename == filename]
-        if not len(candidates):
-            return None
-        elif len(candidates) > 1:
-            raise Warning("More than one candidate is returned.")
-        return candidates[0]
+    def from_regex_match(cls, match: Match, position: Position = None) -> Self:
+        name = match.group(1)
+        position = Position.from_snes_address(match.group("snes_address")) if match.group("snes_address") else position
+
+        return cls(
+            position=position,
+            name=name,
+        )
+
+    def to_line(self, show_address: bool = False, labels: list[Self] | None = None) -> str:
+        output = ""
+        if show_address:
+            output += "\n"
+        output += str(self)
+        output += f"={self.position.to_snes_address()}" if show_address else ""
+        return output
+
+    def __str__(self) -> str:
+        return f"{self.name}"
+
+    def __repr__(self) -> str:
+        return f"{self.position}: {self.name}"
+
+    def __eq__(self, other: Self) -> bool:
+        return self.position == other.position
+
+    def __lt__(self, other: Self) -> bool:
+        return self.position < other.position
+
+    def __len__(self) -> int:
+        return 0
+
+    def __bool__(self):
+        return True
+
+    def __hash__(self):
+        return hash(int(self.position))
