@@ -4,6 +4,7 @@ from enum import Enum, auto
 from pathlib import Path
 from typing import Self
 
+from src.lib.structures.asm.blob import Blob
 from src.lib.structures.asm.pointer import Pointer
 from src.lib.structures.asm.instruction import BranchingInstruction, Instruction
 from src.lib.structures.asm.flags import Flags
@@ -16,21 +17,28 @@ from src.lib.structures.bytes import BytesType, Position
 class ScriptMode(Enum):
     INSTRUCTIONS = auto()
     POINTERS = auto()
+    BLOBS = auto()
 
 class ScriptSection:
-    def __init__(self, start: BytesType, end: BytesType, mode: ScriptMode, flags: Flags = None):
+    def __init__(self, start: BytesType, end: BytesType, mode: ScriptMode, **attributes):
         self.start = start
         self.end = end
         self.mode = mode
-        self.flags = flags or Flags()
+        self.attributes = attributes
+
+
+class MissingSectionAttribute(Exception):
+    pass
 
 
 class Script:
     def __init__(self):
-        self.instructions = list()
+        self.blobs = list()
         self.branching_instructions = list()
-        self.pointers = list()
+        self.instructions = list()
         self.labels = list()
+        self.pointers = list()
+
 
     @classmethod
     def from_script_file(cls, filename: str | Path, flags: Flags = None) -> Self:
@@ -44,7 +52,12 @@ class Script:
         lines_with_labels = list()
 
         for line in lines:
-            if match := re.search(Regex.FLAGS, line):
+            if match := re.search(Regex.BLOB, line):
+                blob = Blob.from_regex_match(match=match, position=Position(cursor))
+                cursor += len(blob)
+                script.blobs.append(blob)
+
+            elif match := re.search(Regex.FLAGS, line):
                 flags = Flags.from_regex_match(match=match)
 
             elif match := re.search(Regex.LABEL_LINE, line):
@@ -84,15 +97,15 @@ class Script:
                 pointer = Pointer.from_regex_match(match=match, position=Position(cursor), labels=script.labels)
                 script.pointers.append(pointer)
 
-        script.instructions.sort()
-        script.branching_instructions.sort()
-        script.pointers.sort()
+        for name in ["blobs", "instructions", "branching_instructions", "pointers"]:
+            _list = getattr(script, name)
+            _list.sort()
 
         return script
 
-    def to_script_file(self, filename: str | Path, flags: Flags):
+    def to_script_file(self, filename: str | Path, flags: Flags) -> None:
         self._extract_labels()
-        lines = self.labels + self.pointers + self.instructions + self.branching_instructions
+        lines = self.labels + self.blobs + self.branching_instructions + self.instructions + self.pointers
         lines.sort(key=lambda x: ScriptLine.sort(x))
         output = [flags.to_line()]
 
@@ -124,15 +137,9 @@ class Script:
 
     def to_rom(self, filename: str) -> None:
         with open(filename, "rb+") as f:
-            for pointer in self.pointers:
-                f.seek(int(pointer.position))
-                f.write(bytes(pointer))
-            for instruction in self.instructions:
-                f.seek(int(instruction.position))
-                f.write(bytes(instruction))
-            for branching_instruction in self.branching_instructions:
-                f.seek(int(branching_instruction.position))
-                f.write(bytes(branching_instruction))
+            for line in self.blobs + self.branching_instructions + self.instructions + self.pointers:
+                f.seek(int(line.position))
+                f.write(bytes(line))
 
     @classmethod
     def from_rom(cls, filename: str | Path, sections: list[ScriptSection]) -> Self:
@@ -143,39 +150,81 @@ class Script:
                 f.seek(cursor)
 
                 if section.mode == ScriptMode.POINTERS:
-                    while cursor < section.end:
-                        pointer_bytes = f.read(2)
-                        pointer = Pointer.from_bytes(position=Position(cursor), value=pointer_bytes)
-                        script.labels.append(Label(position=Position(pointer.destination)))
-                        script.pointers.append(pointer)
-                        cursor += 2
+                    cls._disassemble_pointers(cursor, f, script, section)
 
                 elif section.mode == ScriptMode.INSTRUCTIONS:
-                    flags = section.flags
-                    while cursor < section.end:
-                        f.seek(cursor)
-                        value = f.read(4)
+                    cls._dissassamble_instructions(cursor, f, script, section)
 
-                        instruction = Instruction.from_bytes(position=Position(cursor), value=value, flags=flags)
+                elif section.mode == ScriptMode.BLOBS:
+                    cls._disassemble_blobs(cursor, f, script, section)
 
-                        if isinstance(instruction, BranchingInstruction):
-                            script.branching_instructions.append(instruction)
-                            label = Label(position=Position(instruction.destination))
-                            if label not in script.labels:
-                                script.labels.append(label)
-                        else:
-                            if instruction.is_flag_setter():
-                                flags = instruction.set_flags(flags)
-
-                            script.instructions.append(instruction)
-                        cursor += len(instruction)
-
-        script.labels = list(set(sorted(script.labels)))
-        script.pointers.sort()
-        script.instructions.sort()
-        script.branching_instructions.sort()
+        cls._sort_lists(script)
 
         return script
+
+    @classmethod
+    def _disassemble_blobs(cls, cursor, f, script, section):
+        if section.attributes.get("length", None) is None and section.attributes.get("delimiter", None) is None:
+            raise MissingSectionAttribute(
+                "Attribute 'length' and 'delimiter' are missing. Please provide either of them."
+                f"Attributes: {section.attributes}"
+            )
+        f.seek(cursor)
+        delimiter = section.attributes.get("delimiter", None)
+        while cursor < section.end:
+            if length := section.attributes.get("length", None):
+                data = f.read(length)
+                if data == b"":
+                    break
+            else:
+                data = b''
+                while (_char := f.read(1)) != delimiter:
+                    if _char == b"":
+                        break
+                    data += _char
+
+            blob = Blob.from_bytes(data=data, position=Position(cursor), delimiter=delimiter)
+            script.blobs.append(blob)
+            cursor += len(blob)
+
+    @classmethod
+    def _disassemble_pointers(cls, cursor, f, script, section):
+        while cursor < section.end:
+            pointer_bytes = f.read(2)
+            pointer = Pointer.from_bytes(position=Position(cursor), value=pointer_bytes)
+            script.labels.append(Label(position=Position(pointer.destination)))
+            script.pointers.append(pointer)
+            cursor += 2
+
+    @classmethod
+    def _dissassamble_instructions(cls, cursor, f, script, section):
+        if "flags" not in section.attributes:
+            raise MissingSectionAttribute(f"Attribute 'flags' is missing. Attributes: {section.attributes}")
+        flags = section.attributes["flags"]
+        while cursor < section.end:
+            f.seek(cursor)
+            value = f.read(4)
+
+            instruction = Instruction.from_bytes(position=Position(cursor), value=value, flags=flags)
+
+            if isinstance(instruction, BranchingInstruction):
+                script.branching_instructions.append(instruction)
+                label = Label(position=Position(instruction.destination))
+                if label not in script.labels:
+                    script.labels.append(label)
+            else:
+                if instruction.is_flag_setter():
+                    flags = instruction.set_flags(flags)
+
+                script.instructions.append(instruction)
+            cursor += len(instruction)
+
+    def _sort_lists(self) -> None:
+        self.labels = list(set(sorted(self.labels)))
+        self.blobs.sort()
+        self.branching_instructions.sort()
+        self.instructions.sort()
+        self.pointers.sort()
 
     def _extract_labels(self):
         for script_line in self.pointers + self.branching_instructions:

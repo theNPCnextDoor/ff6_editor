@@ -18,3 +18,7 @@ archie=C0/0005
 
   JMP archie
   BRA start
+
+  blob $1234
+  blob $5678 $FF
+  blob $ABCD $00

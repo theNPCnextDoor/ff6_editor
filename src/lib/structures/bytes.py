@@ -161,4 +161,10 @@ class Position(Bytes):
         output = f"{str(snes_position[:1])}/{str(snes_position[1:])}"
         return output.upper()
 
+
+class BlobBytes(Bytes):
+    def __init__(self, value: BytesType):
+        super().__init__(value=value, in_endian=Endian.BIG, out_endian=Endian.BIG)
+
+
 BytesType = Bytes | int | str | bytes | list[int] | None
