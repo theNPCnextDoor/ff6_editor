@@ -5,14 +5,14 @@ from typing import Self
 from src.lib.structures.asm.flags import Flags
 from src.lib.structures.asm.label import Label
 from src.lib.structures.asm.opcodes import Opcodes
-from src.lib.structures.asm.regex import Regex
+from src.lib.structures.asm.regex import Regex, ToLineMixin
 from src.lib.structures.asm.script_line import (
     ScriptLine, DataMixin, BankMixin, ImpossibleDestination, DestinationMixin
 )
 from src.lib.structures.bytes import Bytes, Endian, Position, BytesType
 
 
-class Instruction(ScriptLine, DataMixin):
+class Instruction(ScriptLine, DataMixin, ToLineMixin):
     def __init__(self, opcode: BytesType, position: Position | None = None, data: Bytes | None = None):
         super().__init__(position=position)
         self.opcode = opcode
@@ -59,7 +59,7 @@ class Instruction(ScriptLine, DataMixin):
         return output
 
     def to_line(self, show_address: bool = False, labels: list[Label] | None = None) -> str:
-        output = f"  {str(self)}"
+        output = f"  {self}"
         output += f" # {self.position.to_snes_address()}" if show_address else ""
         return output
 
