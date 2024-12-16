@@ -1,5 +1,6 @@
 from pathlib import Path
 
+from src.lib.structures.asm.blob import Blob
 from src.lib.structures.bytes import Bytes, Position
 from src.lib.structures.asm.flags import Flags
 from src.lib.structures.asm.instruction import Instruction, BranchingInstruction
@@ -48,6 +49,12 @@ class ScriptImpl:
             BranchingInstruction(position=Position("00001F"), opcode=Bytes("80"), data=Bytes("E0"))
         ]
 
+        self.script.blobs = [
+            Blob(position=Position(0x000021), data=Bytes("1234")),
+            Blob(position=Position(0x000023), data=Bytes("5678"), delimiter=Bytes("FF")),
+            Blob(position=Position(0x000026), data=Bytes("ABCD"), delimiter=Bytes("00"))
+        ]
+
 
 class TestScript:
 
@@ -81,6 +88,11 @@ class TestScript:
         assert script.branching_instructions[0] == BranchingInstruction(position=Position("00001C"), opcode=Bytes("4C"), data=Bytes("0500"))
         assert script.branching_instructions[1] == BranchingInstruction(position=Position("00001F"), opcode=Bytes("80"), data=Bytes("E0"))
 
+        assert len(script.blobs) == 3
+        assert script.blobs[0] == Blob(position=Position(0x000021), data=Bytes("1234"))
+        assert script.blobs[1] == Blob(position=Position(0x000023), data=Bytes("5678"), delimiter=Bytes("FF"))
+        assert script.blobs[2] == Blob(position=Position(0x000026), data=Bytes("ABCD"), delimiter=Bytes("00"))
+
     def test_to_rom(self):
 
         with open(DUMMY_OUTPUT_ROM, "wb") as f:
@@ -95,14 +107,18 @@ class TestScript:
             b"\x34\x12\x05\x00" # Pointers
             b"\xAA\xA1\x12\xa2\xDC\xFE" # Instructions 0-2
             b"\xC2\x30\xA9\x56\x34\xA2\xDC\xFE" # Instructions 3-5
-            b"\xE2\x30\xA9\xBB\xA2\xCC" # Instruction 6-8
-            b"\x44\x12\x34\x4C\x05\x00\x80\xE0" # Instruction 9-11
+            b"\xE2\x30\xA9\xBB\xA2\xCC" # Instructions 6-8
+            b"\x44\x12\x34\x4C\x05\x00\x80\xE0" # Instructions 9-11
+            b"\x12\x34\x56\x78\xFF\xAB\xCD\x00" # Blobs 0-2
         )
 
     def test_from_rom(self):
         sections = [
             ScriptSection(start=0x000000, end=0x000008, mode=ScriptMode.POINTERS),
-            ScriptSection(start=0x000008, end=0x000012, mode=ScriptMode.INSTRUCTIONS)
+            ScriptSection(start=0x000008, end=0x000012, mode=ScriptMode.INSTRUCTIONS, flags=Flags()),
+            ScriptSection(start=0x000012, end=0x000014, mode=ScriptMode.BLOBS, length=2),
+            ScriptSection(start=0x000014, end=0x000017, mode=ScriptMode.BLOBS, delimiter=b"\xFF"),
+            ScriptSection(start=0x000017, end=0x00001A, mode=ScriptMode.BLOBS, delimiter=b"\x00")
         ]
         script = Script.from_rom(filename=DUMMY_INPUT_ROM, sections=sections)
 
@@ -120,6 +136,11 @@ class TestScript:
 
         assert len(script.branching_instructions) == 1
         assert script.branching_instructions[0] == BranchingInstruction(position=Position(0x000010), opcode=Bytes("80"), data=Bytes("FE"))
+
+        assert len(script.blobs) == 3
+        assert script.blobs[0] == Blob(position=Position(0x000012), data=Bytes("3412"))
+        assert script.blobs[1] == Blob(position=Position(0x000014), data=Bytes("7856"), delimiter=Bytes("FF"))
+        assert script.blobs[2] == Blob(position=Position(0x000017), data=Bytes("ABCD"), delimiter=Bytes("00"))
 
         assert len(script.labels) == 5
         assert script.labels[0] == Label(position=Position(0x002301))
@@ -151,6 +172,9 @@ archie
   MVP #$12,#$34
   JMP archie
   BRA start
+  blob $1234
+  blob $5678 $FF
+  blob $ABCD $00
 
 label_c01234=C0/1234"""
-        )
+)
