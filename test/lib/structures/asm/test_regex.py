@@ -39,7 +39,26 @@ class TestRegex:
         match = re.fullmatch(Regex.DATA, line)
         assert bool(match) == is_match
 
-    @pytest.mark.parametrize("line,is_match,group", [
+    @pytest.mark.parametrize(
+        ["line", "is_match"], [
+            ("blob", False),
+            ("  blob", False),
+            ("  blob $12", True),
+            ("  blob $0123456789ABCDEF", True),
+            ("  blob $12 # C0/00000", True),
+            ("  blob $123", False),
+            ("  blob $123 $FF", False),
+            ("  blob $12 $FF", True),
+            ("  blob $12 $FF # C0/00000", True),
+            ("  blob $12 $FFF", False)
+        ]
+    )
+    def test_blob(self, line: str, is_match: bool):
+        match = re.match(Regex.BLOB, line)
+        assert bool(match) == is_match
+
+    @pytest.mark.parametrize(
+        ["line", "is_match", "group"], [
         ("$FF", True, 6),
         ("#$FF", True, 5),
         ("#$FF,#$FF", True, 5),

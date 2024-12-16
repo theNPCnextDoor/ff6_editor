@@ -1,11 +1,12 @@
 from re import Match
 from typing import Self
 
+from src.lib.structures.asm.regex import ToLineMixin
 from src.lib.structures.asm.script_line import ScriptLine
 from src.lib.structures.bytes import Position
 
 
-class Label(ScriptLine):
+class Label(ScriptLine, ToLineMixin):
 
     def __init__(
         self,
