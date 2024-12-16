@@ -2,6 +2,7 @@ from re import Match
 from typing import Self
 
 from src.lib.structures.asm.label import Label
+from src.lib.structures.asm.regex import ToLineMixin
 
 
 class RegisterWidth:
@@ -9,7 +10,7 @@ class RegisterWidth:
     SIXTEEN_BITS = False
 
 
-class Flags:
+class Flags(ToLineMixin):
 
     def __init__(self, m: bool = RegisterWidth.SIXTEEN_BITS, x: bool = RegisterWidth.SIXTEEN_BITS):
         self.m = m
@@ -35,7 +36,7 @@ class Flags:
         x = "8" if self.x else "16"
         return f"m={m},x={x}"
 
-    def to_line(self, labels: list[Label] | None = None) -> str:
+    def to_line(self, show_address: bool = False, labels: list[Label] | None = None) -> str:
         return str(self)
 
     def __eq__(self, other: Self) -> bool:

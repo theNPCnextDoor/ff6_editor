@@ -1,12 +1,14 @@
 from re import Match
 from typing import Self
+
+from src.lib.structures.asm.regex import ToLineMixin
 from src.lib.structures.bytes import Bytes, BytesType, Position, Endian
 from src.lib.structures.asm.label import Label
 
 from src.lib.structures.asm.script_line import ScriptLine, BankMixin, ImpossibleDestination, DestinationMixin
 
 
-class Pointer(ScriptLine, BankMixin, DestinationMixin):
+class Pointer(ScriptLine, BankMixin, DestinationMixin, ToLineMixin):
     def __init__(
         self,
         position: Position = None,
@@ -33,7 +35,7 @@ class Pointer(ScriptLine, BankMixin, DestinationMixin):
         if label_name := match.group("label"):
             destination = cls.find_destination(label_name, labels)
         else:
-            data = Bytes(value=match.group("number"), length=2, in_endian=Endian.LITTLE, out_endian=Endian.LITTLE)
+            data = Bytes(value=match.group("number"), length=2)
 
         return cls(
             position=position,
@@ -42,7 +44,7 @@ class Pointer(ScriptLine, BankMixin, DestinationMixin):
         )
 
     @classmethod
-    def from_bytes(cls, value: bytes, position: BytesType = None) -> Self:
+    def from_bytes(cls, value: bytes, position: Position | None = None) -> Self:
         return Pointer(position=position, data=Bytes(value))
     
     def to_line(self, show_address: bool = False, labels: list[Label] | None = None) -> str:
