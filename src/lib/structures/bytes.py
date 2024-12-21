@@ -15,7 +15,7 @@ class Bytes:
         value: BytesType = None,
         length: int | None = None,
         in_endian: bool = Endian.LITTLE,
-        out_endian: bool = Endian.LITTLE
+        out_endian: bool = Endian.LITTLE,
     ):
         """
         Will initialize a Bytes object. It will always store its value as a list of integers in big endian.
@@ -59,7 +59,7 @@ class Bytes:
         if len(value) % 2 == 1:
             value = f"0{value}"
         for i in range(len(value) // 2):
-            hex = value[i * 2: i * 2 + 2]
+            hex = value[i * 2 : i * 2 + 2]
             self._value.append(int(f"0x{hex}", 16))
         if in_endian:
             self._value = self._value[::-1]
@@ -92,7 +92,7 @@ class Bytes:
         while len(self._value) < self.length:
             self._value = [0] + self._value
         if len(self._value) > self.length:
-            self._value = self._value[-self.length:]
+            self._value = self._value[-self.length :]
 
     def _ordered_value(self, out_endian: bool) -> list[int]:
         output = self._value[::-1] if out_endian is Endian.LITTLE else self._value
@@ -142,6 +142,7 @@ class Bytes:
     def __getitem__(self, item) -> Self:
         return Bytes(value=self._value[item], in_endian=Endian.BIG, out_endian=self.out_endian)
 
+
 class Position(Bytes):
     def __init__(self, value: BytesType = 0, in_endian: bool = Endian.BIG):
         super().__init__(value=value, length=3, in_endian=in_endian, out_endian=Endian.BIG)
@@ -163,8 +164,8 @@ class Position(Bytes):
 
 
 class BlobBytes(Bytes):
-    def __init__(self, value: BytesType):
-        super().__init__(value=value, in_endian=Endian.BIG, out_endian=Endian.BIG)
+    def __init__(self, value: BytesType, length: int | None = None):
+        super().__init__(value=value, length=length, in_endian=Endian.BIG, out_endian=Endian.BIG)
 
 
 BytesType = Bytes | int | str | bytes | list[int] | None
