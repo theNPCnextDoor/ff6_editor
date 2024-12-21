@@ -2,7 +2,7 @@ from __future__ import annotations
 import re
 from enum import Enum, auto
 from pathlib import Path
-from typing import Self
+from typing import Self, BinaryIO
 
 from src.lib.structures.asm.blob import Blob
 from src.lib.structures.asm.pointer import Pointer
@@ -11,13 +11,17 @@ from src.lib.structures.asm.flags import Flags
 from src.lib.structures.asm.label import Label
 from src.lib.structures.asm.regex import Regex
 from src.lib.structures.asm.script_line import ScriptLine
+from src.lib.structures.asm.string import String
 from src.lib.structures.bytes import BytesType, Position
+from src.lib.structures.charset.charset import MENU_CHARSET, Charset
 
 
 class ScriptMode(Enum):
     INSTRUCTIONS = auto()
     POINTERS = auto()
     BLOBS = auto()
+    MENU_STRINGS = auto()
+
 
 class ScriptSection:
     def __init__(self, start: BytesType, end: BytesType, mode: ScriptMode, **attributes):
@@ -39,9 +43,8 @@ class Script:
         self.labels = list()
         self.pointers = list()
 
-
     @classmethod
-    def from_script_file(cls, filename: str | Path, flags: Flags = None) -> Self:
+    def from_script_file(cls, filename: str | Path, flags: Flags | None = None, charset: Charset | None = None) -> Self:
         with open(filename) as f:
             lines = f.readlines()
 
@@ -49,6 +52,7 @@ class Script:
 
         cursor = 0
         flags = flags or Flags()
+        charset = charset or Charset(charset=MENU_CHARSET)
         lines_with_labels = list()
 
         for line in lines:
@@ -56,6 +60,11 @@ class Script:
                 blob = Blob.from_regex_match(match=match, position=Position(cursor))
                 cursor += len(blob)
                 script.blobs.append(blob)
+
+            elif match := re.search(Regex.MENU_STRING, line):
+                string = String.from_regex_match(match=match, position=Position(cursor), charset=charset)
+                cursor += len(string)
+                script.blobs.append(string)
 
             elif match := re.search(Regex.FLAGS, line):
                 flags = Flags.from_regex_match(match=match)
@@ -90,7 +99,9 @@ class Script:
 
         for line, cursor in lines_with_labels:
             if match := re.match(Regex.BRANCHING_INSTRUCTION, line):
-                instruction = BranchingInstruction.from_regex_match(match=match, position=Position(cursor), labels=script.labels)
+                instruction = BranchingInstruction.from_regex_match(
+                    match=match, position=Position(cursor), labels=script.labels
+                )
                 script.branching_instructions.append(instruction)
 
             elif match := re.match(Regex.POINTER, line):
@@ -132,7 +143,7 @@ class Script:
             output.append(line.to_line(labels=self.labels))
             cursor = int(line.position) + len(line)
 
-        with open(filename, "w") as f:
+        with open(filename, "w", encoding="utf-8") as f:
             f.write("\n".join(output))
 
     def to_rom(self, filename: str) -> None:
@@ -155,7 +166,7 @@ class Script:
                 elif section.mode == ScriptMode.INSTRUCTIONS:
                     cls._dissassamble_instructions(cursor, f, script, section)
 
-                elif section.mode == ScriptMode.BLOBS:
+                elif section.mode in (ScriptMode.BLOBS, ScriptMode.MENU_STRINGS):
                     cls._disassemble_blobs(cursor, f, script, section)
 
         cls._sort_lists(script)
@@ -163,12 +174,16 @@ class Script:
         return script
 
     @classmethod
-    def _disassemble_blobs(cls, cursor, f, script, section):
+    def _disassemble_blobs(cls, cursor: int, f: BinaryIO, script: Self, section: ScriptSection) -> None:
         if section.attributes.get("length", None) is None and section.attributes.get("delimiter", None) is None:
             raise MissingSectionAttribute(
                 "Attribute 'length' and 'delimiter' are missing. Please provide either of them."
                 f"Attributes: {section.attributes}"
             )
+
+        if section.mode == ScriptMode.MENU_STRINGS and not section.attributes.get("charset", None):
+            raise MissingSectionAttribute(f"Attribute 'charset' is missing. Attributes: {section.attributes}")
+
         f.seek(cursor)
         delimiter = section.attributes.get("delimiter", None)
         while cursor < section.end:
@@ -177,18 +192,23 @@ class Script:
                 if data == b"":
                     break
             else:
-                data = b''
+                data = b""
                 while (_char := f.read(1)) != delimiter:
                     if _char == b"":
                         break
                     data += _char
 
-            blob = Blob.from_bytes(data=data, position=Position(cursor), delimiter=delimiter)
+            if section.mode == ScriptMode.BLOBS:
+                blob = Blob.from_bytes(data=data, position=Position(cursor), delimiter=delimiter)
+            else:
+                blob = String.from_bytes(
+                    data=data, position=Position(cursor), delimiter=delimiter, charset=section.attributes["charset"]
+                )
             script.blobs.append(blob)
             cursor += len(blob)
 
     @classmethod
-    def _disassemble_pointers(cls, cursor, f, script, section):
+    def _disassemble_pointers(cls, cursor: int, f: BinaryIO, script: Self, section: ScriptSection) -> None:
         while cursor < section.end:
             pointer_bytes = f.read(2)
             pointer = Pointer.from_bytes(position=Position(cursor), value=pointer_bytes)
@@ -197,7 +217,7 @@ class Script:
             cursor += 2
 
     @classmethod
-    def _dissassamble_instructions(cls, cursor, f, script, section):
+    def _dissassamble_instructions(cls, cursor: int, f: BinaryIO, script: Self, section: ScriptSection) -> None:
         if "flags" not in section.attributes:
             raise MissingSectionAttribute(f"Attribute 'flags' is missing. Attributes: {section.attributes}")
         flags = section.attributes["flags"]

@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING, Self
 
 from src.lib.structures.asm.regex import ToLineMixin
 from src.lib.structures.asm.script_line import ScriptLine
-from src.lib.structures.bytes import Position, Bytes, Endian
+from src.lib.structures.bytes import Position, Bytes, Endian, BlobBytes
 
 if TYPE_CHECKING:
     from re import Match
@@ -12,7 +12,7 @@ if TYPE_CHECKING:
 
 
 class Blob(ScriptLine, ToLineMixin):
-    def __init__(self, data: Bytes, position: Position | None = None, delimiter: Bytes | None = None):
+    def __init__(self, data: BlobBytes, position: Position | None = None, delimiter: Bytes | None = None):
         super().__init__(position=position)
         self.data = data
         self.delimiter = delimiter
@@ -25,19 +25,14 @@ class Blob(ScriptLine, ToLineMixin):
         if delimiter is not None:
             delimiter = Bytes(delimiter)
 
-        return cls(
-            position=position,
-            data=Bytes(data, in_endian=Endian.BIG, out_endian=Endian.BIG),
-            delimiter=delimiter
-        )
+        return cls(position=position, data=BlobBytes(data), delimiter=delimiter)
 
     @classmethod
     def from_bytes(cls, data: bytes, position: Position | None = None, delimiter: bytes | None = None) -> Self:
-        data = Bytes(value=data, in_endian=Endian.BIG, out_endian=Endian.BIG)
+        data = BlobBytes(value=data)
         if delimiter is not None:
             delimiter = Bytes(value=delimiter)
         return Blob(position=position, data=data, delimiter=delimiter)
-
 
     def __str__(self):
         output = f"blob ${self.data}"
