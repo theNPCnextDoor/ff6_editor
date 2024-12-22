@@ -2,13 +2,12 @@ import re
 from re import Match
 from typing import Self
 
+from src.lib.misc.exception import TooManyCandidatesException, NoCandidateException
 from src.lib.structures.asm.flags import Flags
 from src.lib.structures.asm.label import Label
 from src.lib.structures.asm.opcodes import Opcodes
 from src.lib.structures.asm.regex import Regex, ToLineMixin
-from src.lib.structures.asm.script_line import (
-    ScriptLine, DataMixin, BankMixin, ImpossibleDestination, DestinationMixin
-)
+from src.lib.structures.asm.script_line import ScriptLine, DataMixin, BankMixin, ImpossibleDestination, DestinationMixin
 from src.lib.structures.bytes import Bytes, Endian, Position, BytesType
 
 
@@ -38,7 +37,7 @@ class Instruction(ScriptLine, DataMixin, ToLineMixin):
         value = Bytes(value, in_endian=Endian.BIG)
         command = Opcodes[int(value[0])]
         length = command["length"] - flags.m * command["m"] - flags.x * command["x"]
-        data = Bytes(value[1: length + 1]) if length else None
+        data = Bytes(value[1 : length + 1]) if length else None
         opcode = Bytes(value[0])
 
         if cls._is_branching_instruction(opcode):
@@ -49,7 +48,20 @@ class Instruction(ScriptLine, DataMixin, ToLineMixin):
     @classmethod
     def _is_branching_instruction(cls, opcode: Bytes):
         return cls.command(opcode) in [
-            "JMP", "JML", "JSR", "JSL", "BCC", "BCS", "BEQ", "BMI", "BNE", "BPL", "BRA", "BRL", "BVC", "BVS"
+            "JMP",
+            "JML",
+            "JSR",
+            "JSL",
+            "BCC",
+            "BCS",
+            "BEQ",
+            "BMI",
+            "BNE",
+            "BPL",
+            "BRA",
+            "BRL",
+            "BVC",
+            "BVS",
         ]
 
     def __bytes__(self) -> bytes:
@@ -121,6 +133,7 @@ class Instruction(ScriptLine, DataMixin, ToLineMixin):
     def __repr__(self) -> str:
         return f"{self.position}: {self} ({self.opcode} {self.data})"
 
+
 class BranchingInstruction(Instruction, BankMixin, DestinationMixin):
     def __init__(self, position: Position, opcode: Bytes, data: Bytes = None, destination: Position = None):
         if data is None and destination is None:
@@ -128,7 +141,6 @@ class BranchingInstruction(Instruction, BankMixin, DestinationMixin):
         super().__init__(position=position, opcode=opcode)
         self.data = data if data is not None else self.destination_to_data(destination=destination)
         self.destination = destination if destination is not None else self.data_to_destination(data=data)
-
 
     @classmethod
     def from_regex_match(cls, match: Match, position: Position, labels: list[Label]) -> Self:
@@ -142,7 +154,8 @@ class BranchingInstruction(Instruction, BankMixin, DestinationMixin):
             if not cls.is_destination_possible(position, destination, command):
                 raise ImpossibleDestination(
                     f"Destination '{destination.to_snes_address()}' can't be reached with pointer"
-                    f" at position '{position.to_snes_address()}'")
+                    f" at position '{position.to_snes_address()}'"
+                )
 
             length = cls.find_length(command=command)
         else:
@@ -188,7 +201,7 @@ class BranchingInstruction(Instruction, BankMixin, DestinationMixin):
             return 2
         if command.startswith("B"):
             return 1
-        return 3 # JSL, JML
+        return 3  # JSL, JML
 
     @classmethod
     def command_to_mode(cls, command: str) -> str:
@@ -196,7 +209,7 @@ class BranchingInstruction(Instruction, BankMixin, DestinationMixin):
             return "#$_"
         return "$_"
 
-    def to_line(self, show_address: bool = False, labels: list[Label]| None = None):
+    def to_line(self, show_address: bool = False, labels: list[Label] | None = None):
         output = f"  {Opcodes[int(self.opcode)]['command']}"
         label = None
 
@@ -211,11 +224,3 @@ class BranchingInstruction(Instruction, BankMixin, DestinationMixin):
 
         output += f" # {self.position.to_snes_address()}" if show_address else ""
         return output
-
-
-class TooManyCandidatesException(Exception):
-    pass
-
-
-class NoCandidateException(Exception):
-    pass
