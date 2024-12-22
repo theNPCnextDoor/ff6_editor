@@ -42,7 +42,7 @@ class Script:
 
     @classmethod
     def from_script_file(cls, filename: str | Path, flags: Flags | None = None, charset: Charset | None = None) -> Self:
-        with open(filename) as f:
+        with open(filename, encoding="utf-8") as f:
             lines = f.readlines()
 
         script = cls()
@@ -111,10 +111,11 @@ class Script:
 
         return script
 
-    def to_script_file(self, filename: str | Path, flags: Flags) -> None:
+    def to_script_file(self, filename: str | Path, flags: Flags | None = None) -> None:
         self._extract_labels()
         lines = self.labels + self.blobs + self.branching_instructions + self.instructions + self.pointers
         lines.sort(key=lambda x: ScriptLine.sort(x))
+        flags = flags or Flags()
         output = [flags.to_line()]
 
         cursor = int(lines[0].position)
@@ -143,11 +144,13 @@ class Script:
         with open(filename, "w", encoding="utf-8") as f:
             f.write("\n".join(output))
 
-    def to_rom(self, filename: str) -> None:
-        with open(filename, "rb+") as f:
+    def to_rom(self, input_path: str, output_path: str) -> None:
+        with open(input_path, "rb") as input_rom, open(output_path, "wb") as output_rom:
+            rom = input_rom.read()
+            output_rom.write(rom)
             for line in self.blobs + self.branching_instructions + self.instructions + self.pointers:
-                f.seek(int(line.position))
-                f.write(bytes(line))
+                output_rom.seek(int(line.position))
+                output_rom.write(bytes(line))
 
     @classmethod
     def from_rom(cls, filename: str | Path, sections: list[ScriptSection]) -> Self:
