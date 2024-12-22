@@ -52,9 +52,9 @@ class ScriptImpl:
         ]
 
         self.script.blobs = [
-            Blob(position=Position(0x000021), data=Bytes("1234")),
-            Blob(position=Position(0x000023), data=Bytes("5678"), delimiter=Bytes("FF")),
-            Blob(position=Position(0x000026), data=Bytes("ABCD"), delimiter=Bytes("00")),
+            Blob(position=Position(0x000021), data=BlobBytes("1234")),
+            Blob(position=Position(0x000023), data=BlobBytes("5678"), delimiter=Bytes("FF")),
+            Blob(position=Position(0x000026), data=BlobBytes("ABCD"), delimiter=Bytes("00")),
             String(position=Position(0x000029), data=BlobBytes("0080D8FF"), delimiter=Bytes("88")),
         ]
 
@@ -203,10 +203,10 @@ archie
   MVP #$12,#$34
   JMP archie
   BRA start
-  blob $1234
-  blob $5678 $FF
-  blob $ABCD $00
-  "<0x00>A<KNIFE> " $88
+  $1234
+  $5678,$FF
+  $ABCD,$00
+  "<0x00>A<KNIFE> ",$88
 
 label_c01234=C0/1234"""
         )

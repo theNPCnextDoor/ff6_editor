@@ -19,7 +19,7 @@ archie=C0/0005
   JMP archie
   BRA start
 
-  blob $1234
-  blob $5678 $FF
-  blob $ABCD $00
+  $1234
+  $5678,$FF
+  $ABCD,$00
   "<0x00>A<KNIFE> "
