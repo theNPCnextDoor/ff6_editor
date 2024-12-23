@@ -34,13 +34,13 @@ class Blob(ScriptLine, ToLineMixin):
             delimiter = Bytes(value=delimiter)
         return Blob(position=position, data=data, delimiter=delimiter)
 
-    def __str__(self):
+    def __str__(self) -> str:
         output = f"${self.data}"
         if self.delimiter is not None:
             output += f",${self.delimiter}"
         return output
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"{self.position}: {self}"
 
     def to_line(self, show_address: bool = False, labels: list[Label] | None = None) -> str:

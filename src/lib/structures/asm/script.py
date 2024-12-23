@@ -317,7 +317,7 @@ class Script:
         self.instructions.sort()
         self.pointers.sort()
 
-    def _extract_labels(self):
+    def _extract_labels(self) -> None:
         for script_line in self.pointers + self.branching_instructions:
             label = Label(position=script_line.destination)
             if label not in self.labels:
