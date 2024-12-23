@@ -20,7 +20,7 @@ class Blob(ScriptLine, ToLineMixin):
     @classmethod
     def from_regex_match(cls, match: Match, position: Position | None = None) -> Self:
         data = match.group("n1") or match.group("n2")
-        delimiter = match.group("delimiter")
+        delimiter = match.group("d1")
 
         if delimiter is not None:
             delimiter = Bytes(delimiter)

@@ -35,7 +35,7 @@ class TestInstruction:
         ],
     )
     def test_from_regex_match(self, line: str, flags: Flags, opcode: Bytes, data: Bytes):
-        match = re.match(Regex.INSTRUCTION, line)
+        match = re.match(Regex.INSTRUCTION_LINE, line)
         instruction = Instruction.from_regex_match(match=match, position=Position("123456"), flags=flags)
         assert instruction.position == Position(0x123456)
         assert instruction.opcode == opcode
@@ -194,7 +194,7 @@ class TestInstruction:
         ],
     )
     def test_instruction(self, line: str, mode: str, data: str):
-        match = re.match(Regex.INSTRUCTION, line)
+        match = re.match(Regex.INSTRUCTION_LINE, line)
         assert Instruction.mode(match) == mode
         assert Instruction.data(match) == data
 
@@ -317,7 +317,7 @@ class TestBranchingInstruction:
         ],
     )
     def test_from_regex_match(self, line: str, position: Position, data: Bytes, labels: list[Label]):
-        match = re.match(Regex.BRANCHING_INSTRUCTION, line)
+        match = re.match(Regex.BRANCHING_INSTRUCTION_LINE, line)
         instruction = BranchingInstruction.from_regex_match(match=match, position=position, labels=labels)
         assert instruction.position == position
         assert instruction.data == data
