@@ -45,8 +45,3 @@ class Rom:
                 raise ValueError("File size suggests unconventional file size.")
 
         self.header = False
-
-
-if __name__ == "__main__":
-    rom = Rom("ff3.sfc")
-    print(f"{rom.general_actions[0x35].pointer:02X}")
