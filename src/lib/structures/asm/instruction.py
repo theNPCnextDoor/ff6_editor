@@ -3,8 +3,8 @@ import re
 from typing import Union
 
 from src.lib.structures.asm.label import Label
-from src.lib.structures.fields import Bytes
-from src.lib.structures.fields import Opcodes
+from src.lib.structures import Bytes
+from src.lib.structures.asm.opcodes import Opcodes
 
 BRANCHING_OPCODES = {
     0x10: "BPL",
@@ -37,7 +37,7 @@ class Instruction:
         x: bool = False,
         label: Label = None,
         length: int = None,
-        endianness: str = "little"
+        endianness: str = "little",
     ):
 
         self.opcode = Bytes(opcode)
@@ -102,7 +102,6 @@ class Instruction:
                 length=length,
             )
         else:
-
             return cls(
                 opcode=opcode[0],
                 data=cls.destination_to_data(
@@ -111,7 +110,7 @@ class Instruction:
                 position=position,
                 m=m,
                 x=x,
-                comment=comment
+                comment=comment,
             )
 
     @staticmethod
@@ -234,7 +233,12 @@ class Instruction:
     @staticmethod
     def reverse_pairs(string):
         reverse_string = string[::-1]
-        return "".join([reverse_string[2 * i + 1] + reverse_string[2 * i] for i in range(len(reverse_string) // 2)])
+        return "".join(
+            [
+                reverse_string[2 * i + 1] + reverse_string[2 * i]
+                for i in range(len(reverse_string) // 2)
+            ]
+        )
 
 
 class BranchingInstruction(Instruction):
@@ -297,4 +301,3 @@ class BranchingInstruction(Instruction):
             )
         else:
             return super().__str__()
-

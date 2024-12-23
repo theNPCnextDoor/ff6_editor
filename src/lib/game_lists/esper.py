@@ -1,6 +1,4 @@
-
-
-class Espers:
+class Esper:
     RAMUH = 0x00
     IFRIT = 0x01
     SHIVA = 0x02

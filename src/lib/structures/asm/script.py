@@ -2,12 +2,13 @@ import logging
 import re
 from typing import List, Union
 
-from src.lib.structures.fields import Binary, Instruction, Bytes, Label
-from src.lib.structures.fields import BRANCHING_OPCODES, BranchingInstruction
+from src.lib.structures import Binary, Bytes
+from src.lib.structures.asm import Instruction, BranchingInstruction, Label
+from src.lib.structures.asm.instruction import BRANCHING_OPCODES
 
 
 class Script:
-    def __init__(self, m:bool = False, x: bool = False):
+    def __init__(self, m: bool = False, x: bool = False):
         self.instructions = []
         self.labels = set()
         self.m = m
@@ -17,9 +18,7 @@ class Script:
         if pad and self.get_label(by="name", value="end"):
             self.pad()
         for instruction in self.instructions:
-            logging.debug(
-                f"Writing {instruction.debug_string} @ {instruction.address}"
-            )
+            logging.debug(f"Writing {instruction.debug_string} @ {instruction.address}")
             start = int(instruction.position)
             end = start + 1 + len(instruction.data)
             Binary()[start:end] = bytes(instruction.opcode) + bytes(instruction.data)
@@ -30,11 +29,13 @@ class Script:
         start: int,
         last_instruction_position: int,
         m: bool = False,
-        x: bool = False
+        x: bool = False,
     ):
         script = cls(m=m, x=x)
         script.labels.add(Label(position=Bytes(start), name="start"))
-        script.labels.add(Label(position=Bytes(last_instruction_position + 1), name="end"))
+        script.labels.add(
+            Label(position=Bytes(last_instruction_position + 1), name="end")
+        )
         position = start
         while position <= last_instruction_position:
             instruction = Instruction(
@@ -45,7 +46,7 @@ class Script:
             )
             position += 1
             if instruction.length:
-                read_bytes = Binary()[position:position + instruction.length]
+                read_bytes = Binary()[position : position + instruction.length]
                 instruction.data = Bytes(
                     read_bytes, length=instruction.length, endianness="little"
                 )
@@ -64,15 +65,19 @@ class Script:
 
     def to_script(self, filename: str):
         file_content = f"m={str(self.m).lower()},x={str(self.x).lower()}\n"
-        labels_before_script = sorted([
-            label
-            for label in self.labels
-            if label < self.get_label(by="name", value="start")
-        ])
-        file_content += "\n".join([
-            f"{label.name}={label.position.to_address()}"
-            for label in labels_before_script
-        ])
+        labels_before_script = sorted(
+            [
+                label
+                for label in self.labels
+                if label < self.get_label(by="name", value="start")
+            ]
+        )
+        file_content += "\n".join(
+            [
+                f"{label.name}={label.position.to_address()}"
+                for label in labels_before_script
+            ]
+        )
         file_content += "\n"
 
         for instruction in self.instructions:
@@ -81,16 +86,20 @@ class Script:
         end_label = self.get_label(by="name", value="end")
         file_content += f"\nend={end_label.position.to_address()}\n\n"
 
-        labels_after_script = sorted([
-            label
-            for label in self.labels
-            if label > self.get_label(by="name", value="end")
-        ])
+        labels_after_script = sorted(
+            [
+                label
+                for label in self.labels
+                if label > self.get_label(by="name", value="end")
+            ]
+        )
 
-        file_content += "\n".join([
-            f"{label.name}={label.position.to_address()}"
-            for label in labels_after_script
-        ])
+        file_content += "\n".join(
+            [
+                f"{label.name}={label.position.to_address()}"
+                for label in labels_after_script
+            ]
+        )
 
         with open(filename, "w") as f:
             f.write(file_content)
@@ -100,12 +109,12 @@ class Script:
         script = cls()
         with open(filename, "r") as f:
             lines = [line for l in f.readlines() if (line := l.rstrip())]
-            script.labels = script.extract_labels(lines)
+            script.labels = script.extract_labels(lines, filename=filename)
             script.instructions = script.extract_instructions(lines)
         return script
 
     @staticmethod
-    def extract_labels(lines):
+    def extract_labels(lines: List, filename: str):
         labels = set()
         for line in lines:
             fixed_position = False
@@ -114,7 +123,14 @@ class Script:
                     position = Bytes.from_address(match.group(3))
                     fixed_position = True
                 name = match.group(1)
-                labels.add(Label(position=position, name=name, fixed_position=fixed_position))
+                labels.add(
+                    Label(
+                        position=position,
+                        filename=filename,
+                        name=name,
+                        fixed_position=fixed_position,
+                    )
+                )
             elif re.search(r"^m=(\w+),x=(\w+)", line):
                 continue
             else:
@@ -126,7 +142,9 @@ class Script:
         instructions = []
         position = self.get_label(by="name", value="start").position
         for line in lines:
-            if match := re.search(r" +(\w{3})( +([^ \"]*))?( *\"([^\)]*)\")?", line):
+            if re.search(r"^[\w\d_]{4,}$", line):
+                pass
+            if match := re.search(r"^ +(\w{3})( +([^ \"]*))?( *\"([^\)]*)\")?", line):
                 command = match.group(1)
                 chunk = match.group(3)
                 comment = match.group(5)
@@ -195,6 +213,12 @@ class Script:
         return None
 
     def pad(self, opcode: int = 0xEA):
-        last_position = self.instructions[-1].position + self.instructions[-1].length + 1
-        for offset in range(int(self.get_label(by="name", value="end").position - last_position)):
-            self.instructions.append(Instruction(opcode=opcode, position=offset + last_position))
+        last_position = (
+            self.instructions[-1].position + self.instructions[-1].length + 1
+        )
+        for offset in range(
+            int(self.get_label(by="name", value="end").position - last_position)
+        ):
+            self.instructions.append(
+                Instruction(opcode=opcode, position=offset + last_position)
+            )

@@ -1,5 +1,3 @@
-
-
 class Binary:
     _instance = None
 
@@ -10,10 +8,8 @@ class Binary:
 
 
 class _Binary:
-
     def __init__(self, binary):
         self.binary = binary
 
     def __get__(self, instance, owner):
         return self.binary
-

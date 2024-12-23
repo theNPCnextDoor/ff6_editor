@@ -1,7 +1,7 @@
 from enum import Enum
 
 
-class ChestTypes:
+class ChestType:
     EMPTY = 0x00
     GOLD = 0x80
     MIAB = 0x20
@@ -16,4 +16,3 @@ class ChestTypes:
     @classmethod
     def safe(cls):
         return [cls.GOLD, cls.ITEM, cls.ESPER, cls.RARE_ITEM]
-

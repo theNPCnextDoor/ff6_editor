@@ -1,53 +1,65 @@
-from resources.char_tables.field_dialog_table import FieldDialogTable
-from rom_editor.field_dialog import Dialog
-from tools.functions import int2byte, byte2int
+from src.lib.game_lists import RomMap
+from src.lib.game_lists.dte import FieldDte
+from src.lib.structures import Binary, Bytes, Pointer
+from src.lib.structures.fields import DialogField
 
 
-class FieldDialog(Dialog):
-    CHAR_TABLE = FieldDialogTable
+class FieldDialog:
+    pointer = Pointer()
+    message = DialogField()
+    pointer_location = RomMap.DIALOG_POINTER_ADDRESS
+    end = RomMap.DIALOG_POINTER_2ND_BANK
+    dte = FieldDte
 
-    def __init__(
-        self,
-        id,
-        char_table=None,
-        message=None,
-        length=None,
-        uncompressed_binary=None,
-        ending_character=b'\x00'
-    ):
-        if not char_table and not self.__class__.CHAR_TABLE:
-            raise ValueError("Please select a character table for this Dialog.")
+    def __init__(self, id: int):
         self.id = id
-        self.pointer_position = self.id * 2 + self.DIALOG_POINTER_ADDRESS
-        self.pointer = byte2int(self.rom.read(self.pointer_position, 2))
-        self._message = message
-        self._raw = None
-        self.length = length
-        self.ending_character = ending_character
-        super().__init__()
-
-    def read(self):
-        position = self.pointer
-        position += self.DIALOG_1ST_BANK if self.id < self.second_bank_first_id else self.DIALOG_2ND_BANK
-        self.rom.seek(position)
-        char = b''
-        message = ''
-        raw = b''
-        while char != self.ending_character:
-            char = self.rom.read()
-            raw += char
-            message += self.CHAR_TABLE.convert(char)
-        self._raw = raw
-        return message
-
-    def write(self):
-        self.rom.seek(self.pointer_position)
-        self.rom.write(int2byte(self.pointer))
-        position = self.pointer
-
-        # if self.id >
 
     @property
-    def second_bank_first_id(self):
-        return byte2int(self.rom.read(self.POINTER_2ND_BANK_START, 2))
+    def id(self):
+        return self._id
 
+    @id.setter
+    def id(self, value: int):
+        self._id = value
+        self.dialog_location = RomMap.DIALOG_1ST_BANK
+        if value >= int(
+            Bytes(
+                Binary()[
+                    RomMap.DIALOG_POINTER_2ND_BANK : RomMap.DIALOG_POINTER_2ND_BANK + 2
+                ],
+                length=2,
+                endianness="little",
+            )
+        ):
+            self.dialog_location += 0x010000
+
+    def __str__(self):
+        return self.dte.to_string(self.message)
+
+    @property
+    def address(self):
+        return self.dialog_location + self.pointer
+
+    @property
+    def available_space(self):
+        if self.id < RomMap.DIALOG_QUANTITY:
+            return self.__class__(id=self.id + 1).address - self.address
+        else:
+            return RomMap.DIALOG_2ND_BANK_END - self.address
+
+    def __len__(self):
+        start = self.address
+        end = self.end_address(start)
+        return end - start
+
+    def end_address(self, start):
+        end = start + self.available_space
+        for i in range(self.available_space):
+            next_byte = Binary()[start + i]
+
+            if next_byte == 0:
+                end = start + i + 1
+                break
+            elif ": _" in self.dte.char_map[next_byte]:
+                i += 1
+        return end

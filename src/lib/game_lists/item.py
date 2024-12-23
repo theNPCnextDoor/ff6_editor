@@ -1,6 +1,4 @@
-
-
-class Items:
+class Item:
     DIRK = 0x00
     MITHRIL_KNIFE = 0x01
     GUARDIAN = 0x02
@@ -257,5 +255,3 @@ class Items:
     WARP_STONE = 0xFD
     DRIED_MEAT = 0xFE
     EMPTY = 0xFF
-
-
