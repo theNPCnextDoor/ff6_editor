@@ -3,13 +3,14 @@ from re import Match
 from typing import Self
 
 from src.lib.structures.asm.blob import Blob
-from src.lib.structures.asm.regex import Regex
+from src.lib.structures.asm.label import Label
+from src.lib.structures.asm.regex import Regex, ToLineMixin
 from src.lib.structures.bytes import BlobBytes, Position, Bytes
 
 from src.lib.structures.charset.charset import Charset, MENU_CHARSET
 
 
-class String(Blob):
+class String(Blob, ToLineMixin):
     def __init__(
         self,
         data: BlobBytes,
@@ -24,7 +25,7 @@ class String(Blob):
     def from_regex_match(cls, match: Match, position: Position | None = None, charset: Charset | None = None) -> Self:
         value = match.group("s1") or match.group("s2")
         charset = charset or Charset(charset=MENU_CHARSET)
-        delimiter = Bytes(match.group("delimiter"))
+        delimiter = Bytes(d) if (d := match.group("d2")) else None
         chars = re.findall(Regex.MENU_CHAR, value)
         data = b""
         for char in chars:
@@ -53,5 +54,11 @@ class String(Blob):
             output += f",${self.delimiter}"
         return output
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"{self.position}: {self}"
+
+    def to_line(self, show_address: bool = False, labels: list[Label] | None = None) -> str:
+        output = f"  {self}"
+        if show_address:
+            output += f" # {self.position.to_snes_address()}"
+        return output

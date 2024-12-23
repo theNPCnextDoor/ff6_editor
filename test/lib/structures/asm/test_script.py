@@ -1,13 +1,14 @@
 from pathlib import Path
 
 from src.lib.structures.asm.blob import Blob
+from src.lib.structures.asm.blob_group import BlobGroup
 from src.lib.structures.asm.string import String
 from src.lib.structures.bytes import Bytes, Position, BlobBytes
 from src.lib.structures.asm.flags import Flags
 from src.lib.structures.asm.instruction import Instruction, BranchingInstruction
 from src.lib.structures.asm.label import Label
 from src.lib.structures.asm.pointer import Pointer
-from src.lib.structures.asm.script import Script, ScriptMode, ScriptSection
+from src.lib.structures.asm.script import Script, ScriptMode, ScriptSection, SubSection
 from src.lib.structures.charset.charset import MENU_CHARSET, Charset
 from test import TEST_FOLDER
 
@@ -56,6 +57,18 @@ class ScriptImpl:
             Blob(position=Position(0x000023), data=BlobBytes("5678"), delimiter=Bytes("FF")),
             Blob(position=Position(0x000026), data=BlobBytes("ABCD"), delimiter=Bytes("00")),
             String(position=Position(0x000029), data=BlobBytes("0080D8FF"), delimiter=Bytes("88")),
+        ]
+
+        self.script.blob_groups = [
+            BlobGroup(
+                blobs=[
+                    Blob(position=Position(0x00002E), data=BlobBytes(0xAA)),
+                    String(position=Position(0x00002F), data=BlobBytes(0x9A)),
+                    Blob(position=Position(0x000030), data=BlobBytes(0xBB), delimiter=Bytes(0xFF)),
+                    String(position=Position(0x000032), data=BlobBytes(0x9B), delimiter=Bytes(0x00)),
+                ],
+                position=Position(0x00002E),
+            )
         ]
 
 
@@ -109,12 +122,23 @@ class TestScript:
         assert script.blobs[2] == Blob(position=Position(0x000026), data=BlobBytes("ABCD"), delimiter=Bytes("00"))
         assert script.blobs[3] == String(position=Position(0x000029), data=BlobBytes("0080D8FF"), delimiter=Bytes("88"))
 
+        assert len(script.blob_groups) == 1
+        assert len(script.blob_groups[0].blobs) == 4
+        assert script.blob_groups[0].blobs[0] == Blob(position=Position(0x00002E), data=BlobBytes(0xAA))
+        assert script.blob_groups[0].blobs[1] == String(position=Position(0x00002F), data=BlobBytes(0x9A))
+        assert script.blob_groups[0].blobs[2] == Blob(
+            position=Position(0x000030), data=BlobBytes(0xBB), delimiter=Bytes(0xFF)
+        )
+        assert script.blob_groups[0].blobs[3] == String(
+            position=Position(0x000032), data=BlobBytes(0x9B), delimiter=Bytes(0x00)
+        )
+
     def test_to_rom(self):
 
         with open(DUMMY_OUTPUT_ROM, "wb") as f:
             f.write(b"\x00")
 
-        ScriptImpl().script.to_rom(filename=DUMMY_OUTPUT_ROM)
+        ScriptImpl().script.to_rom(output_path=DUMMY_OUTPUT_ROM)
         with open(DUMMY_OUTPUT_ROM, "rb") as f:
             output = f.read()
 
@@ -127,6 +151,7 @@ class TestScript:
             b"\x44\x12\x34\x4C\x05\x00\x80\xE0"  # Instructions 9-11
             b"\x12\x34\x56\x78\xFF\xAB\xCD\x00"  # Blobs 0-2
             b"\x00\x80\xD8\xFF\x88"  # String 0
+            b"\xAA\x9A\xBB\xFF\x9B\x00"  # Blob Group 0
         )
 
     def test_from_rom(self):
@@ -142,6 +167,17 @@ class TestScript:
                 mode=ScriptMode.MENU_STRINGS,
                 delimiter=b"\x88",
                 charset=Charset(charset=MENU_CHARSET),
+            ),
+            ScriptSection(
+                start=0x00001F,
+                end=0x000025,
+                mode=ScriptMode.BLOB_GROUPS,
+                sub_sections=[
+                    SubSection(mode=ScriptMode.BLOBS, length=1),
+                    SubSection(mode=ScriptMode.MENU_STRINGS, length=1),
+                    SubSection(mode=ScriptMode.BLOBS, delimiter=b"\xFF"),
+                    SubSection(mode=ScriptMode.MENU_STRINGS, delimiter=b"\x00"),
+                ],
             ),
         ]
         script = Script.from_rom(filename=DUMMY_INPUT_ROM, sections=sections)
@@ -207,6 +243,7 @@ archie
   $5678,$FF
   $ABCD,$00
   "<0x00>A<KNIFE> ",$88
+  $AA | "a" | $BB,$FF | "b",$00
 
 label_c01234=C0/1234"""
         )

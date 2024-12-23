@@ -8,3 +8,7 @@ class NoCandidateException(Exception):
 
 class MissingSectionAttribute(Exception):
     pass
+
+
+class UnrecognizedBlob(Exception):
+    pass

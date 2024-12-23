@@ -21,7 +21,7 @@ class TestString:
         ],
     )
     def test_from_regex_match(self, line: str, string: String):
-        match = re.match(Regex.MENU_STRING, line)
+        match = re.match(Regex.MENU_STRING_LINE, line)
         assert String.from_regex_match(match) == string
 
     @pytest.mark.parametrize(

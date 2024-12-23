@@ -22,4 +22,5 @@ archie=C0/0005
   $1234
   $5678,$FF
   $ABCD,$00
-  "<0x00>A<KNIFE> "
+  "<0x00>A<KNIFE> ",$88
+  $AA | "a" | $BB,$FF | "b",$00
