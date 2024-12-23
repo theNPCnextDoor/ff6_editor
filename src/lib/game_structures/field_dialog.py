@@ -24,9 +24,7 @@ class FieldDialog:
         self.dialog_location = RomMap.DIALOG_1ST_BANK
         if value >= int(
             Bytes(
-                Binary()[
-                    RomMap.DIALOG_POINTER_2ND_BANK : RomMap.DIALOG_POINTER_2ND_BANK + 2
-                ],
+                Binary()[RomMap.DIALOG_POINTER_2ND_BANK : RomMap.DIALOG_POINTER_2ND_BANK + 2],
                 length=2,
                 endianness="little",
             )

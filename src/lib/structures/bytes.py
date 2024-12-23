@@ -5,7 +5,10 @@ from typing import Union
 
 class Bytes:
     def __init__(
-        self, value: Union[int, bytes, str], length: int = None, endianness="little"
+        self,
+        value: Union[int, bytes, str],
+        length: int = None,
+        endianness="little",
     ):
         self.endianness = endianness
         self.fixed_length = length
@@ -27,10 +30,7 @@ class Bytes:
                 self._value = int(
                     "0x"
                     + "".join(
-                        [
-                            reverse_value[2 * i + 1] + reverse_value[2 * i]
-                            for i in range(len(reverse_value) // 2)
-                        ]
+                        [reverse_value[2 * i + 1] + reverse_value[2 * i] for i in range(len(reverse_value) // 2)]
                     ),
                     16,
                 )
@@ -70,9 +70,7 @@ class Bytes:
 
     def string(self, endianness):
         if self._value is not None:
-            hex_representation = int.to_bytes(
-                self._value, length=self.length, byteorder=endianness
-            ).hex()
+            hex_representation = int.to_bytes(self._value, length=self.length, byteorder=endianness).hex()
             return f"{hex_representation}".zfill(self.length * 2).upper()
         else:
             return ""
@@ -81,7 +79,7 @@ class Bytes:
         if self._value is not None:
             try:
                 return self._value.to_bytes(length=self.length, byteorder=endianness)
-            except OverflowError as e:
+            except OverflowError:
                 output = b""
                 i = 0
                 value = self._value
@@ -102,17 +100,13 @@ class Bytes:
     def __bytes__(self):
         if self._value is not None:
             try:
-                return self._value.to_bytes(
-                    length=self.length, byteorder=self.endianness
-                )
-            except OverflowError as e:
+                return self._value.to_bytes(length=self.length, byteorder=self.endianness)
+            except OverflowError:
                 output = b""
                 i = 0
                 value = self._value
                 while i <= self.length:
-                    output += (value % 0x0100).to_bytes(
-                        length=1, byteorder=self.endianness
-                    )
+                    output += (value % 0x0100).to_bytes(length=1, byteorder=self.endianness)
                     value //= 0x0100
                     i += 1
                 return output
@@ -122,7 +116,9 @@ class Bytes:
     def __add__(self, other):
         if type(other) == int:
             return self.__class__(
-                self._value + other, length=self.length, endianness=self.endianness
+                self._value + other,
+                length=self.length,
+                endianness=self.endianness,
             )
         else:
             return self.__class__(
@@ -132,14 +128,14 @@ class Bytes:
             )
 
     def __radd__(self, other):
-        return self.__class__(
-            other + self._value, length=self.length, endianness=self.endianness
-        )
+        return self.__class__(other + self._value, length=self.length, endianness=self.endianness)
 
     def __floordiv__(self, other):
         if type(other) == int:
             return self.__class__(
-                self._value // other, length=self.length, endianness=self.endianness
+                self._value // other,
+                length=self.length,
+                endianness=self.endianness,
             )
         else:
             return self.__class__(
@@ -151,7 +147,9 @@ class Bytes:
     def __sub__(self, other):
         if type(other) == int:
             return self.__class__(
-                self._value - other, length=self.length, endianness=self.endianness
+                self._value - other,
+                length=self.length,
+                endianness=self.endianness,
             )
         else:
             return self.__class__(
@@ -161,14 +159,14 @@ class Bytes:
             )
 
     def __rsub__(self, other):
-        return self.__class__(
-            other - self._value, length=self.length, endianness=self.endianness
-        )
+        return self.__class__(other - self._value, length=self.length, endianness=self.endianness)
 
     def __mod__(self, other):
         if type(other) == int:
             return self.__class__(
-                self._value % other, length=self.length, endianness=self.endianness
+                self._value % other,
+                length=self.length,
+                endianness=self.endianness,
             )
         else:
             return self.__class__(
@@ -210,15 +208,16 @@ class Bytes:
     def from_address(cls, address: str):
         address = address.replace("/", "")
         return cls(
-            value=int(f"0x{address}", 16) - 0xC00000, length=3, endianness="little"
+            value=int(f"0x{address}", 16) - 0xC00000,
+            length=3,
+            endianness="little",
         )
 
     def append(self, other):
         if type(other) in (bytes, bytearray):
             self._value = int(
                 Bytes(
-                    self.bytes(endianness="big")
-                    + Bytes(other, endianness="big").bytes(endianness="big"),
+                    self.bytes(endianness="big") + Bytes(other, endianness="big").bytes(endianness="big"),
                     endianness=self.endianness,
                 )
             )
