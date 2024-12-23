@@ -44,16 +44,16 @@ class TestRegex:
     @pytest.mark.parametrize(
         ["line", "is_match"],
         [
-            ("blob", False),
-            ("  blob", False),
-            ("  blob $12", True),
-            ("  blob $0123456789ABCDEF", True),
-            ("  blob $12 # C0/00000", True),
-            ("  blob $123", False),
-            ("  blob $123 $FF", False),
-            ("  blob $12 $FF", True),
-            ("  blob $12 $FF # C0/00000", True),
-            ("  blob $12 $FFF", False),
+            ("  ", False),
+            ("  ", False),
+            ("  $12", True),
+            ("  $0123456789ABCDEF", True),
+            ("  $12 # C0/00000", True),
+            ("  $123", False),
+            ("  $123,$FF", False),
+            ("  $12,$FF", True),
+            ("  $12,$FF # C0/00000", True),
+            ("  $12,$FFF", False),
         ],
     )
     def test_blob(self, line: str, is_match: bool):
@@ -94,10 +94,10 @@ class TestRegex:
             ('  "<ATB 0', False),
             ('  "a" $00', True),
             ('  "a  $00', False),
-            ('  "<GREY>" $FF', True),
-            ('  "a" $FFF', False),
+            ('  "<GREY>",$FF', True),
+            ('  "a",$FFF', False),
             ('  "<0x00>"', True),
-            ('  "<0xFF>" $88', True),
+            ('  "<0xFF>",$88', True),
         ],
     )
     def test_menu_string(self, line: str, is_match: bool):

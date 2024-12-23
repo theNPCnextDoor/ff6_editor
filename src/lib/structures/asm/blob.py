@@ -35,9 +35,9 @@ class Blob(ScriptLine, ToLineMixin):
         return Blob(position=position, data=data, delimiter=delimiter)
 
     def __str__(self):
-        output = f"blob ${self.data}"
+        output = f"${self.data}"
         if self.delimiter is not None:
-            output += f" ${self.delimiter}"
+            output += f",${self.delimiter}"
         return output
 
     def __repr__(self):

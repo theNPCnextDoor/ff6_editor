@@ -48,12 +48,12 @@ class TestString:
             (
                 String(data=BlobBytes(value=0x0080D8EBFF, length=5), delimiter=Bytes(0x00)),
                 False,
-                '  "<0x00>A<KNIFE><0xEB> " $00',
+                '  "<0x00>A<KNIFE><0xEB> ",$00',
             ),
             (
                 String(data=BlobBytes(value="0080D8EBFF"), delimiter=Bytes(0xFF)),
                 True,
-                '  "<0x00>A<KNIFE><0xEB> " $FF # C0/0000',
+                '  "<0x00>A<KNIFE><0xEB> ",$FF # C0/0000',
             ),
         ],
     )

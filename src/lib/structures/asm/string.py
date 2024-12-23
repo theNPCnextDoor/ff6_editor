@@ -50,7 +50,7 @@ class String(Blob):
             output += self.charset.get_char(value=int(number))
         output += '"'
         if self.delimiter is not None:
-            output += f" ${self.delimiter}"
+            output += f",${self.delimiter}"
         return output
 
     def __repr__(self):
