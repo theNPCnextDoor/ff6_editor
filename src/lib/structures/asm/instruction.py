@@ -209,7 +209,7 @@ class BranchingInstruction(Instruction, BankMixin, DestinationMixin):
             return "#$_"
         return "$_"
 
-    def to_line(self, show_address: bool = False, labels: list[Label] | None = None):
+    def to_line(self, show_address: bool = False, labels: list[Label] | None = None) -> str:
         output = f"  {Opcodes[int(self.opcode)]['command']}"
         label = None
 

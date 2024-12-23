@@ -9,12 +9,7 @@ from src.lib.structures.asm.script_line import ScriptLine, BankMixin, Impossible
 
 
 class Pointer(ScriptLine, BankMixin, DestinationMixin, ToLineMixin):
-    def __init__(
-        self,
-        position: Position = None,
-        destination: Position = None,
-        data: Bytes = None
-    ):
+    def __init__(self, position: Position = None, destination: Position = None, data: Bytes = None):
         if destination is None and data is None:
             raise ValueError("Either provide the destination or the data.")
 
@@ -23,7 +18,8 @@ class Pointer(ScriptLine, BankMixin, DestinationMixin, ToLineMixin):
         if destination and self.position.bank() != destination.bank():
             raise ImpossibleDestination(
                 f"Destination '{destination.to_snes_address()}' can't be reached with pointer"
-                f" at position '{position.to_snes_address()}'")
+                f" at position '{position.to_snes_address()}'"
+            )
 
         self.destination = destination if destination is not None else self._data_to_destination(data=data)
         self.data = data if data is not None else self._destination_to_data(destination=destination)
@@ -37,16 +33,12 @@ class Pointer(ScriptLine, BankMixin, DestinationMixin, ToLineMixin):
         else:
             data = Bytes(value=match.group("number"), length=2)
 
-        return cls(
-            position=position,
-            destination=destination,
-            data=data
-        )
+        return cls(position=position, destination=destination, data=data)
 
     @classmethod
     def from_bytes(cls, value: bytes, position: Position | None = None) -> Self:
         return Pointer(position=position, data=Bytes(value))
-    
+
     def to_line(self, show_address: bool = False, labels: list[Label] | None = None) -> str:
         output = "  ptr "
         label = None
@@ -60,7 +52,7 @@ class Pointer(ScriptLine, BankMixin, DestinationMixin, ToLineMixin):
         return output
 
     @classmethod
-    def _is_possible_destination(cls, position: Position, destination: Position):
+    def _is_possible_destination(cls, position: Position, destination: Position) -> bool:
         return position.bank() == destination.bank()
 
     def __bytes__(self) -> bytes:
@@ -72,11 +64,10 @@ class Pointer(ScriptLine, BankMixin, DestinationMixin, ToLineMixin):
     def __str__(self) -> str:
         return f"ptr ${self.data}"
 
-
     def __repr__(self) -> str:
         return f"{self.position}: {str(self)}"
 
-    def __len__(self):
+    def __len__(self) -> int:
         return 2
 
     def _data_to_destination(self, data: Bytes) -> Position:
@@ -86,8 +77,4 @@ class Pointer(ScriptLine, BankMixin, DestinationMixin, ToLineMixin):
 
     @staticmethod
     def _destination_to_data(destination: Position) -> Bytes:
-        return Bytes(
-            value=destination,
-            out_endian=Endian.LITTLE,
-            length=2
-        )
+        return Bytes(value=destination, out_endian=Endian.LITTLE, length=2)

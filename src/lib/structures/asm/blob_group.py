@@ -47,7 +47,7 @@ class BlobGroup(ScriptLine, ToLineMixin):
             output += f" # {self.position.to_snes_address()}"
         return output
 
-    def __len__(self):
+    def __len__(self) -> int:
         return sum([len(blob) for blob in self.blobs])
 
     def __bytes__(self) -> bytes:

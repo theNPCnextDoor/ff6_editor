@@ -8,11 +8,7 @@ from src.lib.structures.bytes import Position
 
 class Label(ScriptLine, ToLineMixin):
 
-    def __init__(
-        self,
-        position: Position,
-        name: str = None
-    ):
+    def __init__(self, position: Position, name: str = None):
         super().__init__(position=position)
         self.name = (name or f"label_{self.position.to_snes_address().replace('/', '')}").lower()
 
@@ -49,8 +45,8 @@ class Label(ScriptLine, ToLineMixin):
     def __len__(self) -> int:
         return 0
 
-    def __bool__(self):
+    def __bool__(self) -> bool:
         return True
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         return hash(int(self.position))
