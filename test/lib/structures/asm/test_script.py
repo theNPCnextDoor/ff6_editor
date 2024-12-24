@@ -192,10 +192,10 @@ class TestScript:
         assert script.instructions[0] == Instruction(position=Position(0x000008), opcode=Bytes("00"))
         assert script.instructions[1] == Instruction(position=Position(0x000009), opcode=Bytes("AA"))
         assert script.instructions[2] == Instruction(
-            position=Position(0x00000A), opcode=Bytes("A9"), data=Bytes("3456")
+            position=Position(0x00000A), opcode=Bytes("A9"), data=Bytes("5634")
         )
         assert script.instructions[3] == Instruction(
-            position=Position(0x00000D), opcode=Bytes("A2"), data=Bytes("FEDC")
+            position=Position(0x00000D), opcode=Bytes("A2"), data=Bytes("DCFE")
         )
 
         assert len(script.branching_instructions) == 1
