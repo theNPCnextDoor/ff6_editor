@@ -333,11 +333,11 @@ class TestBranchingInstruction:
         [
             (b"\x00", Instruction(opcode=Bytes("00")), Flags()),
             (b"\x44\x30", Instruction(opcode=Bytes("44"), data=Bytes("30")), Flags()),
-            (b"\xA9\x34\x12", Instruction(opcode=Bytes("A9"), data=Bytes("1234")), Flags()),
+            (b"\xA9\x34\x12", Instruction(opcode=Bytes("A9"), data=Bytes("3412")), Flags()),
             (b"\xA9\x56", Instruction(opcode=Bytes("A9"), data=Bytes("56")), Flags(m=True)),
-            (b"\xA2\x34\x12", Instruction(opcode=Bytes("A2"), data=Bytes("1234")), Flags()),
+            (b"\xA2\x34\x12", Instruction(opcode=Bytes("A2"), data=Bytes("3412")), Flags()),
             (b"\xA2\x56", Instruction(opcode=Bytes("A2"), data=Bytes("56")), Flags(x=True)),
-            (b"\x4F\x56\x34\x12", Instruction(opcode=Bytes("4F"), data=Bytes("123456")), Flags()),
+            (b"\x4F\x56\x34\x12", Instruction(opcode=Bytes("4F"), data=Bytes("563412")), Flags()),
         ],
     )
     def test_from_bytes(self, value: bytes, instruction: Instruction, flags: Flags):

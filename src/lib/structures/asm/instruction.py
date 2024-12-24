@@ -34,16 +34,15 @@ class Instruction(ScriptLine, DataMixin, ToLineMixin):
     @classmethod
     def from_bytes(cls, value: bytes, position: Position = None, flags: Flags = None) -> Self:
         flags = flags or Flags()
-        value = Bytes(value, in_endian=Endian.BIG)
+        opcode = Bytes(value[0])
         command = Opcodes[int(value[0])]
         length = command["length"] - flags.m * command["m"] - flags.x * command["x"]
         data = Bytes(value[1 : length + 1]) if length else None
-        opcode = Bytes(value[0])
 
         if cls._is_branching_instruction(opcode):
-            return BranchingInstruction(position=position, opcode=Bytes(value[0]), data=data)
+            return BranchingInstruction(position=position, opcode=opcode, data=data)
         else:
-            return Instruction(position=position, opcode=Bytes(value[0]), data=data)
+            return Instruction(position=position, opcode=opcode, data=data)
 
     @classmethod
     def _is_branching_instruction(cls, opcode: Bytes):
@@ -178,7 +177,7 @@ class BranchingInstruction(Instruction, BankMixin, DestinationMixin):
     def data_to_destination(self, data: Bytes) -> Position:
         command = self.command(self.opcode)
         if command in ["JSL", "JML"]:
-            return Position(value=data)
+            return Position(value=int(data) - 0xC00000)
         if command in ["JMP", "JSR"]:
             return Position(value=int(data) + self.position.bank())
         if command == "BRL":
@@ -188,9 +187,9 @@ class BranchingInstruction(Instruction, BankMixin, DestinationMixin):
     def destination_to_data(self, destination: Position) -> Bytes:
         command = self.command(self.opcode)
         if command in ["JSL", "JML"]:
-            return Bytes(value=destination, out_endian=Endian.LITTLE)
+            return Bytes(value=int(destination) + 0xC00000, length=3)
         if command in ["JMP", "JSR"]:
-            return Bytes(value=int(destination[1:]), length=2)
+            return Bytes(value=destination[1:], length=2)
         if command == "BRL":
             return Bytes(value=(int(destination) - int(self.position) - 3) % 0x010000, length=2)
         return Bytes(value=((int(destination) - int(self.position) % 0x0100) - 2) % 0x0100, length=1)
