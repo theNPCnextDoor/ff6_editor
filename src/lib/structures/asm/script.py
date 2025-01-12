@@ -77,7 +77,7 @@ class Script:
     def from_script_file(cls, filename: str | Path, flags: Flags | None = None, charset: Charset | None = None) -> Self:
         with open(filename, encoding="utf-8") as f:
             lines = f.readlines()
-
+        lines = [stripped_line for line in lines if (stripped_line := line.rstrip())]
         script = cls()
 
         cursor = 0
@@ -86,7 +86,7 @@ class Script:
         lines_with_labels = list()
 
         for line in lines:
-            if match := re.fullmatch(Regex.BLOB_GROUP_LINE, line.strip()):
+            if match := re.fullmatch(Regex.BLOB_GROUP_LINE, line):
                 blob_group = BlobGroup.from_regex_match(match=match, position=Position(cursor), charset=charset)
                 cursor += len(blob_group)
                 script.blob_groups.append(blob_group)
@@ -178,6 +178,7 @@ class Script:
             if cursor != int(line.position):
                 if isinstance(line, Label):
                     output.append(line.to_line(show_address=True))
+                    cursor = int(line.position)
                     continue
 
                 label = Label(position=line.position)
