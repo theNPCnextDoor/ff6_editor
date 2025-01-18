@@ -46,4 +46,4 @@ if __name__ == "__main__":
         ),
     ]
     script = Script.from_rom(filename="ff3.smc", sections=sections)
-    script.to_script_file("asm/status_page.asm", flags=flags)
+    # script.to_script_file("asm/status_page.asm", flags=flags)

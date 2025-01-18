@@ -1,58 +1,58 @@
 m=8,x=16
 
-label_c20006=C2/0006
+reset_function=C2/0006
 
-label_c301f1=C3/01F1
-  ptr label_c31c46
+init_status_menu_pointer=C3/01F1
+  ptr init_status_menu
 
-label_c30341=C3/0341
+draw_window=C3/0341
 
-label_c30486=C3/0486
+draw_3_digits=C3/0486
 
-label_c304a3=C3/04A3
+draw_8_digits=C3/04A3
 
-label_c304c0=C3/04C0
+draw_3_digits_8_bits=C3/04C0
 
-label_c304e0=C3/04E0
+convert_8_bit_number_into_text_blank_leading_zeros=C3/04E0
 
-label_c3052e=C3/052E
+convert_16_bit_number_into_text_blank_leading_zeros=C3/052E
 
-label_c30582=C3/0582
+convert_24_bit_number_into_text_blank_leading_zeros=C3/0582
 
-label_c30c6c=C3/0C6C
+draw_lv_hp_and_mp=C3/0C6C # To be disassembled
 
-label_c311b0=C3/11B0
+process_animation_queue=C3/11B0
 
-label_c31c46=C3/1C46
-  JSR label_c3352f
-  JSR label_c3620b
-  JSR label_c35d05
-  JSR label_c31c5d
+init_status_menu=C3/1C46
+  JSR reset_oam_and_anim_queue
+  JSR condense_bg3_text
+  JSR draw_status_menu
+  JSR initialize_cursor_data
   LDA #$01
   STA $26
   LDA #$0C
   STA $27
-  JMP label_c33541
-label_c31c5d
+  JMP prepare_fade_in
+initialize_cursor_data
 
-label_c334cf=C3/34CF
+draw_actor_name=C3/34CF
 
-label_c334e5=C3/34E5
+draw_actor_class=C3/34E5
 
-label_c334e6=C3/34E6
+draw_equipped_esper=C3/34E6
 
-label_c3352f=C3/352F
+reset_oam_and_anim_queue=C3/352F
 
-label_c33541=C3/3541
+prepare_fade_in=C3/3541
 
-label_c35d05=C3/5D05
-  JSR label_c35d17
-  JSR label_c35dc1
-  JSR label_c35d3c
-  JSR label_c35f8d
-  JSR label_c35d77
-  JMP label_c361ac
-label_c35d17
+draw_status_menu=C3/5D05
+  JSR draw_windows
+  JSR draw_gogo_commands
+  JSR draw_blue_text_and_symbols
+  JSR draw_actor_info
+  JSR upload_tilemap
+  JMP create_portrait
+draw_windows
   JSR label_c36a15
   JSR label_c36a23
   JSR label_c36a3c
@@ -60,13 +60,13 @@ label_c35d17
   JSR label_c36a46
   JSR label_c36a4b
   LDY #$815F
-  JSR label_c30341
+  JSR draw_window
   LDY #$795F
-  JSR label_c30341
+  JSR draw_window
   LDY #$7D5F
-  JSR label_c30341
+  JSR draw_window
   RTS
-label_c35d3c
+draw_blue_text_and_symbols
   JSR label_c35d41
   BRA label_c35d5c
 label_c35d41
@@ -93,9 +93,9 @@ label_c35d5c
   LDY #$0C00
   JSR label_c369ba
   RTS
-label_c35d77
+upload_tilemap
 
-label_c35dc1=C3/5DC1
+draw_gogo_commands=C3/5DC1
 
 label_c35f79=C3/5F79
   $8B58 | $0601
@@ -103,30 +103,30 @@ label_c35f79=C3/5F79
   $8B58 | $1C18
   $C758 | $0012
   $8760 | $0712
-label_c35f8d
+draw_actor_info
 
 label_c35fc2=C3/5FC2
-  JSL label_c20006
+  JSL reset_function
   LDY $67
   JSR label_c399e8
   LDA #$20
   STA $29
   LDA $A611
-  JSR label_c304e0
+  JSR convert_8_bit_number_into_text_blank_leading_zeros
   LDX #$E17E
-  JSR label_c304c0
+  JSR draw_3_digits_8_bits
   LDA $A411
-  JSR label_c304e0
+  JSR convert_8_bit_number_into_text_blank_leading_zeros
   LDX #$617F
-  JSR label_c304c0
+  JSR draw_3_digits_8_bits
   LDA $A211
-  JSR label_c304e0
+  JSR convert_8_bit_number_into_text_blank_leading_zeros
   LDX #$E17F
-  JSR label_c304c0
+  JSR draw_3_digits_8_bits
   LDA $A011
-  JSR label_c304e0
+  JSR convert_8_bit_number_into_text_blank_leading_zeros
   LDX #$6188
-  JSR label_c304c0
+  JSR draw_3_digits_8_bits
   JSR label_c39371
   LDA $AC11
   CLC
@@ -135,36 +135,36 @@ label_c35fc2=C3/5FC2
   TDC
   ADC #$00
   STA $F4
-  JSR label_c3052e
+  JSR convert_16_bit_number_into_text_blank_leading_zeros
   LDX #$7D7E
-  JSR label_c30486
+  JSR draw_3_digits
   LDA $BA11
-  JSR label_c304e0
+  JSR convert_8_bit_number_into_text_blank_leading_zeros
   LDX #$FD7E
-  JSR label_c304c0
+  JSR draw_3_digits_8_bits
   LDA $A811
-  JSR label_c304e0
+  JSR convert_8_bit_number_into_text_blank_leading_zeros
   LDX #$7D7F
-  JSR label_c304c0
+  JSR draw_3_digits_8_bits
   LDA $BB11
-  JSR label_c304e0
+  JSR convert_8_bit_number_into_text_blank_leading_zeros
   LDX #$FD7F
-  JSR label_c304c0
+  JSR draw_3_digits_8_bits
   LDA $AA11
-  JSR label_c304e0
+  JSR convert_8_bit_number_into_text_blank_leading_zeros
   LDX #$7D88
-  JSR label_c304c0
+  JSR draw_3_digits_8_bits
   LDY #$8F39
-  JSR label_c334cf
+  JSR draw_actor_name
   LDY #$9D39
-  JSR label_c334e5
+  JSR draw_actor_class
   LDY #$B139
-  JSR label_c334e6
+  JSR draw_equipped_esper
   JSR label_c36102
   LDA #$20
   STA $29
   LDX #$9660
-  JSR label_c30c6c
+  JSR draw_lv_hp_and_mp
   LDX $67
   LDA $1100,X
   STA $F1
@@ -172,15 +172,15 @@ label_c35fc2=C3/5FC2
   STA $F2
   LDA $1300,X
   STA $F3
-  JSR label_c30582
+  JSR convert_24_bit_number_into_text_blank_leading_zeros
   LDX #$D77C
-  JSR label_c304a3
+  JSR draw_8_digits
   JSR label_c360a0
-  JSR label_c30582
+  JSR convert_24_bit_number_into_text_blank_leading_zeros
   LDX #$D77D
-  JSR label_c304a3
+  JSR draw_8_digits
   STZ $47
-  JSR label_c311b0
+  JSR process_animation_queue
   JMP label_c3625b
   $273A
   $633A
@@ -191,9 +191,9 @@ label_c360a0
 
 label_c36102=C3/6102
 
-label_c361ac=C3/61AC
+create_portrait=C3/61AC
 
-label_c3620b=C3/620B
+condense_bg3_text=C3/620B
   LDA #$02
   STA $5043
   LDA #$12
