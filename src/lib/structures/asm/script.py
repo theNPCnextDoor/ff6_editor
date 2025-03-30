@@ -119,7 +119,9 @@ class Script:
                 if match.group("label"):
                     lines_with_labels.append((line, cursor))
                 else:
-                    instruction = BranchingInstruction.from_regex_match(match=match, position=Position(cursor))
+                    instruction = BranchingInstruction.from_regex_match(
+                        match=match, position=Position(cursor), labels=script.labels
+                    )
                     script.branching_instructions.append(instruction)
 
                 cursor += BranchingInstruction.find_length(command=command) + 1

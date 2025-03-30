@@ -11,6 +11,8 @@ draw_3_digits=C3/0486
 
 draw_8_digits=C3/04A3
 
+draw_2_digits=C3/04B6
+
 draw_3_digits_8_bits=C3/04C0
 
 convert_8_bit_number_into_text_blank_leading_zeros=C3/04E0
@@ -19,9 +21,78 @@ convert_16_bit_number_into_text_blank_leading_zeros=C3/052E
 
 convert_24_bit_number_into_text_blank_leading_zeros=C3/0582
 
-draw_lv_hp_and_mp=C3/0C6C # To be disassembled
+load_pointer_to_animation_table_for_portrait=C3/0ACC
+
+set_portrait_x_position_based_on_row=C3/0AF1
+
+draw_lv_hp_and_mp=C3/0C6C
+  STX $EF
+  LDA #$C3
+  STA $F1
+  LDX $67
+  LDA $0800,X
+  JSR convert_8_bit_number_into_text_blank_leading_zeros
+  REP #$20
+  LDA [$EF]
+  TAX
+  SEP #$20
+  JSR draw_2_digits
+  LDX $67
+  LDA $0B00,X
+  STA $F3
+  LDA $0C00,X
+  STA $F4
+  JSR determine_max_hp_or_mp_with_gear_bonus
+  JSR enforce_hp_cap
+  JSR convert_16_bit_number_into_text_blank_leading_zeros
+  LDY #$0400
+  JSR draw_current_or_max_hp_or_mp
+  LDY $67
+  JSR prevent_hp_excess
+  LDA $0900,Y
+  STA $F3
+  LDA $0A00,Y
+  STA $F4
+  JSR convert_16_bit_number_into_text_blank_leading_zeros
+  LDY #$0200
+  JSR draw_current_or_max_hp_or_mp
+  JSR determine_if_actor_is_magic_user
+  BCC hide_mp
+  LDX $67
+  LDA $0F00,X
+  STA $F3
+  LDA $1000,X
+  STA $F4
+  JSR determine_max_hp_or_mp_with_gear_bonus
+  JSR enforce_mp_cap
+  JSR convert_16_bit_number_into_text_blank_leading_zeros
+  LDY #$0800
+  JSR draw_current_or_max_hp_or_mp
+  LDY $67
+  JSR prevent_mp_excess
+  LDA $0D00,Y
+  STA $F3
+  LDA $0E00,Y
+  STA $F4
+  JSR convert_16_bit_number_into_text_blank_leading_zeros
+  LDY #$0600
+  JMP draw_current_or_max_hp_or_mp
+
+hide_mp=C3/0CEF
+
+draw_current_or_max_hp_or_mp=C3/0D21
+
+determine_if_actor_is_magic_user=C3/0D2B
+
+determine_max_hp_or_mp_with_gear_bonus=C3/0D65
+
+enforce_hp_cap=C3/0D92
+
+enforce_mp_cap=C3/0D9F
 
 process_animation_queue=C3/11B0
+
+init_m7=C3/1206
 
 init_status_menu=C3/1C46
   JSR reset_oam_and_anim_queue
@@ -35,11 +106,66 @@ init_status_menu=C3/1C46
   JMP prepare_fade_in
 initialize_cursor_data
 
+prevent_hp_excess=C3/2B9A
+
+prevent_mp_excess=C3/2BBC
+
 draw_actor_name=C3/34CF
+  JSR draw_string
+  LDX #$0600
+draw_actor_name_loop_start
+  LDA $0200,Y
+  STA $8021
+  INY
+  DEX
+  BNE draw_actor_name_loop_start
+  STZ $8021
+  JMP draw_memorized_string
 
 draw_actor_class=C3/34E5
 
 draw_equipped_esper=C3/34E6
+  JSR prepare_name_drawing
+  LDA $1E00,Y
+  CMP #$FF
+  BEQ blank_esper_name
+  ASL
+  ASL
+  ASL
+  TAX
+  LDY #$0800
+draw_equipped_esper_loop_start
+  LDA $E1F6E6,X
+  STA $8021
+  INX
+  DEY
+  BNE draw_equipped_esper_loop_start
+  STZ $8021
+  JMP draw_memorized_string
+blank_esper_name
+  LDY #$0800
+  LDA #$FF
+blank_esper_name_loop_start
+  STA $8021
+  DEY
+  BNE blank_esper_name_loop_start
+  STZ $8021
+  JMP draw_memorized_string
+prepare_name_drawing=C3/3519
+
+
+draw_string=C3/3519
+  LDX #$899E
+  STX $8121
+  REP #$20
+  TYA
+  SEP #$20
+  STA $8021
+  XBA
+  STA $8021
+  TDC
+  LDY $67
+  RTS
 
 reset_oam_and_anim_queue=C3/352F
 
@@ -53,12 +179,12 @@ draw_status_menu=C3/5D05
   JSR upload_tilemap
   JMP create_portrait
 draw_windows
-  JSR label_c36a15
-  JSR label_c36a23
-  JSR label_c36a3c
-  JSR label_c36a41
-  JSR label_c36a46
-  JSR label_c36a4b
+  JSR clear_bg1_tilemap_a
+  JSR clear_bg1_tilemap_d
+  JSR clear_bg3_tilemap_a
+  JSR clear_bg3_tilemap_b
+  JSR clear_bg3_tilemap_c
+  JSR clear_bg3_tilemap_d
   LDY #$815F
   JSR draw_window
   LDY #$795F
@@ -67,67 +193,68 @@ draw_windows
   JSR draw_window
   RTS
 draw_blue_text_and_symbols
-  JSR label_c35d41
-  BRA label_c35d5c
-label_c35d41
+  JSR draw_lv_hp_mp_and_non_blue_symbols
+  BRA draw_other_blue_text
+draw_lv_hp_mp_and_non_blue_symbols
   LDA #$20
   STA $29
-  LDX #$5B64
+  LDX #$5564
   LDY #$0800
-  JSR label_c369ba
+  JSR draw_multiple_strings
   LDA #$24
   STA $29
-  LDX #$5564
-  LDY #$0600
-  JSR label_c369ba
+  LDX #$4B64
+  LDY #$0A00
+  JSR draw_multiple_strings
   RTS
-label_c35d5c
+draw_other_blue_text
   LDA #$2C
   STA $29
   LDX #$3764
-  LDY #$1E00
-  JSR label_c369ba
-  LDA #$2C
-  STA $29
-  LDX #$6364
-  LDY #$0C00
-  JSR label_c369ba
+  LDY #$1400
+  JSR draw_multiple_strings
   RTS
-upload_tilemap
+
+upload_tilemap=C3/5D77
+
+# jump_to_replace_portrait=C3/5D89
+#   JSR replace_portrait
 
 draw_gogo_commands=C3/5DC1
 
-label_c35f79=C3/5F79
-  $8B58 | $0601
-  $EB5A | $0906
+draw_command_name=C3/5EE1
+
+window_layout=C3/5F79
+  $B758 | $0601
+  $2F5A | $0906
   $8B58 | $1C18
   $C758 | $0012
   $8760 | $0712
 draw_actor_info
 
-label_c35fc2=C3/5FC2
+draw_actor_values=C3/5FC2
   JSL reset_function
   LDY $67
-  JSR label_c399e8
+  JSR define_bat_pwr_mode
   LDA #$20
   STA $29
   LDA $A611
   JSR convert_8_bit_number_into_text_blank_leading_zeros
-  LDX #$E17E
+  LDX #$5D7C
   JSR draw_3_digits_8_bits
   LDA $A411
   JSR convert_8_bit_number_into_text_blank_leading_zeros
-  LDX #$617F
+  LDX #$DD7C
   JSR draw_3_digits_8_bits
   LDA $A211
   JSR convert_8_bit_number_into_text_blank_leading_zeros
-  LDX #$E17F
+  LDX #$5D7D
   JSR draw_3_digits_8_bits
   LDA $A011
   JSR convert_8_bit_number_into_text_blank_leading_zeros
-  LDX #$6188
+  LDX #$DD7D
   JSR draw_3_digits_8_bits
-  JSR label_c39371
+  JSR define_current_or_projected_bat_pwr
   LDA $AC11
   CLC
   ADC $AD11
@@ -136,31 +263,29 @@ label_c35fc2=C3/5FC2
   ADC #$00
   STA $F4
   JSR convert_16_bit_number_into_text_blank_leading_zeros
-  LDX #$7D7E
+  LDX #$5D7E
   JSR draw_3_digits
   LDA $BA11
   JSR convert_8_bit_number_into_text_blank_leading_zeros
-  LDX #$FD7E
+  LDX #$DD7E
   JSR draw_3_digits_8_bits
   LDA $A811
   JSR convert_8_bit_number_into_text_blank_leading_zeros
-  LDX #$7D7F
+  LDX #$5D7F
   JSR draw_3_digits_8_bits
   LDA $BB11
   JSR convert_8_bit_number_into_text_blank_leading_zeros
-  LDX #$FD7F
+  LDX #$DD7F
   JSR draw_3_digits_8_bits
   LDA $AA11
   JSR convert_8_bit_number_into_text_blank_leading_zeros
-  LDX #$7D88
+  LDX #$5D88
   JSR draw_3_digits_8_bits
-  LDY #$8F39
+  LDY #$CD38
   JSR draw_actor_name
   LDY #$9D39
   JSR draw_actor_class
-  LDY #$B139
-  JSR draw_equipped_esper
-  JSR label_c36102
+  JSR draw_esper_and_equipment
   LDA #$20
   STA $29
   LDX #$9660
@@ -173,25 +298,44 @@ label_c35fc2=C3/5FC2
   LDA $1300,X
   STA $F3
   JSR convert_24_bit_number_into_text_blank_leading_zeros
-  LDX #$D77C
+  LDX #$B539
   JSR draw_8_digits
-  JSR label_c360a0
+  JSR calculate_xp_needed_for_level_up
   JSR convert_24_bit_number_into_text_blank_leading_zeros
-  LDX #$D77D
+  LDX #$A339
   JSR draw_8_digits
   STZ $47
   JSR process_animation_queue
-  JMP label_c3625b
-  $273A
-  $633A
-  $6D3A
-  $A33A
-  $AD3A
-label_c360a0
+  JMP draw_status_effects
+lv_hp_mp_quantity_position=C3/6096
+  $E738
+  $2339
+  $2D39
+  $6339
+  $6D39
+calculate_xp_needed_for_level_up
 
-label_c36102=C3/6102
+draw_actor_commands=C3/6102
+  LDY #$F57A
+  JSR draw_string
+  JSR draw_command_name
+  LDY #$757B
+  JSR draw_string
+  INY
+  JSR draw_command_name
+  LDY #$F57B
+  JSR draw_string
+  INY
+  INY
+  JSR draw_command_name
+  LDY #$757C
+  JSR draw_string
+  INY
+  INY
+  INY
+  JMP draw_command_name
 
-create_portrait=C3/61AC
+create_portrait_a=C3/61DA
 
 condense_bg3_text=C3/620B
   LDA #$02
@@ -225,108 +369,183 @@ condense_bg3_text=C3/620B
   $0C | $3C | $00
   $00 | $A0 | $9D
 
-label_c3625b=C3/625B
+draw_status_effects=C3/625B
+  LDY #$1D3A
+  LDX #$5030
 
-label_c36437=C3/6437
-  ptr label_c36497
-  ptr label_c3649f
-  ptr label_c364a9
-  ptr label_c364b3
-  ptr label_c364bd
-  ptr label_c364c7
-  ptr label_c364cb
-  ptr label_c364cf
-  ptr label_c364d3
-  ptr label_c364d7
-  ptr label_c364db
-  ptr label_c364df
-  ptr label_c364e3
-  ptr label_c364e7
-  ptr label_c3646f
-  ptr label_c36488
-  ptr label_c3648d
-  ptr label_c36492
-  ptr label_c36478
-  ptr label_c3647c
-  ptr label_c36480
-  ptr label_c36484
-  ptr label_c364eb
-  ptr label_c364f3
-  ptr label_c364fd
-  ptr label_c36507
-  ptr label_c36511
-  ptr label_c3651d
-label_c3646f
-  $CD78 | "Status",$00
-label_c36478
-  $6B3A | "/",$00
-label_c3647c
-  $AB3A | "/",$00
-label_c36480
-  $837F | "%",$00
-label_c36484
-  $8388 | "%",$00
-label_c36488
-  $1D3A | "LV",$00
-label_c3648d
-  $5D3A | "HP",$00
-label_c36492
-  $9D3A | "MP",$00
-label_c36497
-  $CF7E | "Vigor",$00
-label_c3649f
-  $CF7F | "Stamina",$00
-label_c364a9
-  $4F88 | "Mag.Pwr",$00
-label_c364b3
-  $697F | "Evade %",$00
-label_c364bd
-  $6988 | "MBlock%",$00
-label_c364c7
-  $DD7E | "¨",$00
-label_c364cb
-  $5D7F | "¨",$00
-label_c364cf
-  $DD7F | "¨",$00
-label_c364d3
-  $5D88 | "¨",$00
-label_c364d7
-  $FB7E | "¨",$00
-label_c364db
-  $7B7F | "¨",$00
-label_c364df
-  $7B7E | "¨",$00
-label_c364e3
-  $FB7F | "¨",$00
-label_c364e7
-  $7B88 | "¨",$00
-label_c364eb
-  $4F7F | "Speed",$00
-label_c364f3
-  $697E | "Bat.Pwr",$00
-label_c364fd
-  $E97E | "Defense",$00
-label_c36507
-  $E97F | "Mag.Def",$00
-label_c36511
-  $4D7C | "Your Exp:",$00
-label_c3651d
-  $4D7D | "For level up:",$00
+text_pointers=C3/6437
+  ptr text_status
+  ptr text_vigor
+  ptr text_speed
+  ptr text_stamina
+  ptr text_mag_pwr
+  ptr text_bat_pwr
+  ptr text_defense
+  ptr text_evade
+  ptr text_mag_def
+  ptr text_mblock
 
-label_c369ba=C3/69BA
+  ptr text_lv
+  ptr text_hp
+  ptr text_mp
+  ptr text_your_exp
+  ptr text_for_level_up
+  ptr text_hp_slash
+  ptr text_mp_slash
+  ptr text_evade_percentage
+  ptr text_mblock_percentage
+text_status
+  $F978 | "Status",$00
+text_hp_slash
+  $2B39 | "/",$00
+text_mp_slash
+  $6B39 | "/",$00
+text_evade_percentage
+  $637F | "%",$00
+text_mblock_percentage
+  $6388 | "%",$00
+text_lv
+  $DD38 | "LV",$00
+text_hp
+  $1D39 | "HP",$00
+text_mp
+  $5D39 | "MP",$00
+text_your_exp
+  $9D39 | "XP",$00
+text_for_level_up
+  $B339 | "→",$00
+text_vigor
+  $4D7C | "Vigor  ¨",$00
+text_speed
+  $CD7C | "Speed  ¨",$00
+text_stamina
+  $4D7D | "Stamina¨",$00
+text_mag_pwr
+  $CD7D | "Mag.Pwr¨",$00
+text_bat_pwr
+  $4D7E | "Bat.Pwr¨",$00
+text_defense
+  $CD7E | "Defense¨",$00
+text_evade
+  $4D7F | "Evade %¨",$00
+text_mag_def
+  $CD7F | "Mag.Def¨",$00
+text_mblock
+  $4D88 | "MBlock%¨",$00
 
-label_c36a15=C3/6A15
+draw_multiple_strings=C3/69BA
 
-label_c36a23=C3/6A23
+clear_bg1_tilemap_a=C3/6A15
 
-label_c36a3c=C3/6A3C
+clear_bg1_tilemap_d=C3/6A23
 
-label_c36a41=C3/6A41
+clear_bg3_tilemap_a=C3/6A3C
 
-label_c36a46=C3/6A46
+clear_bg3_tilemap_b=C3/6A41
 
-label_c36a4b=C3/6A4B
+clear_bg3_tilemap_c=C3/6A46
 
-label_c39371=C3/9371
+clear_bg3_tilemap_d=C3/6A4B
 
-label_c399e8=C3/99E8
+draw_memorized_string=C3/7FD9
+
+define_current_or_projected_bat_pwr=C3/9371
+
+define_bat_pwr_mode=C3/99E8
+
+create_portrait=C3/F0A0
+  JSR create_portrait_a
+  PHB
+  LDA #$7E
+  PHA
+  PLB
+  TDC
+  LDA $28
+  TAY
+  JSR set_portrait_x_position_based_on_row
+  TDC
+  LDA $28
+  TAY
+  JSR init_vars_for_portrait
+  PLB
+  RTS
+init_vars_for_portrait
+  JSR load_pointer_to_animation_table_for_portrait
+  REP #$20
+  LDA #$1800 # Y position of actor portrait
+  STA $4A34,X
+  SEP #$20
+  JMP init_m7
+replace_portrait
+  TDC
+  LDA $60
+  TAX
+  LDA #$FF
+  STA $C9357E,X
+  JSR create_portrait_a
+  JMP create_portrait
+
+draw_equipped_weapon
+  CMP #$FF
+  BEQ blank_equipped_weapon
+  STA $0242
+  LDA #$0D
+  STA $0342
+  NOP
+  NOP
+  NOP
+  LDX $1642
+  LDY #$0D00
+draw_equipped_weapon_loop_start
+  LDA $00B3D2,X
+  STA $8021
+  INX
+  DEY
+  BNE draw_equipped_weapon_loop_start
+  STZ $8021
+  JMP draw_memorized_string
+blank_equipped_weapon
+  LDY #$0D00
+  LDA #$FF
+blank_equipped_weapon_loop_start
+  STA $8021
+  DEY
+  BNE blank_equipped_weapon_loop_start
+  STZ $8021
+  JMP draw_memorized_string
+
+draw_esper_and_equipment
+  LDY #$6D7D
+  JSR draw_equipped_esper
+
+  LDY #$EB7D
+  JSR prepare_name_drawing
+  LDA $1F00,Y
+  JSR draw_equipped_weapon
+
+  LDY #$6B7E
+  JSR prepare_name_drawing
+  LDA $2000,Y
+  JSR draw_equipped_weapon
+
+  LDY #$EB7E
+  JSR prepare_name_drawing
+  LDA $2100,Y
+  JSR draw_equipped_weapon
+
+  LDY #$6B7F
+  JSR prepare_name_drawing
+  LDA $2200,Y
+  JSR draw_equipped_weapon
+
+  LDY #$EB7F
+  JSR prepare_name_drawing
+  LDA $2300,Y
+  JSR draw_equipped_weapon
+
+  LDY #$6B88
+  JSR prepare_name_drawing
+  LDA $2400,Y
+  JSR draw_equipped_weapon
+
+  JMP draw_actor_commands

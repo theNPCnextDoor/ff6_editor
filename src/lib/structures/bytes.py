@@ -14,8 +14,8 @@ class Bytes:
         self,
         value: BytesType = None,
         length: int | None = None,
-        in_endian: bool = Endian.LITTLE,
-        out_endian: bool = Endian.LITTLE,
+        str_endian: bool = Endian.BIG,
+        bytes_endian: bool = Endian.LITTLE
     ):
         """
         Will initialize a Bytes object. It will always store its value as a list of integers in big endian.
@@ -32,7 +32,8 @@ class Bytes:
 
         self._value: list[int] = list()
         self.length = length
-        self.out_endian = out_endian
+        self.str_endian = str_endian
+        self.bytes_endian = bytes_endian
 
         if value is None:
             return
@@ -42,35 +43,35 @@ class Bytes:
             return
 
         if isinstance(value, str):
-            self._from_str(value=value, in_endian=in_endian)
+            self._from_str(value=value)
 
         elif isinstance(value, int):
             self._from_int(value=value)
 
         elif isinstance(value, bytes):
-            self._from_bytes(value=value, in_endian=in_endian)
+            self._from_bytes(value=value)
 
         elif isinstance(value, Bytes):
-            self._from_other(value=value, length=length, out_endian=out_endian)
+            self._from_other(value=value, length=length)
 
         self._pad_and_strip()
 
-    def _from_str(self, value: str, in_endian: bool) -> None:
+    def _from_str(self, value: str) -> None:
         if len(value) % 2 == 1:
             value = f"0{value}"
         for i in range(len(value) // 2):
             hex = value[i * 2 : i * 2 + 2]
             self._value.append(int(f"0x{hex}", 16))
-        if in_endian:
+        if self.str_endian == Endian.LITTLE:
             self._value = self._value[::-1]
 
-    def _from_bytes(self, value: bytes, in_endian: bool) -> None:
+    def _from_bytes(self, value: bytes) -> None:
         for byte in value:
             self._value.append(int(byte))
-        if in_endian:
+        if self.bytes_endian == Endian.LITTLE:
             self._value = self._value[::-1]
 
-    def _from_int(self, value: int) -> None:
+    """def _from_int(self, value: int) -> None:
         if value == 0:
             self._value.append(0)
         else:
@@ -78,12 +79,13 @@ class Bytes:
                 n = value % 0x0100
                 self._value.append(n)
                 value //= 0x0100
-            self._value = self._value[::-1]
+            self._value = self._value[::-1]"""
 
-    def _from_other(self, value: Self, length: int = None, out_endian: bool = None) -> None:
+    def _from_other(self, value: Self, length: int = None, str_endian: bool = None, bytes_endian: bool = None) -> None:
         self._value = value._value
         self.length = length if length is not None else value.length
-        self.out_endian = out_endian if out_endian is not None else value.out_endian
+        self.str_endian = str_endian if str_endian is not None else value.str_endian
+        self.str_endian = bytes_endian if bytes_endian is not None else value.bytes_endian
 
     def _pad_and_strip(self) -> None:
         if self.length is None:
@@ -94,14 +96,13 @@ class Bytes:
         if len(self._value) > self.length:
             self._value = self._value[-self.length :]
 
-    def _ordered_value(self, out_endian: bool) -> list[int]:
-        output = self._value[::-1] if out_endian is Endian.LITTLE else self._value
+    def _ordered_value(self) -> list[int]:
+        output = self._value[::-1] if self.bytes_endian is Endian.LITTLE else self._value
         return output
 
     def __bytes__(self) -> str:
-        ordered_value = self._ordered_value(out_endian=self.out_endian)
         output = b""
-        for n in ordered_value:
+        for n in self._ordered_value():
             output += n.to_bytes(length=1, byteorder="big")
         return output
 
@@ -113,7 +114,7 @@ class Bytes:
         return output
 
     def __str__(self) -> str:
-        ordered_value = self._ordered_value(out_endian=self.out_endian)
+        ordered_value = self._ordered_value(str_endian=self.str_endian)
         output = ""
         for n in ordered_value:
             output += n.to_bytes(length=1, byteorder="big").hex()
@@ -140,12 +141,12 @@ class Bytes:
         return int(self) < int(other)
 
     def __getitem__(self, item) -> Self:
-        return Bytes(value=self._value[item], in_endian=Endian.BIG, out_endian=self.out_endian)
+        return Bytes(value=self._value[item], bytes_endian=self.bytes_endian, str_endian=self.str_endian)
 
 
 class Position(Bytes):
-    def __init__(self, value: BytesType = 0, in_endian: bool = Endian.BIG):
-        super().__init__(value=value, length=3, in_endian=in_endian, out_endian=Endian.BIG)
+    def __init__(self, value: BytesType = 0, str_endian: bool = Endian.BIG):
+        super().__init__(value=value, length=3, str_endian=str_endian, bytes_endian=Endian.BIG)
 
     def bank(self) -> int:
         return self._value[0] * 0x010000
