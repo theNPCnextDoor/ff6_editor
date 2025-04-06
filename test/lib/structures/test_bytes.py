@@ -1,188 +1,195 @@
-from __future__ import annotations
-
 import pytest
 
-from src.lib.structures.bytes import Bytes, BytesType, Endian, Position
+from src.lib.structures.bytes import Bytes, LEBytes, BEBytes, Position
 
 
 class TestBytes:
 
     @pytest.mark.parametrize(
-        ["value", "output", "in_endian", "length"], [
-            (None, list(), Endian.BIG, 0),
-            (0, [0x00], Endian.BIG, None),
-            (0, [0x00, 0x00, 0x00], Endian.BIG, 3),
-            (0x123456, [0x12, 0x34, 0x56], Endian.BIG, None),
-            (0x123456, [0x34, 0x56], Endian.BIG, 2),
-            ("", [], Endian.BIG, None),
-            ("00", [0x00], Endian.BIG, None),
-            ("00", [0x00, 0x00], Endian.BIG, 2),
-            ("123456", [0x12, 0x34, 0x56], Endian.BIG, None),
-            ("123456", [0x56, 0x34, 0x12], Endian.LITTLE, None),
-            ("123456", [0x34, 0x56], Endian.BIG, 2),
-            ("123456", [0x34, 0x12], Endian.LITTLE, 2),
-            (b"", list(), Endian.BIG, None),
-            (b"", [0x00, 0x00, 0x00], Endian.BIG, 3),
-            (b"\x00", [0x00], Endian.BIG, None),
-            (b"\x00", [0x00, 0x00, 0x00], Endian.BIG, 3),
-            (b"\x12\x34\x56", [0x12, 0x34, 0x56], Endian.BIG, None),
-            (b"\x12\x34\x56", [0x56, 0x34, 0x12], Endian.LITTLE, None),
-            (b"\x12\x34\x56", [0x34, 0x56], Endian.BIG, 2),
-            (b"\x12\x34\x56", [0x34, 0x12], Endian.LITTLE, 2),
-        ]
+        ["input_value", "length", "expected"],
+        [([1, 2, 3], None, [1, 2, 3]), ([1, 2, 3], 2, [2, 3]), ([1, 2, 3], 3, [1, 2, 3]), ([1, 2, 3], 4, [0, 1, 2, 3])],
     )
-    @pytest.mark.parametrize("is_wrapped", [True, False])
-    def test_init(self, value: BytesType, output: list[int], in_endian: bool, length: int, is_wrapped: bool):
-        if is_wrapped:
-            assert Bytes(value=Bytes(value, length=length, in_endian=in_endian))._value == output
-        else:
-            assert Bytes(value=value, length=length, in_endian=in_endian)._value == output
-
+    def test_init(self, input_value: list[int] | None, length: int | None, expected: list[int]):
+        input = Bytes(value=input_value, length=length)
+        assert input.value == expected
 
     @pytest.mark.parametrize(
-        ["value", "output"], [
-            (Bytes(value=b"", in_endian=Endian.BIG, out_endian=Endian.BIG, length=None), b""),
-            (Bytes(value=b"", in_endian=Endian.BIG, out_endian=Endian.BIG, length=2), b"\x00\x00"),
-            (Bytes(value=b"\x00", in_endian=Endian.BIG, out_endian=Endian.BIG, length=None), b"\x00"),
-            (Bytes(value=b"\x00", in_endian=Endian.BIG, out_endian=Endian.BIG, length=4), b"\x00\x00\x00\x00"),
-            (Bytes(value=b"\x12\x34\x56", in_endian=Endian.BIG, out_endian=Endian.BIG, length=None), b"\x12\x34\x56"),
-            (Bytes(value=b"\x12\x34\x56", in_endian=Endian.LITTLE, out_endian=Endian.BIG, length=None), b"\x56\x34\x12"),
-            (Bytes(value=b"\x12\x34\x56", in_endian=Endian.LITTLE, out_endian=Endian.LITTLE, length=None), b"\x12\x34\x56"),
-            (Bytes(value=b"\x12\x34\x56", in_endian=Endian.BIG, out_endian=Endian.LITTLE, length=None), b"\x56\x34\x12"),
-            (Bytes(value=b"\x12\x34\x56", in_endian=Endian.BIG, out_endian=Endian.BIG, length=2), b"\x34\x56"),
-            (Bytes(value=b"\x12\x34\x56", in_endian=Endian.LITTLE, out_endian=Endian.BIG, length=2), b"\x34\x12"),
-            (Bytes(value=b"\x12\x34\x56", in_endian=Endian.LITTLE, out_endian=Endian.LITTLE, length=2), b"\x12\x34"),
-            (Bytes(value=b"\x12\x34\x56", in_endian=Endian.BIG, out_endian=Endian.LITTLE, length=2), b"\x56\x34"),
-            (Bytes(value=b"\x12\x34\x56", in_endian=Endian.BIG, out_endian=Endian.BIG, length=4), b"\x00\x12\x34\x56"),
-            (Bytes(value=b"\x12\x34\x56", in_endian=Endian.LITTLE, out_endian=Endian.BIG, length=4), b"\x00\x56\x34\x12"),
-            (Bytes(value=b"\x12\x34\x56", in_endian=Endian.LITTLE, out_endian=Endian.LITTLE, length=4), b"\x12\x34\x56\x00"),
-            (Bytes(value=b"\x12\x34\x56", in_endian=Endian.BIG, out_endian=Endian.LITTLE, length=4), b"\x56\x34\x12\x00"),
-        ]
+        ["input_value", "expected"], [("00", [0x00]), ("12", [0x12]), ("0000", [0x00, 0x00]), ("1234", [0x12, 0x34])]
     )
-    def test_bytes(self, value: Bytes, output: bytes):
-        assert bytes(value) == output
+    def test_from_str(self, input_value: str, expected: list[int]):
+        assert Bytes.from_str(value=input_value).value == expected
 
-    @pytest.mark.parametrize(
-        ["value", "output"], [
-            (Bytes(value=b"", in_endian=Endian.BIG, length=None), 0),
-            (Bytes(value=b"\x00", in_endian=Endian.BIG, length=None), 0),
-            (Bytes(value=b"\x01", in_endian=Endian.BIG, length=None), 1),
-            (Bytes(value=b"\xFF", in_endian=Endian.BIG, length=None), 255),
-            (Bytes(value=b"\xFF\xFF", in_endian=Endian.BIG, length=None), 65535),
-            (Bytes(value=b"\xFF\xFE", in_endian=Endian.BIG, length=None), 65534),
-            (Bytes(value=b"\xFF\xFE", in_endian=Endian.LITTLE, length=None), 65279),
-            (Bytes(value=b"\xFE\xFF", in_endian=Endian.BIG, length=None), 65279),
-            (Bytes(value=b"\xFE\xFF", in_endian=Endian.LITTLE, length=None), 65534),
-            (Bytes(value=b"\x12\x34\x56", in_endian=Endian.BIG, length=None), 1193046),
-            (Bytes(value=b"\x12\x34\x56", in_endian=Endian.LITTLE, length=None), 5649426),
-            (Bytes(value=b"\x12\x34\x56", in_endian=Endian.BIG, length=2), 13398),
-            (Bytes(value=b"\x12\x34\x56", in_endian=Endian.LITTLE, length=2), 13330),
-        ]
-    )
-    def test_int(self, value: Bytes, output: int):
-        assert int(value) == output
-
-    @pytest.mark.parametrize(
-        ["value", "output"], [
-            (Bytes(value=b"", in_endian=Endian.BIG, length=None, out_endian=Endian.BIG), ""),
-            (Bytes(value=b"", in_endian=Endian.BIG, length=2, out_endian=Endian.BIG), "0000"),
-            (Bytes(value=b"\x00", in_endian=Endian.BIG, length=None, out_endian=Endian.BIG), "00"),
-            (Bytes(value=b"\x00", in_endian=Endian.BIG, length=4, out_endian=Endian.BIG), "00000000"),
-            (Bytes(value=b"\x12\x34\x56", in_endian=Endian.BIG, length=None, out_endian=Endian.BIG), "123456"),
-            (Bytes(value=b"\x12\x34\x56", in_endian=Endian.LITTLE, length=None, out_endian=Endian.BIG), "563412"),
-            (Bytes(value=b"\x12\x34\x56", in_endian=Endian.LITTLE, length=None, out_endian=Endian.LITTLE), "123456"),
-            (Bytes(value=b"\x12\x34\x56", in_endian=Endian.BIG, length=None, out_endian=Endian.LITTLE), "563412"),
-            (Bytes(value=b"\x12\x34\x56", in_endian=Endian.BIG, length=2, out_endian=Endian.BIG), "3456"),
-            (Bytes(value=b"\x12\x34\x56", in_endian=Endian.LITTLE, length=2, out_endian=Endian.BIG), "3412"),
-            (Bytes(value=b"\x12\x34\x56", in_endian=Endian.LITTLE, length=2, out_endian=Endian.LITTLE), "1234"),
-            (Bytes(value=b"\x12\x34\x56", in_endian=Endian.BIG, length=2, out_endian=Endian.LITTLE), "5634"),
-            (Bytes(value=b"\x12\x34\x56", in_endian=Endian.BIG, length=4, out_endian=Endian.BIG), "00123456"),
-            (Bytes(value=b"\x12\x34\x56", in_endian=Endian.LITTLE, length=4, out_endian=Endian.BIG), "00563412"),
-            (Bytes(value=b"\x12\x34\x56", in_endian=Endian.LITTLE, length=4, out_endian=Endian.LITTLE), "12345600"),
-            (Bytes(value=b"\x12\x34\x56", in_endian=Endian.BIG, length=4, out_endian=Endian.LITTLE), "56341200"),
-            (Bytes(value=b"\xAB\xCD\xEF", in_endian=Endian.BIG, length=None, out_endian=Endian.BIG), "ABCDEF"),
-        ]
-    )
-    def test_str(self, value: Bytes, output: bytes):
-        assert str(value) == output
-
-    @pytest.mark.parametrize(
-        ["left", "right", "is_equal"], [
-            (Bytes(), Bytes(), True),
-            (Bytes(value=0), Bytes(value=0), True),
-            (Bytes(value=1), Bytes(value=0), False),
-            (Bytes(value=1), Bytes(value=1), True),
-            (Bytes(value=1), Bytes(value=2), False)
-        ]
-    )
-    def test_eq(self, left: Bytes, right: Bytes, is_equal: bool):
-        assert (left == right) is is_equal
-
-    def test_eq_raises_value_error(self):
+    @pytest.mark.parametrize("input_value", ["", "C"])
+    def test_from_str_malformed_string_raises_error(self, input_value: str):
         with pytest.raises(ValueError):
-            assert Bytes(value="0x00") == 0x00
+            Bytes.from_str(value=input_value)
+
+    def test_from_bytes_empty_object_raises_error(self):
+        with pytest.raises(ValueError):
+            Bytes.from_bytes(value=b"")
+
+    @pytest.mark.parametrize(["input_value", "expected"], [([0x00], "00"), ([0x12], "12"), ([0x12, 0x34], "1234")])
+    @pytest.mark.parametrize("method", ["__str__", "__repr__"])
+    def test_str(self, input_value: list[int], expected: str, method: str):
+        assert getattr(Bytes(value=input_value), method)() == expected
+
+    @pytest.mark.parametrize(["input_value", "expected"], [([0x00], 1), ([0x12], 1), ([0x12, 0x34], 2)])
+    def test_len(self, input_value: list[int], expected: int):
+        assert len(Bytes(value=input_value)) == expected
 
     @pytest.mark.parametrize(
-        ["left", "right", "is_less_than"], [
-            (Bytes(value=0), Bytes(value=0), False),
-            (Bytes(value=1), Bytes(value=0), False),
-            (Bytes(value=1), Bytes(value=1), False),
-            (Bytes(value=1), Bytes(value=2), True),
-            (Bytes(value=2), Bytes(value=1), False),
-            (Bytes(value=0), Bytes(value=1), True),
-        ]
+        ["left", "right", "expected"],
+        [
+            ([0x00], [0x00], True),
+            ([0x12], [0x12], True),
+            ([0x00, 0x12], [0x12], False),
+            ([0x12, 0x34], [0x12, 0x34], True),
+            ([0x12, 0x34], [0x34, 0x12], False),
+        ],
     )
-    def test_lt(self, left: Bytes, right: Bytes, is_less_than: bool):
-        assert (left < right) is is_less_than
+    def test_eq(self, left: list[int], right: list[int], expected: bool):
+        assert (Bytes(value=left) == Bytes(value=right)) is expected
 
     @pytest.mark.parametrize(
-        ["value", "length"], [
-            (Bytes(value=0x12345), 3),
-            (Bytes(value=0x123456, length=2), 2),
-            (Bytes(value=0x00), 1),
-            (Bytes(value=0x00, length=3), 3),
-            (Position(value=0x00), 3),
-        ]
+        ["left", "right", "expected"],
+        [
+            ([0x00], [0x00], False),
+            ([0x12], [0x12], False),
+            ([0x00, 0x12], [0x12], False),
+            ([0x12, 0x34], [0x12, 0x34], False),
+            ([0x34, 0x12], [0x12, 0x34], True),
+        ],
     )
-    def test_len(self, value: Bytes, length: int):
-        assert len(value) == length
+    def test_lt(self, left: list[int], right: list[int], expected: bool):
+        assert (Bytes(value=left) < Bytes(value=right)) is expected
+
+    @pytest.mark.parametrize("method", ["__eq__", "__lt__"])
+    def test_comparison_when_not_comparing_with_bytes_raises_error(self, method: str):
+        with pytest.raises(ValueError):
+            getattr(Bytes(value=[0x00]), method)(0x00)
 
     @pytest.mark.parametrize(
-        ["value", "output"], [
-            (Bytes(value=b"\x12\x34\x56", in_endian=Endian.BIG, length=None), Bytes(value=b"\x34\x56", in_endian=Endian.BIG)),
-            (Bytes(value=b"\x12\x34\x56", in_endian=Endian.LITTLE, length=None), Bytes(value=b"\x34\x12", in_endian=Endian.BIG)),
-        ]
+        ["input_value", "expected"],
+        [(LEBytes([0x00])[0], [0x00]), (LEBytes([0x12])[0], [0x12]), (LEBytes([0x12, 0x34, 0x56])[1:], [0x34, 0x56])],
     )
-    def test_get_item(self, value: Bytes, output: int):
-        assert value[1:] == output
+    def test_get_item(self, input_value: LEBytes, expected: list[int]):
+        assert input_value.value == expected
+
+    @pytest.mark.parametrize("right", [0x34, Bytes(value=[0x34]), Bytes(value=[0x34, 0x00])])
+    def test_add(self, right: int | Bytes):
+        assert Bytes(value=[0x12]) + right == Bytes(value=[0x46])
+
+    @pytest.mark.parametrize("right", [0xFF, Bytes(value=[0xFF])])
+    def test_add_raises_error_when_overflow(self, right: int | Bytes):
+        with pytest.raises(ValueError):
+            Bytes(value=[0x01]) + right
+
+    @pytest.mark.parametrize("right", [0x34, Bytes(value=[0x34]), Bytes(value=[0x34, 0x00])])
+    def test_sub(self, right: int | Bytes):
+        assert Bytes(value=[0x46]) - right == Bytes(value=[0x12])
+
+    @pytest.mark.parametrize("right", [0xFF, Bytes(value=[0xFF])])
+    def test_sub_raises_error_when_underflow(self, right: int | Bytes):
+        with pytest.raises(ValueError):
+            Bytes(value=[0x01]) - right
+
+
+class TestLEBytes:
+
+    @pytest.mark.parametrize(
+        ["input_value", "length", "expected"],
+        [
+            (0x00, None, [0x00]),
+            (0x00, 2, [0x00, 0x00]),
+            (0x1234, None, [0x34, 0x12]),
+            (0x1234, 1, [0x12]),
+            (0x1234, 3, [0x00, 0x34, 0x12]),
+        ],
+    )
+    def test_from_int(self, input_value: int, length: int, expected: list[int]):
+        input = LEBytes.from_int(value=input_value, length=length)
+        assert input.value == expected
+
+    @pytest.mark.parametrize(
+        ["input_value", "expected"],
+        [(b"\x00", [0x00]), (b"\x12", [0x12]), (b"\x00\x00", [0x00, 0x00]), (b"\x12\x34", [0x34, 0x12])],
+    )
+    def test_from_bytes(self, input_value: bytes, expected: list[int]):
+        assert LEBytes.from_bytes(value=input_value).value == expected
+
+    @pytest.mark.parametrize(
+        ["input_value", "expected"],
+        [([0x00], 0), ([0x12], 0x12), ([0x12, 0x34], 0x3412), ([0x56, 0x34, 0x12], 0x123456)],
+    )
+    def test_int(self, input_value: list[int], expected: int):
+        assert int(LEBytes(value=input_value)) == expected
+
+    @pytest.mark.parametrize(
+        ["input_value", "expected"], [([0x00], b"\x00"), ([0x12], b"\x12"), ([0x12, 0x34], b"\x34\x12")]
+    )
+    def test_bytes(self, input_value: list[int], expected: bytes):
+        assert bytes(LEBytes(value=input_value)) == expected
+
+
+class TestBEBytes:
+
+    @pytest.mark.parametrize(
+        ["input_value", "length", "expected"],
+        [
+            (0x00, None, [0x00]),
+            (0x00, 2, [0x00, 0x00]),
+            (0x1234, None, [0x12, 0x34]),
+            (0x1234, 1, [0x34]),
+            (0x1234, 3, [0x00, 0x12, 0x34]),
+        ],
+    )
+    def test_from_int(self, input_value: int, length: int, expected: list[int]):
+        input = BEBytes.from_int(value=input_value, length=length)
+        assert input.value == expected
+
+    @pytest.mark.parametrize(
+        ["input_value", "expected"],
+        [(b"\x00", [0x00]), (b"\x12", [0x12]), (b"\x00\x00", [0x00, 0x00]), (b"\x12\x34", [0x12, 0x34])],
+    )
+    def test_from_bytes(self, input_value: bytes, expected: list[int]):
+        assert BEBytes.from_bytes(value=input_value).value == expected
+
+    @pytest.mark.parametrize(
+        ["input_value", "expected"],
+        [([0x00], 0x00), ([0x12], 0x12), ([0x12, 0x34], 0x1234), ([0x56, 0x34, 0x12], 0x563412)],
+    )
+    def test_int(self, input_value: list[int], expected: int):
+        assert int(BEBytes(value=input_value)) == expected
+
+    @pytest.mark.parametrize(
+        ["input_value", "expected"], [([0x00], b"\x00"), ([0x12], b"\x12"), ([0x12, 0x34], b"\x12\x34")]
+    )
+    def test_bytes(self, input_value: list[int], expected: bytes):
+        assert bytes(BEBytes(value=input_value)) == expected
+
 
 class TestPosition:
+    @pytest.mark.parametrize(
+        ["input_value", "expected"],
+        [([0x00], [0x00, 0x00, 0x00]), ([0x12, 0x34], [0x00, 0x12, 0x34]), ([0x12, 0x34, 0x56], [0x12, 0x34, 0x56])],
+    )
+    def test_init(self, input_value: list[int], expected: list[int]):
+        assert Position(value=[0x00]).value == [0x00, 0x00, 0x00]
 
     @pytest.mark.parametrize(
-        ["value", "bank"], [
-            (Position(value=0x00), 0x000000),
-            (Position(value=0x123456), 0x120000)
-        ]
+        ["address", "expected"], [("C0/0000", [0x00, 0x00, 0x00]), ("D2/3456", [0x12, 0x34, 0x56])]
     )
-    def test_bank(self, value: Position, bank: int):
-        assert value.bank() == bank
+    def test_from_snes_address(self, address: str, expected: list[int]):
+        assert Position.from_snes_address(address=address).value == expected
 
     @pytest.mark.parametrize(
-        ["address", "position"], [
-            ("C0/0000", Position(value=0x000000)),
-            ("FF/FFFF", Position(value=0x3FFFFF))
-        ]
+        ["input_value", "expected"], [([0x00, 0x00, 0x00], "C0/0000"), ([0x12, 0x34, 0x56], "D2/3456")]
     )
-    def test_from_snes_address(self, address: str, position: Position):
-        assert Position.from_snes_address(value=address) == position
+    def test_to_snes_address(self, input_value: list[int], expected: str):
+        assert Position(value=input_value).to_snes_address() == expected
 
     @pytest.mark.parametrize(
-        ["value", "output"], [
-            (Position(value=b""), "C0/0000"),
-            (Position(value=b"\x00"), "C0/0000"),
-            (Position(value=b"\x12\x34\x56"), "D2/3456"),
-            (Position(value=b"\x56\x34\x12", in_endian=Endian.LITTLE), "D2/3456")
-        ]
+        ["input_value", "expected"], [([0x00, 0x00, 0x00], 0x000000), ([0x12, 0x34, 0x56], 0x120000)]
     )
-    def test_to_snes_address(self, value: Position, output: str):
-        assert value.to_snes_address() == output
+    def test_to_bank(self, input_value: list[int], expected: int):
+        assert Position(value=input_value).bank() == expected
