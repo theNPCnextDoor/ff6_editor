@@ -30,7 +30,7 @@ draw_lv_hp_and_mp=C3/0C6C
   LDA #$C3
   STA $F1
   LDX $67
-  LDA $0800,X
+  LDA $0008,X
   JSR convert_8_bit_number_into_text_blank_leading_zeros
   REP #$20
   LDA [$EF]
@@ -38,44 +38,44 @@ draw_lv_hp_and_mp=C3/0C6C
   SEP #$20
   JSR draw_2_digits
   LDX $67
-  LDA $0B00,X
+  LDA $000B,X
   STA $F3
-  LDA $0C00,X
+  LDA $000C,X
   STA $F4
   JSR determine_max_hp_or_mp_with_gear_bonus
   JSR enforce_hp_cap
   JSR convert_16_bit_number_into_text_blank_leading_zeros
-  LDY #$0400
+  LDY #$0004
   JSR draw_current_or_max_hp_or_mp
   LDY $67
   JSR prevent_hp_excess
-  LDA $0900,Y
+  LDA $0009,Y
   STA $F3
-  LDA $0A00,Y
+  LDA $000A,Y
   STA $F4
   JSR convert_16_bit_number_into_text_blank_leading_zeros
-  LDY #$0200
+  LDY #$0002
   JSR draw_current_or_max_hp_or_mp
   JSR determine_if_actor_is_magic_user
   BCC hide_mp
   LDX $67
-  LDA $0F00,X
+  LDA $000F,X
   STA $F3
-  LDA $1000,X
+  LDA $0010,X
   STA $F4
   JSR determine_max_hp_or_mp_with_gear_bonus
   JSR enforce_mp_cap
   JSR convert_16_bit_number_into_text_blank_leading_zeros
-  LDY #$0800
+  LDY #$0008
   JSR draw_current_or_max_hp_or_mp
   LDY $67
   JSR prevent_mp_excess
-  LDA $0D00,Y
+  LDA $000D,Y
   STA $F3
-  LDA $0E00,Y
+  LDA $000E,Y
   STA $F4
   JSR convert_16_bit_number_into_text_blank_leading_zeros
-  LDY #$0600
+  LDY #$0006
   JMP draw_current_or_max_hp_or_mp
 
 hide_mp=C3/0CEF
@@ -112,57 +112,57 @@ prevent_mp_excess=C3/2BBC
 
 draw_actor_name=C3/34CF
   JSR draw_string
-  LDX #$0600
+  LDX #$0006
 draw_actor_name_loop_start
-  LDA $0200,Y
-  STA $8021
+  LDA $0002,Y
+  STA $2180
   INY
   DEX
   BNE draw_actor_name_loop_start
-  STZ $8021
+  STZ $2180
   JMP draw_memorized_string
 
 draw_actor_class=C3/34E5
 
 draw_equipped_esper=C3/34E6
   JSR prepare_name_drawing
-  LDA $1E00,Y
+  LDA $001E,Y
   CMP #$FF
   BEQ blank_esper_name
   ASL
   ASL
   ASL
   TAX
-  LDY #$0800
+  LDY #$0008
 draw_equipped_esper_loop_start
-  LDA $E1F6E6,X
-  STA $8021
+  LDA $E6F6E1,X
+  STA $2180
   INX
   DEY
   BNE draw_equipped_esper_loop_start
-  STZ $8021
+  STZ $2180
   JMP draw_memorized_string
 blank_esper_name
-  LDY #$0800
+  LDY #$0008
   LDA #$FF
 blank_esper_name_loop_start
-  STA $8021
+  STA $2180
   DEY
   BNE blank_esper_name_loop_start
-  STZ $8021
+  STZ $2180
   JMP draw_memorized_string
 prepare_name_drawing=C3/3519
 
 
 draw_string=C3/3519
-  LDX #$899E
-  STX $8121
+  LDX #$9E89
+  STX $2181
   REP #$20
   TYA
   SEP #$20
-  STA $8021
+  STA $2180
   XBA
-  STA $8021
+  STA $2180
   TDC
   LDY $67
   RTS
@@ -185,11 +185,11 @@ draw_windows
   JSR clear_bg3_tilemap_b
   JSR clear_bg3_tilemap_c
   JSR clear_bg3_tilemap_d
-  LDY #$815F
+  LDY #$5F81
   JSR draw_window
-  LDY #$795F
+  LDY #$5F79
   JSR draw_window
-  LDY #$7D5F
+  LDY #$5F7D
   JSR draw_window
   RTS
 draw_blue_text_and_symbols
@@ -198,20 +198,20 @@ draw_blue_text_and_symbols
 draw_lv_hp_mp_and_non_blue_symbols
   LDA #$20
   STA $29
-  LDX #$5564
-  LDY #$0800
+  LDX #$6455
+  LDY #$0008
   JSR draw_multiple_strings
   LDA #$24
   STA $29
-  LDX #$4B64
-  LDY #$0A00
+  LDX #$644B
+  LDY #$000A
   JSR draw_multiple_strings
   RTS
 draw_other_blue_text
   LDA #$2C
   STA $29
-  LDX #$3764
-  LDY #$1400
+  LDX #$6437
+  LDY #$0014
   JSR draw_multiple_strings
   RTS
 
@@ -238,71 +238,71 @@ draw_actor_values=C3/5FC2
   JSR define_bat_pwr_mode
   LDA #$20
   STA $29
-  LDA $A611
+  LDA $11A6
   JSR convert_8_bit_number_into_text_blank_leading_zeros
-  LDX #$5D7C
+  LDX #$7C5D
   JSR draw_3_digits_8_bits
-  LDA $A411
+  LDA $11A4
   JSR convert_8_bit_number_into_text_blank_leading_zeros
-  LDX #$DD7C
+  LDX #$7CDD
   JSR draw_3_digits_8_bits
-  LDA $A211
+  LDA $11A2
   JSR convert_8_bit_number_into_text_blank_leading_zeros
-  LDX #$5D7D
+  LDX #$7D5D
   JSR draw_3_digits_8_bits
-  LDA $A011
+  LDA $11A0
   JSR convert_8_bit_number_into_text_blank_leading_zeros
-  LDX #$DD7D
+  LDX #$7DDD
   JSR draw_3_digits_8_bits
   JSR define_current_or_projected_bat_pwr
-  LDA $AC11
+  LDA $11AC
   CLC
-  ADC $AD11
+  ADC $11AD
   STA $F3
   TDC
   ADC #$00
   STA $F4
   JSR convert_16_bit_number_into_text_blank_leading_zeros
-  LDX #$5D7E
+  LDX #$7E5D
   JSR draw_3_digits
-  LDA $BA11
+  LDA $11BA
   JSR convert_8_bit_number_into_text_blank_leading_zeros
-  LDX #$DD7E
+  LDX #$7EDD
   JSR draw_3_digits_8_bits
-  LDA $A811
+  LDA $11A8
   JSR convert_8_bit_number_into_text_blank_leading_zeros
-  LDX #$5D7F
+  LDX #$7F5D
   JSR draw_3_digits_8_bits
-  LDA $BB11
+  LDA $11BB
   JSR convert_8_bit_number_into_text_blank_leading_zeros
-  LDX #$DD7F
+  LDX #$7FDD
   JSR draw_3_digits_8_bits
-  LDA $AA11
+  LDA $11AA
   JSR convert_8_bit_number_into_text_blank_leading_zeros
-  LDX #$5D88
+  LDX #$885D
   JSR draw_3_digits_8_bits
-  LDY #$CD38
+  LDY #$38CD
   JSR draw_actor_name
-  LDY #$9D39
+  LDY #$399D
   JSR draw_actor_class
   JSR draw_esper_and_equipment
   LDA #$20
   STA $29
-  LDX #$9660
+  LDX #$6096
   JSR draw_lv_hp_and_mp
   LDX $67
-  LDA $1100,X
+  LDA $0011,X
   STA $F1
-  LDA $1200,X
+  LDA $0012,X
   STA $F2
-  LDA $1300,X
+  LDA $0013,X
   STA $F3
   JSR convert_24_bit_number_into_text_blank_leading_zeros
-  LDX #$B539
+  LDX #$39B5
   JSR draw_8_digits
   JSR calculate_xp_needed_for_level_up
   JSR convert_24_bit_number_into_text_blank_leading_zeros
-  LDX #$A339
+  LDX #$39A3
   JSR draw_8_digits
   STZ $47
   JSR process_animation_queue
@@ -316,19 +316,19 @@ lv_hp_mp_quantity_position=C3/6096
 calculate_xp_needed_for_level_up
 
 draw_actor_commands=C3/6102
-  LDY #$F57A
+  LDY #$7AF5
   JSR draw_string
   JSR draw_command_name
-  LDY #$757B
+  LDY #$7B75
   JSR draw_string
   INY
   JSR draw_command_name
-  LDY #$F57B
+  LDY #$7BF5
   JSR draw_string
   INY
   INY
   JSR draw_command_name
-  LDY #$757C
+  LDY #$7C75
   JSR draw_string
   INY
   INY
@@ -339,15 +339,15 @@ create_portrait_a=C3/61DA
 
 condense_bg3_text=C3/620B
   LDA #$02
-  STA $5043
+  STA $4350
   LDA #$12
-  STA $5143
-  LDY #$2A62
-  STY $5243
+  STA $4351
+  LDY #$622A
+  STY $4352
   LDA #$C3
-  STA $5443
+  STA $4354
   LDA #$C3
-  STA $5743
+  STA $4357
   LDA #$20
   TSB $43
   RTS
@@ -370,8 +370,8 @@ condense_bg3_text=C3/620B
   $00 | $A0 | $9D
 
 draw_status_effects=C3/625B
-  LDY #$1D3A
-  LDX #$5030
+  LDY #$3A1D
+  LDX #$3050
 
 text_pointers=C3/6437
   ptr text_status
@@ -472,8 +472,8 @@ create_portrait=C3/F0A0
 init_vars_for_portrait
   JSR load_pointer_to_animation_table_for_portrait
   REP #$20
-  LDA #$1800 # Y position of actor portrait
-  STA $4A34,X
+  LDA #$0018 # Y position of actor portrait
+  STA $344A,X
   SEP #$20
   JMP init_m7
 replace_portrait
@@ -481,71 +481,71 @@ replace_portrait
   LDA $60
   TAX
   LDA #$FF
-  STA $C9357E,X
+  STA $7E35C9,X
   JSR create_portrait_a
   JMP create_portrait
 
 draw_equipped_weapon
   CMP #$FF
   BEQ blank_equipped_weapon
-  STA $0242
+  STA $4202
   LDA #$0D
-  STA $0342
+  STA $4203
   NOP
   NOP
   NOP
-  LDX $1642
-  LDY #$0D00
+  LDX $4216
+  LDY #$000D
 draw_equipped_weapon_loop_start
-  LDA $00B3D2,X
-  STA $8021
+  LDA $D2B300,X
+  STA $2180
   INX
   DEY
   BNE draw_equipped_weapon_loop_start
-  STZ $8021
+  STZ $2180
   JMP draw_memorized_string
 blank_equipped_weapon
-  LDY #$0D00
+  LDY #$000D
   LDA #$FF
 blank_equipped_weapon_loop_start
-  STA $8021
+  STA $2180
   DEY
   BNE blank_equipped_weapon_loop_start
-  STZ $8021
+  STZ $2180
   JMP draw_memorized_string
 
 draw_esper_and_equipment
-  LDY #$6D7D
+  LDY #$7D6D
   JSR draw_equipped_esper
 
-  LDY #$EB7D
+  LDY #$7DEB
   JSR prepare_name_drawing
-  LDA $1F00,Y
+  LDA $001F,Y
   JSR draw_equipped_weapon
 
-  LDY #$6B7E
+  LDY #$7E6B
   JSR prepare_name_drawing
-  LDA $2000,Y
+  LDA $0020,Y
   JSR draw_equipped_weapon
 
-  LDY #$EB7E
+  LDY #$7EEB
   JSR prepare_name_drawing
-  LDA $2100,Y
+  LDA $0021,Y
   JSR draw_equipped_weapon
 
-  LDY #$6B7F
+  LDY #$7F6B
   JSR prepare_name_drawing
-  LDA $2200,Y
+  LDA $0022,Y
   JSR draw_equipped_weapon
 
-  LDY #$EB7F
+  LDY #$7FEB
   JSR prepare_name_drawing
-  LDA $2300,Y
+  LDA $0023,Y
   JSR draw_equipped_weapon
 
-  LDY #$6B88
+  LDY #$886B
   JSR prepare_name_drawing
-  LDA $2400,Y
+  LDA $0024,Y
   JSR draw_equipped_weapon
 
   JMP draw_actor_commands
