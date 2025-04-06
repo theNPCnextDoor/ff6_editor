@@ -1,6 +1,6 @@
 import re
 
-from src.lib.structures import Bytes
+from src.lib.structures.bytes import LEBytes
 from src.lib.misc.exception import NoCandidateException
 
 
@@ -9,12 +9,12 @@ class Charset:
         self.charset = charset
 
     def get_char(self, value: int):
-        return self.charset.get(value, f"<0x{Bytes(value)}>")
+        return self.charset.get(value, f"<0x{LEBytes([value])}>")
 
     def get_int(self, value: str) -> int:
         string_byte_regex = r"<0x(?P<byte>[0-9A-F]{2})>"
         if match := re.fullmatch(string_byte_regex, value):
-            return int(Bytes(match.group("byte")))
+            return int(LEBytes.from_str((match.group("byte"))))
 
         candidates = [k for k, v in self.charset.items() if v == value]
         if len(candidates) == 0:

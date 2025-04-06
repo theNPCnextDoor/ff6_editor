@@ -1,7 +1,7 @@
 from __future__ import annotations
 from typing import Match, Optional, TYPE_CHECKING, Self
 
-from src.lib.structures.bytes import BytesType, Bytes, Position
+from src.lib.structures.bytes import LEBytes, Position
 
 if TYPE_CHECKING:
     from src.lib.structures.asm.label import Label
@@ -9,8 +9,8 @@ if TYPE_CHECKING:
 
 class ScriptLine:
 
-    def __init__(self, position: BytesType):
-        self.position = Position(position) if position is not None else Position(0x00)
+    def __init__(self, position: Position | None):
+        self.position = position if position is not None else Position([0x00])
 
     def __hash__(self) -> int:
         return hash(self.position)
@@ -24,8 +24,8 @@ class ScriptLine:
     @classmethod
     def sort(cls, value: Self) -> tuple[Position, bool]:
         from src.lib.structures.asm.label import Label
-        return value.position, not isinstance(value, Label)
 
+        return value.position, not isinstance(value, Label)
 
 
 class DataMixin:
@@ -46,8 +46,8 @@ class DataMixin:
 
 class BankMixin:
     @staticmethod
-    def bank(position: Position) -> Bytes:
-        return Bytes(int(position) & 0xFF0000)
+    def bank(position: Position) -> Position:
+        return Position.from_int(int(position) & 0xFF0000)
 
 
 class NoLabelException(Exception):

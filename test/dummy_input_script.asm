@@ -1,20 +1,20 @@
 m=8,x=16
 
 start=C0/0001
-  ptr $3412
-  ptr $0500
+  ptr $1234
+  ptr $0005
 
 archie=C0/0005
   TAX
   LDA ($12,X)
-  LDX #$DCFE
+  LDX #$FEDC
   REP #$30
-  LDA #$5634
-  LDX #$DCFE
+  LDA #$3456
+  LDX #$FEDC
   SEP #$30
   LDA #$BB
   LDX #$CC
-  MVP #$12,#$34
+  MVP #$34,#$12
 
   JMP archie
   BRA start

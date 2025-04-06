@@ -8,6 +8,6 @@ from src.lib.structures.bytes import Position
 @pytest.fixture
 def labels() -> list[Label]:
     return [
-        Label(name="label_1", position=Position(0x123456)),
-        Label(name="label_2", position=Position(0X34FFFE))
+        Label(name="label_1", position=Position([0x12, 0x34, 0x56])),
+        Label(name="label_2", position=Position([0x34, 0xFF, 0xFE])),
     ]
