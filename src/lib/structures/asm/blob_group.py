@@ -23,12 +23,16 @@ class BlobGroup(ScriptLine, ToLineMixin):
         parts = [part.strip() for part in match.group(0).split("|")]
         cursor = int(position)
         blobs = list()
+
         for i, part in enumerate(parts):
             cleaned_part = re.sub(' #[^"]*$', "", part)
+
             if blob_match := re.search(Regex.MENU_STRING, cleaned_part):
-                blob = String.from_regex_match(blob_match, position=Position(cursor), charset=charset)
+                blob = String.from_regex_match(blob_match, position=Position([cursor]), charset=charset)
+
             elif blob_match := re.search(Regex.BLOB, cleaned_part):
-                blob = Blob.from_regex_match(blob_match, position=Position(cursor))
+                blob = Blob.from_regex_match(blob_match, position=Position([cursor]))
+
             else:
                 raise UnrecognizedBlob(f"Blob part {i} is unrecognized.\n{cleaned_part=}\n{match.group(0)}")
             blobs.append(blob)

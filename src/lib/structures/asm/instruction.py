@@ -8,11 +8,11 @@ from src.lib.structures.asm.label import Label
 from src.lib.structures.asm.opcodes import Opcodes
 from src.lib.structures.asm.regex import Regex, ToLineMixin
 from src.lib.structures.asm.script_line import ScriptLine, DataMixin, BankMixin, ImpossibleDestination, DestinationMixin
-from src.lib.structures.bytes import Bytes, Endian, Position, BytesType
+from src.lib.structures.bytes import LEBytes, Position
 
 
 class Instruction(ScriptLine, DataMixin, ToLineMixin):
-    def __init__(self, opcode: BytesType, position: Position | None = None, data: Bytes | None = None):
+    def __init__(self, opcode: LEBytes, position: Position | None = None, data: LEBytes | None = None):
         super().__init__(position=position)
         self.opcode = opcode
         self.data = data
@@ -24,8 +24,8 @@ class Instruction(ScriptLine, DataMixin, ToLineMixin):
         data, length = None, 0
 
         if (data := cls.data(match)) is not None:
-            data = Bytes(data)
-            length = len(data)
+            data = LEBytes.from_str(data) if data else None
+            length = len(data) if data else 0
 
         opcode = cls.find_opcode(command=command, mode=mode, length=length, flags=flags)
 
@@ -34,10 +34,10 @@ class Instruction(ScriptLine, DataMixin, ToLineMixin):
     @classmethod
     def from_bytes(cls, value: bytes, position: Position = None, flags: Flags = None) -> Self:
         flags = flags or Flags()
-        opcode = Bytes(value[0])
+        opcode = LEBytes.from_int(value[0])
         command = Opcodes[int(value[0])]
         length = command["length"] - flags.m * command["m"] - flags.x * command["x"]
-        data = Bytes(value[1 : length + 1]) if length else None
+        data = LEBytes.from_bytes(value[1 : length + 1]) if length else None
 
         if cls._is_branching_instruction(opcode):
             return BranchingInstruction(position=position, opcode=opcode, data=data)
@@ -45,7 +45,7 @@ class Instruction(ScriptLine, DataMixin, ToLineMixin):
             return Instruction(position=position, opcode=opcode, data=data)
 
     @classmethod
-    def _is_branching_instruction(cls, opcode: Bytes):
+    def _is_branching_instruction(cls, opcode: LEBytes):
         return cls.command(opcode) in [
             "JMP",
             "JML",
@@ -82,7 +82,7 @@ class Instruction(ScriptLine, DataMixin, ToLineMixin):
         return re.sub(Regex.DATA, "_", data)
 
     @staticmethod
-    def find_opcode(command: str, mode: str, length: int, flags: Flags) -> Bytes:
+    def find_opcode(command: str, mode: str, length: int, flags: Flags) -> LEBytes:
         candidates = list()
         for code, operation in Opcodes.items():
             if operation["command"] == command and operation["mode"] == mode:
@@ -95,10 +95,10 @@ class Instruction(ScriptLine, DataMixin, ToLineMixin):
         if len(candidates) == 0:
             raise NoCandidateException(f"No candidate was found for {command=}, {mode=} and {length=}.")
 
-        return Bytes(candidates[0])
+        return LEBytes([candidates[0]])
 
     @staticmethod
-    def command(opcode: Bytes) -> str:
+    def command(opcode: LEBytes) -> str:
         return Opcodes[int(opcode)]["command"]
 
     def is_flag_setter(self) -> bool:
@@ -124,7 +124,7 @@ class Instruction(ScriptLine, DataMixin, ToLineMixin):
         output = Opcodes[int(self.opcode)]["command"]
         mode = Opcodes[int(self.opcode)]["mode"]
         if mode == "#$_,#$_":
-            output += f" #${str(self.data[1])},#${str(self.data[0])}"
+            output += f" #${str(self.data[0])},#${str(self.data[1])}"
         elif self.data:
             output += " " + mode.replace("_", str(self.data))
         return output
@@ -134,7 +134,7 @@ class Instruction(ScriptLine, DataMixin, ToLineMixin):
 
 
 class BranchingInstruction(Instruction, BankMixin, DestinationMixin):
-    def __init__(self, position: Position, opcode: Bytes, data: Bytes = None, destination: Position = None):
+    def __init__(self, opcode: LEBytes, position: Position = None, data: LEBytes = None, destination: Position = None):
         if data is None and destination is None:
             raise ValueError("Please provide either data or destination.")
         super().__init__(position=position, opcode=opcode)
@@ -158,7 +158,8 @@ class BranchingInstruction(Instruction, BankMixin, DestinationMixin):
 
             length = cls.find_length(command=command)
         else:
-            data = Bytes(cls.data(match))
+            value = cls.data(match)
+            data = LEBytes.from_str(value) if value is not None else None
             mode = cls.mode(match)
             length = len(data)
 
@@ -174,25 +175,25 @@ class BranchingInstruction(Instruction, BankMixin, DestinationMixin):
             return cls.bank(position) == cls.bank(destination)
         return int(position) - 0x7E <= int(destination) <= int(position) + 0x81
 
-    def data_to_destination(self, data: Bytes) -> Position:
+    def data_to_destination(self, data: LEBytes) -> Position:
         command = self.command(self.opcode)
         if command in ["JSL", "JML"]:
-            return Position(value=int(data) - 0xC00000)
+            return Position.from_other(data) - 0xC00000
         if command in ["JMP", "JSR"]:
-            return Position(value=int(data) + self.position.bank())
+            return Position.from_other(data) + self.position.bank()
         if command == "BRL":
-            return Position(value=(int(data) + 0x8000) % 0x010000 + int(self.position) - 0x7FFD)
-        return Position(value=(int(data) + 0x80) % 0x0100 + int(self.position) - 0x7E)
+            return Position.from_int((int(data) + 0x8000) % 0x010000 + int(self.position) - 0x7FFD)
+        return Position.from_int((int(data) + 0x80) % 0x0100 + int(self.position) - 0x7E)
 
-    def destination_to_data(self, destination: Position) -> Bytes:
+    def destination_to_data(self, destination: Position) -> LEBytes:
         command = self.command(self.opcode)
         if command in ["JSL", "JML"]:
-            return Bytes(value=int(destination) + 0xC00000, length=3)
+            return LEBytes.from_other(destination + 0xC00000)
         if command in ["JMP", "JSR"]:
-            return Bytes(value=destination[1:], length=2)
+            return LEBytes.from_other(destination[1:], length=2)
         if command == "BRL":
-            return Bytes(value=(int(destination) - int(self.position) - 3) % 0x010000, length=2)
-        return Bytes(value=((int(destination) - int(self.position) % 0x0100) - 2) % 0x0100, length=1)
+            return LEBytes.from_int(((int(destination) - int(self.position) - 3) % 0x010000), length=2)
+        return LEBytes.from_int((((int(destination) - int(self.position) % 0x0100) - 2) % 0x0100), length=1)
 
     @classmethod
     def find_length(cls, command: str) -> int:

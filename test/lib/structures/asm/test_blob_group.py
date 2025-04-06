@@ -6,14 +6,14 @@ from src.lib.structures.asm.blob import Blob
 from src.lib.structures.asm.blob_group import BlobGroup
 from src.lib.structures.asm.regex import Regex
 from src.lib.structures.asm.string import String
-from src.lib.structures.bytes import Position, BlobBytes, Bytes
+from src.lib.structures.bytes import Position, BEBytes, LEBytes
 
 GROUP = BlobGroup(
     blobs=[
-        Blob(data=BlobBytes(0xAA)),
-        String(data=BlobBytes(0x9A), position=Position(0x000001)),
-        Blob(data=BlobBytes(0xBB), position=Position(0x000002), delimiter=Bytes(0xFF)),
-        String(data=BlobBytes(0x9B), position=Position(0x000004), delimiter=Bytes(0x00)),
+        Blob(data=BEBytes([0xAA])),
+        String(data=BEBytes([0x9A]), position=Position([0x00, 0x00, 0x01])),
+        Blob(data=BEBytes([0xBB]), position=Position([0x00, 0x00, 0x02]), delimiter=LEBytes([0xFF])),
+        String(data=BEBytes([0x9B]), position=Position([0x00, 0x00, 0x04]), delimiter=LEBytes([0x00])),
     ]
 )
 
@@ -26,13 +26,19 @@ class TestBlobGroup:
             (
                 '  "This is a string # " | $01',
                 BlobGroup(
-                    blobs=[String(data=BlobBytes("1234")), Blob(data=BlobBytes(0x01), position=Position(0x000013))]
+                    blobs=[
+                        String(data=BEBytes([0x12, 0x34])),
+                        Blob(data=BEBytes([0x01]), position=Position([0x00, 0x00, 0x13])),
+                    ]
                 ),
             ),
             (
                 '  $CD78 | "Status",$00',
                 BlobGroup(
-                    blobs=[Blob(data=BlobBytes(0xCD78)), String(data=BlobBytes(0x1234), delimiter=Bytes(b"\x00"))]
+                    blobs=[
+                        Blob(data=BEBytes([0xCD, 0x78])),
+                        String(data=BEBytes([0x12, 0x34]), delimiter=LEBytes([0x00])),
+                    ]
                 ),
             ),
         ],
@@ -41,7 +47,7 @@ class TestBlobGroup:
     def test_from_regex_match(self, line: str, comment: str, group: BlobGroup):
         match = re.fullmatch(Regex.BLOB_GROUP_LINE, f"{line}{comment}")
         assert bool(match)
-        assert BlobGroup.from_regex_match(match=match, position=Position(0x000000)) == BlobGroup()
+        assert BlobGroup.from_regex_match(match=match, position=Position([0x00])) == BlobGroup()
 
     @pytest.mark.parametrize(
         ["expected", "group"],
@@ -76,7 +82,7 @@ class TestBlobGroup:
     @pytest.mark.parametrize(
         ["group", "expected"],
         [
-            (GROUP, b"\xAA\x9A\xBB\xFF\x9B\x00"),
+            (GROUP, b"\xaa\x9a\xbb\xff\x9b\x00"),
         ],
     )
     def test_bytes(self, group: BlobGroup, expected: bytes):

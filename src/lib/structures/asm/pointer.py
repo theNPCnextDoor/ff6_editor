@@ -2,14 +2,14 @@ from re import Match
 from typing import Self
 
 from src.lib.structures.asm.regex import ToLineMixin
-from src.lib.structures.bytes import Bytes, BytesType, Position, Endian
+from src.lib.structures.bytes import LEBytes, Position
 from src.lib.structures.asm.label import Label
 
 from src.lib.structures.asm.script_line import ScriptLine, BankMixin, ImpossibleDestination, DestinationMixin
 
 
 class Pointer(ScriptLine, BankMixin, DestinationMixin, ToLineMixin):
-    def __init__(self, position: Position = None, destination: Position = None, data: Bytes = None):
+    def __init__(self, position: Position = None, destination: Position = None, data: LEBytes = None):
         if destination is None and data is None:
             raise ValueError("Either provide the destination or the data.")
 
@@ -18,7 +18,7 @@ class Pointer(ScriptLine, BankMixin, DestinationMixin, ToLineMixin):
         if destination and self.position.bank() != destination.bank():
             raise ImpossibleDestination(
                 f"Destination '{destination.to_snes_address()}' can't be reached with pointer"
-                f" at position '{position.to_snes_address()}'"
+                f" at position '{self.position.to_snes_address()}'"
             )
 
         self.destination = destination if destination is not None else self._data_to_destination(data=data)
@@ -31,13 +31,13 @@ class Pointer(ScriptLine, BankMixin, DestinationMixin, ToLineMixin):
         if label_name := match.group("label"):
             destination = cls.find_destination(label_name, labels)
         else:
-            data = Bytes(value=match.group("number"), length=2)
+            data = LEBytes.from_str(match.group("number"))
 
         return cls(position=position, destination=destination, data=data)
 
     @classmethod
     def from_bytes(cls, value: bytes, position: Position | None = None) -> Self:
-        return Pointer(position=position, data=Bytes(value))
+        return Pointer(position=position, data=LEBytes.from_bytes(value))
 
     def to_line(self, show_address: bool = False, labels: list[Label] | None = None) -> str:
         output = "  ptr "
@@ -70,11 +70,9 @@ class Pointer(ScriptLine, BankMixin, DestinationMixin, ToLineMixin):
     def __len__(self) -> int:
         return 2
 
-    def _data_to_destination(self, data: Bytes) -> Position:
-        return Position(
-            value=int(data) + self.position.bank(),
-        )
+    def _data_to_destination(self, data: LEBytes) -> Position:
+        return Position(data.value) + self.position.bank()
 
     @staticmethod
-    def _destination_to_data(destination: Position) -> Bytes:
-        return Bytes(value=destination, out_endian=Endian.LITTLE, length=2)
+    def _destination_to_data(destination: Position) -> LEBytes:
+        return LEBytes(value=destination.value, length=2)
