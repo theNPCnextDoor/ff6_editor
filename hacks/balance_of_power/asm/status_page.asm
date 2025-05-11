@@ -171,13 +171,19 @@ reset_oam_and_anim_queue=C3/352F
 
 prepare_fade_in=C3/3541
 
+gogo_commands_cursor_positions=C3/3713
+  $9E41
+  $9E4D
+  $9E59
+  $9E65
+
 draw_status_menu=C3/5D05
   JSR draw_windows
   JSR draw_gogo_commands
   JSR draw_blue_text_and_symbols
   JSR draw_actor_info
   JSR upload_tilemap
-  JMP create_portrait
+  JMP jump_to_put_portrait_in_top_left_corner
 draw_windows
   JSR clear_bg1_tilemap_a
   JSR clear_bg1_tilemap_d
@@ -217,12 +223,12 @@ draw_other_blue_text
 
 upload_tilemap=C3/5D77
 
-# jump_to_replace_portrait=C3/5D89
-#   JSR replace_portrait
-
 draw_gogo_commands=C3/5DC1
 
 draw_command_name=C3/5EE1
+
+gogo_portrait_position=C3/5F50
+  LDX #$610A
 
 window_layout=C3/5F79
   $B758 | $0601
@@ -255,13 +261,6 @@ draw_actor_values=C3/5FC2
   LDX #$7DDD
   JSR draw_3_digits_8_bits
   JSR define_current_or_projected_bat_pwr
-  LDA $11AC
-  CLC
-  ADC $11AD
-  STA $F3
-  TDC
-  ADC #$00
-  STA $F4
   JSR convert_16_bit_number_into_text_blank_leading_zeros
   LDX #$7E5D
   JSR draw_3_digits
@@ -335,7 +334,34 @@ draw_actor_commands=C3/6102
   INY
   JMP draw_command_name
 
+jump_to_put_portrait_in_top_left_corner=C3/F160
+  JSR create_portrait_a
+  # JMP put_portrait_in_top_left_corner
+
 create_portrait_a=C3/61DA
+
+put_portrait_in_top_left_corner=C3/F163
+  PHB
+  LDA #$7E
+  PHA
+  PLB
+  TDC
+  LDA $28
+  TAY
+  JSR set_portrait_x_position_based_on_row
+  TDC
+  LDA $28
+  TAY
+  JSR init_variables_for_portrait_in_top_left_corner
+  PLB
+  RTS
+init_variables_for_portrait_in_top_left_corner
+  JSR load_pointer_to_animation_table_for_portrait
+  REP #$20
+  LDA #$0018 # Y-position of actor portrait
+  STA $344A,X
+  SEP #$20
+  JMP init_m7
 
 condense_bg3_text=C3/620B
   LDA #$02
