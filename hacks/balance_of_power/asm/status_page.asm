@@ -1,31 +1,31 @@
 m=8,x=16
 
-reset_function=C2/0006
+reset_function=C20006
 
-init_status_menu_pointer=C3/01F1
+init_status_menu_pointer=C301F1
   ptr init_status_menu
 
-draw_window=C3/0341
+draw_window=C30341
 
-draw_3_digits=C3/0486
+draw_3_digits=C30486
 
-draw_8_digits=C3/04A3
+draw_8_digits=C304A3
 
-draw_2_digits=C3/04B6
+draw_2_digits=C304B6
 
-draw_3_digits_8_bits=C3/04C0
+draw_3_digits_8_bits=C304C0
 
-convert_8_bit_number_into_text_blank_leading_zeros=C3/04E0
+convert_8_bit_number_into_text_blank_leading_zeros=C304E0
 
-convert_16_bit_number_into_text_blank_leading_zeros=C3/052E
+convert_16_bit_number_into_text_blank_leading_zeros=C3052E
 
-convert_24_bit_number_into_text_blank_leading_zeros=C3/0582
+convert_24_bit_number_into_text_blank_leading_zeros=C30582
 
-load_pointer_to_animation_table_for_portrait=C3/0ACC
+load_pointer_to_animation_table_for_portrait=C30ACC
 
-set_portrait_x_position_based_on_row=C3/0AF1
+set_portrait_x_position_based_on_row=C30AF1
 
-draw_lv_hp_and_mp=C3/0C6C
+draw_lv_hp_and_mp=C30C6C
   STX $EF
   LDA #$C3
   STA $F1
@@ -78,23 +78,23 @@ draw_lv_hp_and_mp=C3/0C6C
   LDY #$0006
   JMP draw_current_or_max_hp_or_mp
 
-hide_mp=C3/0CEF
+hide_mp=C30CEF
 
-draw_current_or_max_hp_or_mp=C3/0D21
+draw_current_or_max_hp_or_mp=C30D21
 
-determine_if_actor_is_magic_user=C3/0D2B
+determine_if_actor_is_magic_user=C30D2B
 
-determine_max_hp_or_mp_with_gear_bonus=C3/0D65
+determine_max_hp_or_mp_with_gear_bonus=C30D65
 
-enforce_hp_cap=C3/0D92
+enforce_hp_cap=C30D92
 
-enforce_mp_cap=C3/0D9F
+enforce_mp_cap=C30D9F
 
-process_animation_queue=C3/11B0
+process_animation_queue=C311B0
 
-init_m7=C3/1206
+init_m7=C31206
 
-init_status_menu=C3/1C46
+init_status_menu=C31C46
   JSR reset_oam_and_anim_queue
   JSR condense_bg3_text
   JSR draw_status_menu
@@ -106,11 +106,11 @@ init_status_menu=C3/1C46
   JMP prepare_fade_in
 initialize_cursor_data
 
-prevent_hp_excess=C3/2B9A
+prevent_hp_excess=C32B9A
 
-prevent_mp_excess=C3/2BBC
+prevent_mp_excess=C32BBC
 
-draw_actor_name=C3/34CF
+draw_actor_name=C334CF
   JSR draw_string
   LDX #$0006
 draw_actor_name_loop_start
@@ -122,9 +122,9 @@ draw_actor_name_loop_start
   STZ $2180
   JMP draw_memorized_string
 
-draw_actor_class=C3/34E5
+draw_actor_class=C334E5
 
-draw_equipped_esper=C3/34E6
+draw_equipped_esper=C334E6
   JSR prepare_name_drawing
   LDA $001E,Y
   CMP #$FF
@@ -151,10 +151,10 @@ blank_esper_name_loop_start
   BNE blank_esper_name_loop_start
   STZ $2180
   JMP draw_memorized_string
-prepare_name_drawing=C3/3519
+prepare_name_drawing=C33519
 
 
-draw_string=C3/3519
+draw_string=C33519
   LDX #$9E89
   STX $2181
   REP #$20
@@ -167,17 +167,17 @@ draw_string=C3/3519
   LDY $67
   RTS
 
-reset_oam_and_anim_queue=C3/352F
+reset_oam_and_anim_queue=C3352F
 
-prepare_fade_in=C3/3541
+prepare_fade_in=C33541
 
-gogo_commands_cursor_positions=C3/3713
+gogo_commands_cursor_positions=C33713
   $9E41
   $9E4D
   $9E59
   $9E65
 
-draw_status_menu=C3/5D05
+draw_status_menu=C35D05
   JSR draw_windows
   JSR draw_gogo_commands
   JSR draw_blue_text_and_symbols
@@ -221,16 +221,16 @@ draw_other_blue_text
   JSR draw_multiple_strings
   RTS
 
-upload_tilemap=C3/5D77
+upload_tilemap=C35D77
 
-draw_gogo_commands=C3/5DC1
+draw_gogo_commands=C35DC1
 
-draw_command_name=C3/5EE1
+draw_command_name=C35EE1
 
-gogo_portrait_position=C3/5F50
+gogo_portrait_position=C35F50
   LDX #$610A
 
-window_layout=C3/5F79
+window_layout=C35F79
   $B758 | $0601
   $2F5A | $0906
   $8B58 | $1C18
@@ -238,7 +238,7 @@ window_layout=C3/5F79
   $8760 | $0712
 draw_actor_info
 
-draw_actor_values=C3/5FC2
+draw_actor_values=C35FC2
   JSL reset_function
   LDY $67
   JSR define_bat_pwr_mode
@@ -306,7 +306,7 @@ draw_actor_values=C3/5FC2
   STZ $47
   JSR process_animation_queue
   JMP draw_status_effects
-lv_hp_mp_quantity_position=C3/6096
+lv_hp_mp_quantity_position=C36096
   $E738
   $2339
   $2D39
@@ -314,7 +314,7 @@ lv_hp_mp_quantity_position=C3/6096
   $6D39
 calculate_xp_needed_for_level_up
 
-draw_actor_commands=C3/6102
+draw_actor_commands=C36102
   LDY #$7AF5
   JSR draw_string
   JSR draw_command_name
@@ -334,13 +334,13 @@ draw_actor_commands=C3/6102
   INY
   JMP draw_command_name
 
-jump_to_put_portrait_in_top_left_corner=C3/F160
+jump_to_put_portrait_in_top_left_corner=C3F160
   JSR create_portrait_a
-  # JMP put_portrait_in_top_left_corner
+  ; JMP put_portrait_in_top_left_corner
 
-create_portrait_a=C3/61DA
+create_portrait_a=C361DA
 
-put_portrait_in_top_left_corner=C3/F163
+put_portrait_in_top_left_corner=C3F163
   PHB
   LDA #$7E
   PHA
@@ -358,12 +358,12 @@ put_portrait_in_top_left_corner=C3/F163
 init_variables_for_portrait_in_top_left_corner
   JSR load_pointer_to_animation_table_for_portrait
   REP #$20
-  LDA #$0018 # Y-position of actor portrait
+  LDA #$0018 ; Y-position of actor portrait
   STA $344A,X
   SEP #$20
   JMP init_m7
 
-condense_bg3_text=C3/620B
+condense_bg3_text=C3620B
   LDA #$02
   STA $4350
   LDA #$12
@@ -395,11 +395,11 @@ condense_bg3_text=C3/620B
   $0C | $3C | $00
   $00 | $A0 | $9D
 
-draw_status_effects=C3/625B
+draw_status_effects=C3625B
   LDY #$3A1D
   LDX #$3050
 
-text_pointers=C3/6437
+text_pointers=C36437
   ptr text_status
   ptr text_vigor
   ptr text_speed
@@ -459,27 +459,27 @@ text_mag_def
 text_mblock
   $4D88 | "MBlock%¨",$00
 
-draw_multiple_strings=C3/69BA
+draw_multiple_strings=C369BA
 
-clear_bg1_tilemap_a=C3/6A15
+clear_bg1_tilemap_a=C36A15
 
-clear_bg1_tilemap_d=C3/6A23
+clear_bg1_tilemap_d=C36A23
 
-clear_bg3_tilemap_a=C3/6A3C
+clear_bg3_tilemap_a=C36A3C
 
-clear_bg3_tilemap_b=C3/6A41
+clear_bg3_tilemap_b=C36A41
 
-clear_bg3_tilemap_c=C3/6A46
+clear_bg3_tilemap_c=C36A46
 
-clear_bg3_tilemap_d=C3/6A4B
+clear_bg3_tilemap_d=C36A4B
 
-draw_memorized_string=C3/7FD9
+draw_memorized_string=C37FD9
 
-define_current_or_projected_bat_pwr=C3/9371
+define_current_or_projected_bat_pwr=C39371
 
-define_bat_pwr_mode=C3/99E8
+define_bat_pwr_mode=C399E8
 
-create_portrait=C3/F0A0
+create_portrait=C3F0A0
   JSR create_portrait_a
   PHB
   LDA #$7E
@@ -498,7 +498,7 @@ create_portrait=C3/F0A0
 init_vars_for_portrait
   JSR load_pointer_to_animation_table_for_portrait
   REP #$20
-  LDA #$0018 # Y position of actor portrait
+  LDA #$0018 ; Y position of actor portrait
   STA $344A,X
   SEP #$20
   JMP init_m7
