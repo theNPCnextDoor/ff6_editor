@@ -67,7 +67,7 @@ class TestBlobGroup:
     @pytest.mark.parametrize("show_address", [True, False])
     def test_to_line(self, group: BlobGroup, show_address: bool, expected: str):
         if show_address:
-            expected += " ; C0/0000"
+            expected += " ; C00000"
         assert group.to_line(show_address=show_address) == expected
 
     @pytest.mark.parametrize(
