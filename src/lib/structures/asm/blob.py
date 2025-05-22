@@ -46,7 +46,7 @@ class Blob(ScriptLine, ToLineMixin):
     def to_line(self, show_address: bool = False, labels: list[Label] | None = None) -> str:
         output = f"  {self}"
         if show_address:
-            output += f" # {self.position.to_snes_address()}"
+            output += f" ; {self.position.to_snes_address()}"
         return output
 
     def __len__(self) -> int:

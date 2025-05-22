@@ -26,7 +26,7 @@ class Regex:
     LABEL_LINE = rf"^{LABEL}(={SNES_ADDRESS})?"
     BLOB_LINE = rf"^ +{BLOB}"
     MENU_STRING_LINE = rf"^ +{MENU_STRING}"
-    BLOB_GROUP_LINE = rf"^ *((((\$({BYTE})+)|\"({MENU_CHAR})+\")(,\${BYTE})?) \| )+(((\$({BYTE})+)|\"({MENU_CHAR})+\")(,\${BYTE})?)( #.*)?"
+    BLOB_GROUP_LINE = rf"^ *((((\$({BYTE})+)|\"({MENU_CHAR})+\")(,\${BYTE})?) \| )+(((\$({BYTE})+)|\"({MENU_CHAR})+\")(,\${BYTE})?)( ?;.*)?"
     INSTRUCTION_LINE = rf"^ +(?P<command>[A-Z]{{3}})( {CHUNK})?"
     BRANCHING_INSTRUCTION_LINE = (
         rf"^ +(?P<command>(BCC|BCS|BEQ|BMI|BNE|BPL|BRA|BRL|BVC|BVS|JMP|JML|JSR|JSL)) ({CHUNK}|{LABEL})"

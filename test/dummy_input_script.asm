@@ -5,7 +5,7 @@ start=C0/0001
   ptr $0005
 
 archie=C0/0005
-  TAX
+  TAX ; some comment
   LDA ($12,X)
   LDX #$FEDC
   REP #$30
@@ -17,10 +17,12 @@ archie=C0/0005
   MVP #$34,#$12
 
   JMP archie
-  BRA start
+  BRA start ; some other comment
 
   $1234
   $5678,$FF
   $ABCD,$00
   "<0x00>A<KNIFE> ",$88
   $AA | "a" | $BB,$FF | "b",$00
+
+; some final comment
