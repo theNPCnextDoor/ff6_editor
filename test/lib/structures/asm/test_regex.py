@@ -104,10 +104,10 @@ class TestRegex:
     @pytest.mark.parametrize(
         "line,is_match",
         [
-            ("C0/0000", True),
-            ("FF/FFFF", True),
-            ("00/0000", False),
-            ("C0/0G00", False),
+            ("C00000", True),
+            ("FFFFFF", True),
+            ("000000", False),
+            ("C00G00", False),
         ],
     )
     def test_snes_address(self, line: str, is_match: bool):
@@ -220,8 +220,8 @@ class TestRegex:
     @pytest.mark.parametrize(
         "line,label,snes_address",
         [
-            ("abulita=C0/0000", "abulita", "C0/0000"),
-            ("label_c34567=C3/4567", "label_c34567", "C3/4567"),
+            ("abulita=C00000", "abulita", "C00000"),
+            ("label_c34567=C34567", "label_c34567", "C34567"),
             ("abulita", "abulita", None),
         ],
     )

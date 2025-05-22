@@ -1,10 +1,10 @@
 m=8,x=16
 
-start=C0/0001
+start=C00001
   ptr $1234
   ptr $0005
 
-archie=C0/0005
+archie=C00005
   TAX ; some comment
   LDA ($12,X)
   LDX #$FEDC

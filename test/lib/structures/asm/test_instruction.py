@@ -272,9 +272,9 @@ class TestInstruction:
             (Instruction(opcode=LEBytes([0xAA])), False, "  TAX"),
             (Instruction(opcode=LEBytes([0xA9]), data=LEBytes([0x12, 0x34])), False, "  LDA #$1234"),
             (Instruction(opcode=LEBytes([0x44]), data=LEBytes([0x12, 0x34])), False, "  MVP #$12,#$34"),
-            (Instruction(opcode=LEBytes([0xAA])), True, "  TAX ; C0/0000"),
-            (Instruction(opcode=LEBytes([0xA9]), data=LEBytes([0x12, 0x34])), True, "  LDA #$1234 ; C0/0000"),
-            (Instruction(opcode=LEBytes([0x44]), data=LEBytes([0x12, 0x34])), True, "  MVP #$12,#$34 ; C0/0000"),
+            (Instruction(opcode=LEBytes([0xAA])), True, "  TAX ; C00000"),
+            (Instruction(opcode=LEBytes([0xA9]), data=LEBytes([0x12, 0x34])), True, "  LDA #$1234 ; C00000"),
+            (Instruction(opcode=LEBytes([0x44]), data=LEBytes([0x12, 0x34])), True, "  MVP #$12,#$34 ; C00000"),
         ],
     )
     def test_to_line(self, instruction: Instruction, show_address: bool, expected: str):
@@ -369,7 +369,7 @@ class TestBranchingInstruction:
                     destination=Position([0x12, 0x34, 0x56]),
                 ),
                 True,
-                "  JMP label_1 ; D2/0000",
+                "  JMP label_1 ; D20000",
             ),
             (
                 BranchingInstruction(
@@ -378,7 +378,7 @@ class TestBranchingInstruction:
                     destination=Position([0x12, 0x34, 0x57]),
                 ),
                 True,
-                "  JMP $3457 ; D2/0000",
+                "  JMP $3457 ; D20000",
             ),
             (
                 BranchingInstruction(
