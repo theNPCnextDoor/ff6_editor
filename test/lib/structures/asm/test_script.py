@@ -255,7 +255,7 @@ class TestScript:
         assert script == (
             """m=8,x=8
 
-start=C0/0001
+start=C00001
   ptr label_c01234
   ptr archie
 archie
@@ -277,5 +277,5 @@ archie
   "<0x00>A<KNIFE> ",$88
   $AA | "a" | $BB,$FF | "b",$00
 
-label_c01234=C0/1234"""
+label_c01234=C01234"""
         )

@@ -61,7 +61,7 @@ class TestBlob:
         ["blob", "show_address", "expected"],
         [
             (Blob(data=BEBytes([0x12, 0x34, 0x56, 0x78])), False, "  $12345678"),
-            (Blob(data=BEBytes([0x12, 0x34, 0x56, 0x78])), True, "  $12345678 # C0/0000"),
+            (Blob(data=BEBytes([0x12, 0x34, 0x56, 0x78])), True, "  $12345678 ; C00000"),
         ],
     )
     def test_to_line(self, blob: Blob, show_address: bool, expected: str):

@@ -142,8 +142,8 @@ class Position(BEBytes):
 
     @classmethod
     def from_snes_address(cls, address: str):
-        return cls.from_str(value=address.replace("/", "")) - 0xC00000
+        return cls.from_str(value=address) - 0xC00000
 
     def to_snes_address(self):
         address = str(self + 0xC00000)
-        return f"{address[:2]}/{address[2:]}"
+        return address

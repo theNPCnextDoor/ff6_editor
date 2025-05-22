@@ -43,7 +43,7 @@ class TestBlobGroup:
             ),
         ],
     )
-    @pytest.mark.parametrize("comment", ["", " # some comment"])
+    @pytest.mark.parametrize("comment", ["", " ; some comment"])
     def test_from_regex_match(self, line: str, comment: str, group: BlobGroup):
         match = re.fullmatch(Regex.BLOB_GROUP_LINE, f"{line}{comment}")
         assert bool(match)
@@ -67,7 +67,7 @@ class TestBlobGroup:
     @pytest.mark.parametrize("show_address", [True, False])
     def test_to_line(self, group: BlobGroup, show_address: bool, expected: str):
         if show_address:
-            expected += " # C0/0000"
+            expected += " ; C00000"
         assert group.to_line(show_address=show_address) == expected
 
     @pytest.mark.parametrize(

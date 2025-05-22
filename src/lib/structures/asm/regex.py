@@ -15,7 +15,7 @@ class Regex:
     DELIMITER_1 = rf",\$(?P<d1>{BYTE}){NOT_HEXA}"
     DELIMITER_2 = rf",\$(?P<d2>{BYTE}){NOT_HEXA}"
     CHUNK = rf"(?P<chunk>(\[\$(?P<n1>{DATA})\](,Y)?)|\(\$(?P<n2>{DATA})(,S)?\),Y|\(\$(?P<n3>{DATA})(,X)?\)|\$(?P<n4>{DATA}),[SXY]|#\$(?P<n5>{DATA})(,#\$(?P<mov2>{BYTE}))?|\$(?P<n6>{DATA}))"
-    SNES_ADDRESS = rf"(?P<snes_address>[C-F][0-9A-F]/{TWO_BYTES})"
+    SNES_ADDRESS = rf"(?P<snes_address>[C-F][0-9A-F]{TWO_BYTES})"
 
     LABEL = r"(?P<label>[a-z][0-9a-z_]+)"
     BLOB = rf"\$((?P<n1>({BYTE})+){NOT_HEXA}(?!,)|(?P<n2>({BYTE})+){NOT_HEXA}{DELIMITER_1})"
@@ -26,7 +26,7 @@ class Regex:
     LABEL_LINE = rf"^{LABEL}(={SNES_ADDRESS})?"
     BLOB_LINE = rf"^ +{BLOB}"
     MENU_STRING_LINE = rf"^ +{MENU_STRING}"
-    BLOB_GROUP_LINE = rf"^ *((((\$({BYTE})+)|\"({MENU_CHAR})+\")(,\${BYTE})?) \| )+(((\$({BYTE})+)|\"({MENU_CHAR})+\")(,\${BYTE})?)( #.*)?"
+    BLOB_GROUP_LINE = rf"^ *((((\$({BYTE})+)|\"({MENU_CHAR})+\")(,\${BYTE})?) \| )+(((\$({BYTE})+)|\"({MENU_CHAR})+\")(,\${BYTE})?)( ?;.*)?"
     INSTRUCTION_LINE = rf"^ +(?P<command>[A-Z]{{3}})( {CHUNK})?"
     BRANCHING_INSTRUCTION_LINE = (
         rf"^ +(?P<command>(BCC|BCS|BEQ|BMI|BNE|BPL|BRA|BRL|BVC|BVS|JMP|JML|JSR|JSL)) ({CHUNK}|{LABEL})"

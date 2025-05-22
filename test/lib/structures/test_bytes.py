@@ -176,14 +176,12 @@ class TestPosition:
     def test_init(self, input_value: list[int], expected: list[int]):
         assert Position(value=[0x00]).value == [0x00, 0x00, 0x00]
 
-    @pytest.mark.parametrize(
-        ["address", "expected"], [("C0/0000", [0x00, 0x00, 0x00]), ("D2/3456", [0x12, 0x34, 0x56])]
-    )
+    @pytest.mark.parametrize(["address", "expected"], [("C00000", [0x00, 0x00, 0x00]), ("D23456", [0x12, 0x34, 0x56])])
     def test_from_snes_address(self, address: str, expected: list[int]):
         assert Position.from_snes_address(address=address).value == expected
 
     @pytest.mark.parametrize(
-        ["input_value", "expected"], [([0x00, 0x00, 0x00], "C0/0000"), ([0x12, 0x34, 0x56], "D2/3456")]
+        ["input_value", "expected"], [([0x00, 0x00, 0x00], "C00000"), ([0x12, 0x34, 0x56], "D23456")]
     )
     def test_to_snes_address(self, input_value: list[int], expected: str):
         assert Position(value=input_value).to_snes_address() == expected

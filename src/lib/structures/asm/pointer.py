@@ -47,7 +47,7 @@ class Pointer(ScriptLine, BankMixin, DestinationMixin, ToLineMixin):
             label = self.find_label(destination=self.destination, labels=labels)
 
         output += f"{label.name}" if label else f"${self.data}"
-        output += f" # {self.position.to_snes_address()}" if show_address else ""
+        output += f" ; {self.position.to_snes_address()}" if show_address else ""
 
         return output
 

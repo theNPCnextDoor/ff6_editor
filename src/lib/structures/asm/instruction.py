@@ -71,7 +71,7 @@ class Instruction(ScriptLine, DataMixin, ToLineMixin):
 
     def to_line(self, show_address: bool = False, labels: list[Label] | None = None) -> str:
         output = f"  {self}"
-        output += f" # {self.position.to_snes_address()}" if show_address else ""
+        output += f" ; {self.position.to_snes_address()}" if show_address else ""
         return output
 
     @staticmethod
@@ -222,5 +222,5 @@ class BranchingInstruction(Instruction, BankMixin, DestinationMixin):
             mode = Opcodes[int(self.opcode)]["mode"]
             output += f" {mode.replace('_', str(self.data))}"
 
-        output += f" # {self.position.to_snes_address()}" if show_address else ""
+        output += f" ; {self.position.to_snes_address()}" if show_address else ""
         return output
