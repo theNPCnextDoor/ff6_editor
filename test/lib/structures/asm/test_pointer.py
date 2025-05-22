@@ -130,12 +130,12 @@ class TestPointer:
             (
                 Pointer(position=Position([0x12, 0x00, 0x00]), destination=Position([0x12, 0x34, 0x56])),
                 True,
-                "  ptr label_1 # D2/0000",
+                "  ptr label_1 ; D2/0000",
             ),
             (
                 Pointer(position=Position([0x12, 0x00, 0x00]), destination=Position([0x12, 0x34, 0x57])),
                 True,
-                "  ptr $3457 # D2/0000",
+                "  ptr $3457 ; D2/0000",
             ),
             (
                 Pointer(position=Position([0x12, 0x00, 0x00]), destination=Position([0x12, 0x34, 0x56])),

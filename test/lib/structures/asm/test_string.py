@@ -52,7 +52,7 @@ class TestString:
         ["string", "show_address", "expected"],
         [
             (String(data=BEBytes([0x00, 0x80, 0xD8, 0xEB, 0xFF], length=5)), False, '  "<0x00>A<KNIFE><0xEB> "'),
-            (String(data=BEBytes([0x00, 0x80, 0xD8, 0xEB, 0xFF])), True, '  "<0x00>A<KNIFE><0xEB> " # C0/0000'),
+            (String(data=BEBytes([0x00, 0x80, 0xD8, 0xEB, 0xFF])), True, '  "<0x00>A<KNIFE><0xEB> " ; C0/0000'),
             (
                 String(data=BEBytes([0x00, 0x80, 0xD8, 0xEB, 0xFF], length=5), delimiter=LEBytes([0x00])),
                 False,
@@ -61,7 +61,7 @@ class TestString:
             (
                 String(data=BEBytes([0x00, 0x80, 0xD8, 0xEB, 0xFF]), delimiter=LEBytes([0xFF])),
                 True,
-                '  "<0x00>A<KNIFE><0xEB> ",$FF # C0/0000',
+                '  "<0x00>A<KNIFE><0xEB> ",$FF ; C0/0000',
             ),
         ],
     )
