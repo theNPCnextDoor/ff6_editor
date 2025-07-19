@@ -1,3 +1,4 @@
+from pathlib import Path
 from re import Match
 from typing import Self
 
@@ -8,19 +9,24 @@ from src.lib.structures.bytes import Position
 
 class Label(ScriptLine, ToLineMixin):
 
-    def __init__(self, position: Position, name: str = None):
+    def __init__(self, position: Position, name: str | None = None, path: Path | None = None):
         super().__init__(position=position)
         self.name = (name or f"label_{self.position.to_snes_address().replace('/', '')}").lower()
+        self.path = path
 
     @classmethod
-    def from_regex_match(cls, match: Match, position: Position = None) -> Self:
-        name = match.group(1)
+    def from_regex_match(cls, match: Match, position: Position = None, path: Path | None = None) -> Self:
+        name = match.group("label_name")
+
+        label_path = path or match.group("label_path")
+        if not label_path:
+            """"""
+        if isinstance(label_path, str):
+            label_path = Path("asm/" + label_path.replace(".", "/") + ".py").resolve()
+
         position = Position.from_snes_address(match.group("snes_address")) if match.group("snes_address") else position
 
-        return cls(
-            position=position,
-            name=name,
-        )
+        return cls(position=position, name=name, path=label_path)
 
     def to_line(self, show_address: bool = False, labels: list[Self] | None = None) -> str:
         output = ""

@@ -17,7 +17,7 @@ class Regex:
     CHUNK = rf"(?P<chunk>(\[\$(?P<n1>{DATA})\](,Y)?)|\(\$(?P<n2>{DATA})(,S)?\),Y|\(\$(?P<n3>{DATA})(,X)?\)|\$(?P<n4>{DATA}),[SXY]|#\$(?P<n5>{DATA})(,#\$(?P<mov2>{BYTE}))?|\$(?P<n6>{DATA}))"
     SNES_ADDRESS = rf"(?P<snes_address>[C-F][0-9A-F]{TWO_BYTES})"
 
-    LABEL = r"(?P<label>[a-z][0-9a-z_]+)"
+    LABEL = r"(?P<label>(?P<label_path>(([a-z][0-9a-z_]+\.)+)?)(?P<label_name>([a-z][0-9a-z_]+)))"
     BLOB = rf"\$((?P<n1>({BYTE})+){NOT_HEXA}(?!,)|(?P<n2>({BYTE})+){NOT_HEXA}{DELIMITER_1})"
     MENU_STRING = rf'"((?P<s1>({MENU_CHAR})+)"{DELIMITER_2}|(?P<s2>({MENU_CHAR})+)"(?!,))'
     ANY_BLOB = rf"({BLOB}|{MENU_STRING})"
