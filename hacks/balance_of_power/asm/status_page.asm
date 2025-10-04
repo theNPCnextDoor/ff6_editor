@@ -2,16 +2,9 @@ m=8,x=16
 
 reset_function=C20006
 
-init_status_menu_pointer=C301F1
-  ptr init_status_menu
-
-draw_window=C30341
-
 draw_3_digits=C30486
 
 draw_8_digits=C304A3
-
-draw_2_digits=C304B6
 
 draw_3_digits_8_bits=C304C0
 
@@ -21,111 +14,15 @@ convert_16_bit_number_into_text_blank_leading_zeros=C3052E
 
 convert_24_bit_number_into_text_blank_leading_zeros=C30582
 
-load_pointer_to_animation_table_for_portrait=C30ACC
-
-set_portrait_x_position_based_on_row=C30AF1
 
 draw_lv_hp_and_mp=C30C6C
-  STX $EF
-  LDA #$C3
-  STA $F1
-  LDX $67
-  LDA $0008,X
-  JSR convert_8_bit_number_into_text_blank_leading_zeros
-  REP #$20
-  LDA [$EF]
-  TAX
-  SEP #$20
-  JSR draw_2_digits
-  LDX $67
-  LDA $000B,X
-  STA $F3
-  LDA $000C,X
-  STA $F4
-  JSR determine_max_hp_or_mp_with_gear_bonus
-  JSR enforce_hp_cap
-  JSR convert_16_bit_number_into_text_blank_leading_zeros
-  LDY #$0004
-  JSR draw_current_or_max_hp_or_mp
-  LDY $67
-  JSR prevent_hp_excess
-  LDA $0009,Y
-  STA $F3
-  LDA $000A,Y
-  STA $F4
-  JSR convert_16_bit_number_into_text_blank_leading_zeros
-  LDY #$0002
-  JSR draw_current_or_max_hp_or_mp
-  JSR determine_if_actor_is_magic_user
-  BCC hide_mp
-  LDX $67
-  LDA $000F,X
-  STA $F3
-  LDA $0010,X
-  STA $F4
-  JSR determine_max_hp_or_mp_with_gear_bonus
-  JSR enforce_mp_cap
-  JSR convert_16_bit_number_into_text_blank_leading_zeros
-  LDY #$0008
-  JSR draw_current_or_max_hp_or_mp
-  LDY $67
-  JSR prevent_mp_excess
-  LDA $000D,Y
-  STA $F3
-  LDA $000E,Y
-  STA $F4
-  JSR convert_16_bit_number_into_text_blank_leading_zeros
-  LDY #$0006
-  JMP draw_current_or_max_hp_or_mp
-
-hide_mp=C30CEF
-
-draw_current_or_max_hp_or_mp=C30D21
-
-determine_if_actor_is_magic_user=C30D2B
-
-determine_max_hp_or_mp_with_gear_bonus=C30D65
-
-enforce_hp_cap=C30D92
-
-enforce_mp_cap=C30D9F
 
 process_animation_queue=C311B0
 
-init_m7=C31206
-
-init_status_menu=C31C46
-  JSR reset_oam_and_anim_queue
-  JSR condense_bg3_text
-  JSR draw_status_menu
-  JSR initialize_cursor_data
-  LDA #$01
-  STA $26
-  LDA #$0C
-  STA $27
-  JMP prepare_fade_in
-initialize_cursor_data
-
-prevent_hp_excess=C32B9A
-
-prevent_mp_excess=C32BBC
-
 draw_actor_name=C334CF
-  JSR draw_string
-  LDX #$0006
-draw_actor_name_loop_start
-  LDA $0002,Y
-  STA $2180
-  INY
-  DEX
-  BNE draw_actor_name_loop_start
-  STZ $2180
-  JMP draw_memorized_string
-
-draw_actor_class=C334E5
 
 draw_equipped_esper=C334E6
-  JSR prepare_name_drawing
+  JSR draw_string
   LDA $001E,Y
   CMP #$FF
   BEQ blank_esper_name
@@ -151,8 +48,6 @@ blank_esper_name_loop_start
   BNE blank_esper_name_loop_start
   STZ $2180
   JMP draw_memorized_string
-prepare_name_drawing=C33519
-
 
 draw_string=C33519
   LDX #$9E89
@@ -167,38 +62,13 @@ draw_string=C33519
   LDY $67
   RTS
 
-reset_oam_and_anim_queue=C3352F
-
-prepare_fade_in=C33541
-
 gogo_commands_cursor_positions=C33713
   $9E41
   $9E4D
   $9E59
   $9E65
 
-draw_status_menu=C35D05
-  JSR draw_windows
-  JSR draw_gogo_commands
-  JSR draw_blue_text_and_symbols
-  JSR draw_actor_info
-  JSR upload_tilemap
-  JMP jump_to_put_portrait_in_top_left_corner
-draw_windows
-  JSR clear_bg1_tilemap_a
-  JSR clear_bg1_tilemap_d
-  JSR clear_bg3_tilemap_a
-  JSR clear_bg3_tilemap_b
-  JSR clear_bg3_tilemap_c
-  JSR clear_bg3_tilemap_d
-  LDY #$5F81
-  JSR draw_window
-  LDY #$5F79
-  JSR draw_window
-  LDY #$5F7D
-  JSR draw_window
-  RTS
-draw_blue_text_and_symbols
+draw_blue_text_and_symbols=C35D3C
   JSR draw_lv_hp_mp_and_non_blue_symbols
   BRA draw_other_blue_text
 draw_lv_hp_mp_and_non_blue_symbols
@@ -221,10 +91,6 @@ draw_other_blue_text
   JSR draw_multiple_strings
   RTS
 
-upload_tilemap=C35D77
-
-draw_gogo_commands=C35DC1
-
 draw_command_name=C35EE1
 
 gogo_portrait_position=C35F50
@@ -236,7 +102,6 @@ window_layout=C35F79
   $8B58 | $1C18
   $C758 | $0012
   $8760 | $0712
-draw_actor_info
 
 draw_actor_values=C35FC2
   JSL reset_function
@@ -282,8 +147,6 @@ draw_actor_values=C35FC2
   JSR draw_3_digits_8_bits
   LDY #$38CD
   JSR draw_actor_name
-  LDY #$399D
-  JSR draw_actor_class
   JSR draw_esper_and_equipment
   LDA #$20
   STA $29
@@ -334,70 +197,9 @@ draw_actor_commands=C36102
   INY
   JMP draw_command_name
 
-jump_to_put_portrait_in_top_left_corner=C3F160
-  JSR create_portrait_a
-  ; JMP put_portrait_in_top_left_corner
-
-create_portrait_a=C361DA
-
-put_portrait_in_top_left_corner=C3F163
-  PHB
-  LDA #$7E
-  PHA
-  PLB
-  TDC
-  LDA $28
-  TAY
-  JSR set_portrait_x_position_based_on_row
-  TDC
-  LDA $28
-  TAY
-  JSR init_variables_for_portrait_in_top_left_corner
-  PLB
-  RTS
-init_variables_for_portrait_in_top_left_corner
-  JSR load_pointer_to_animation_table_for_portrait
-  REP #$20
-  LDA #$0018 ; Y-position of actor portrait
-  STA $344A,X
-  SEP #$20
-  JMP init_m7
-
-condense_bg3_text=C3620B
-  LDA #$02
-  STA $4350
-  LDA #$12
-  STA $4351
-  LDY #$622A
-  STY $4352
-  LDA #$C3
-  STA $4354
-  LDA #$C3
-  STA $4357
-  LDA #$20
-  TSB $43
-  RTS
-  $27 | $00 | $00
-  $0C | $04 | $00
-  $0C | $08 | $00
-  $0C | $0C | $00
-  $0C | $10 | $00
-  $0C | $14 | $00
-  $0C | $18 | $00
-  $0C | $1C | $00
-  $0C | $20 | $00
-  $0C | $24 | $00
-  $0C | $28 | $00
-  $0C | $2C | $00
-  $0C | $30 | $00
-  $0C | $34 | $00
-  $0C | $38 | $00
-  $0C | $3C | $00
-  $00 | $A0 | $9D
-
 draw_status_effects=C3625B
   LDY #$3A1D
-  LDX #$3050
+  LDX #$2D50
 
 text_pointers=C36437
   ptr text_status
@@ -410,7 +212,6 @@ text_pointers=C36437
   ptr text_evade
   ptr text_mag_def
   ptr text_mblock
-
   ptr text_lv
   ptr text_hp
   ptr text_mp
@@ -461,57 +262,13 @@ text_mblock
 
 draw_multiple_strings=C369BA
 
-clear_bg1_tilemap_a=C36A15
-
-clear_bg1_tilemap_d=C36A23
-
-clear_bg3_tilemap_a=C36A3C
-
-clear_bg3_tilemap_b=C36A41
-
-clear_bg3_tilemap_c=C36A46
-
-clear_bg3_tilemap_d=C36A4B
-
 draw_memorized_string=C37FD9
 
 define_current_or_projected_bat_pwr=C39371
 
 define_bat_pwr_mode=C399E8
 
-create_portrait=C3F0A0
-  JSR create_portrait_a
-  PHB
-  LDA #$7E
-  PHA
-  PLB
-  TDC
-  LDA $28
-  TAY
-  JSR set_portrait_x_position_based_on_row
-  TDC
-  LDA $28
-  TAY
-  JSR init_vars_for_portrait
-  PLB
-  RTS
-init_vars_for_portrait
-  JSR load_pointer_to_animation_table_for_portrait
-  REP #$20
-  LDA #$0018 ; Y position of actor portrait
-  STA $344A,X
-  SEP #$20
-  JMP init_m7
-replace_portrait
-  TDC
-  LDA $60
-  TAX
-  LDA #$FF
-  STA $7E35C9,X
-  JSR create_portrait_a
-  JMP create_portrait
-
-draw_equipped_weapon
+draw_equipped_weapon=C3F091
   CMP #$FF
   BEQ blank_equipped_weapon
   STA $4202
@@ -540,38 +297,93 @@ blank_equipped_weapon_loop_start
   STZ $2180
   JMP draw_memorized_string
 
+draw_passive_abilities=C3F0E1
+  JSR draw_string
+  LDA $28
+  TAX
+  LDA $69,X
+  STA $2C
+  ASL
+  ADC $2C
+  ADC $2B
+  STA $4202
+  LDA #$10
+  STA $4203
+  NOP
+  NOP
+  NOP
+  LDX $4216
+  LDY #$0010
+draw_passive_abilities_loop_start
+  LDA $F00000,X
+  STA $2180
+  INX
+  DEY
+  BNE draw_passive_abilities_loop_start
+  STZ $2180
+  JMP draw_memorized_string
+
 draw_esper_and_equipment
   LDY #$7D6D
   JSR draw_equipped_esper
 
+  LDY #$7ACD
+  STZ $2B
+  JSR draw_passive_abilities
+  LDY #$7B4D
+  LDA #$01
+  STA $2B
+  JSR draw_passive_abilities
+  LDY #$7BCD
+  LDA #$02
+  STA $2B
+  JSR draw_passive_abilities
+
   LDY #$7DEB
-  JSR prepare_name_drawing
+  JSR draw_string
   LDA $001F,Y
   JSR draw_equipped_weapon
 
   LDY #$7E6B
-  JSR prepare_name_drawing
+  JSR draw_string
   LDA $0020,Y
   JSR draw_equipped_weapon
 
   LDY #$7EEB
-  JSR prepare_name_drawing
+  JSR draw_string
   LDA $0021,Y
   JSR draw_equipped_weapon
 
   LDY #$7F6B
-  JSR prepare_name_drawing
+  JSR draw_string
   LDA $0022,Y
   JSR draw_equipped_weapon
 
   LDY #$7FEB
-  JSR prepare_name_drawing
+  JSR draw_string
   LDA $0023,Y
   JSR draw_equipped_weapon
 
   LDY #$886B
-  JSR prepare_name_drawing
+  JSR draw_string
   LDA $0024,Y
   JSR draw_equipped_weapon
 
   JMP draw_actor_commands
+
+
+passive_abilities=F00000
+  "AP raises Morph " | "duration. Learns" | "spells on lvl up"
+  "May unlock      " | "certain doors.  " | "---             "
+  "Learns Swdtechs " | "on level up.    " | "---             "
+  "Randomly        " | "protected by    " | "Interceptor.    "
+  "Some shops may  " | "offer him a     " | "discount.       "
+  "Learns Blitzes  " | "on level up.    " | "---             "
+  "Learns spells   " | "on level up.    " | "---             "
+  "Learns Lores by " | "getting hit.    " | "---             "
+  "---             " | "---             " | "---             "
+  "---             " | "---             " | "---             "
+  "Learns Dances   " | "in new          " | "environments.   "
+  "Learns Rages on " | "the Veldt when  " | "using Leap.     "
+  "Has access to   " | "allies' spells. " | "---             "
+  "Berserked. May  " | "gain new moves  " | "with relics.    "
