@@ -42,7 +42,7 @@ init_vars_for_portrait_by_upper_left_corner=C361FB
 jump_to_create_portrait_in_lineup_menu=C36374
   JSR set_y_value_to_top_right_corner_then_jump_to_init_vars
 
-set_y_value_to_top_right_corner=C3F0C8
+set_y_value_to_top_right_corner=C3F091
   LDA #$15
   STA $2A
   JMP jump_to_put_portrait_in_status_menus

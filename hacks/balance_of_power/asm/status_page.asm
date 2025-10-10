@@ -96,6 +96,9 @@ draw_command_name=C35EE1
 gogo_portrait_position=C35F50
   LDX #$610A
 
+status_menu_actor_jump_table=C35F92
+  JMP set_actor_id_in_status_menu
+
 window_layout=C35F79
   $B758 | $0601
   $2F5A | $0906
@@ -201,6 +204,9 @@ draw_status_effects=C3625B
   LDY #$3A1D
   LDX #$2D50
 
+jump_to_draw_actor_value_in_lineup=C3635D
+  JSR set_actor_id_in_lineup
+
 text_pointers=C36437
   ptr text_status
   ptr text_vigor
@@ -268,7 +274,7 @@ define_current_or_projected_bat_pwr=C39371
 
 define_bat_pwr_mode=C399E8
 
-draw_equipped_weapon=C3F091
+draw_equipped_weapon=C3F0AA
   CMP #$FF
   BEQ blank_equipped_weapon
   STA $4202
@@ -297,12 +303,9 @@ blank_equipped_weapon_loop_start
   STZ $2180
   JMP draw_memorized_string
 
-draw_passive_abilities=C3F0E1
+draw_passive_abilities
   JSR draw_string
-  LDA $28
-  TAX
-  LDA $69,X
-  STA $2C
+  LDA $2C
   ASL
   ADC $2C
   ADC $2B
@@ -371,10 +374,23 @@ draw_esper_and_equipment
 
   JMP draw_actor_commands
 
+set_actor_id_in_status_menu
+  PHX
+  LDA $28
+  TAX
+  LDA $69,X
+  STA $2C
+  PLX
+  JMP ($5F95,X)
+
+set_actor_id_in_lineup
+  LDA $28
+  STA $2C
+  JMP draw_actor_values
 
 passive_abilities=F00000
-  "AP raises Morph " | "duration. Learns" | "spells on lvl up"
-  "May unlock      " | "certain doors.  " | "---             "
+  "AP raises Morph " | "duration. Learns" | "spells on LV up."
+  "Can unlock      " | "certain locked  " | "doors.          "
   "Learns Swdtechs " | "on level up.    " | "---             "
   "Randomly        " | "protected by    " | "Interceptor.    "
   "Some shops may  " | "offer him a     " | "discount.       "
