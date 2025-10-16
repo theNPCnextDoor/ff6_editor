@@ -3,6 +3,7 @@ m=8,x=16
 set_x_position=C30AF1
 load_anim_ptr=C30ACC
 init_m7=C31206
+jump_to_put_portrait_in_status_menus=C361AC
 
 jump_to_create_portrait_in_magic_menu=C34D92
   JSR set_y_value_to_middle_right_corner
@@ -30,8 +31,6 @@ jump_to_create_portrait_in_status_menu=C35D14
 
 gogo_portrait_position=C35F50
   LDX #$60CA
-
-jump_to_put_portrait_in_status_menus=C361AC
 
 init_vars_for_portrait_by_upper_left_corner=C361FB
   JSR load_anim_ptr ; Load anim ptr
