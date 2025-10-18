@@ -265,6 +265,8 @@ draw_passive_abilities_loop_start
   JMP draw_memorized_string
 
 draw_equipped_weapon
+; There is another function to draw equipment, but it didn't work properly
+; when using it in the lineup menu.
   CMP #$FF
   BEQ blank_equipped_weapon
   STA $4202
