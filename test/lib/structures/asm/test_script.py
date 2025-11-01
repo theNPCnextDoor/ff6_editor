@@ -2,7 +2,7 @@ from pathlib import Path
 
 from src.lib.structures.asm.blob import Blob
 from src.lib.structures.asm.blob_group import BlobGroup
-from src.lib.structures.asm.string import String
+from src.lib.structures.asm.string import String, StringTypes
 from src.lib.structures.bytes import LEBytes, Position, BEBytes
 from src.lib.structures.asm.flags import Flags
 from src.lib.structures.asm.instruction import Instruction, BranchingInstruction
@@ -60,6 +60,12 @@ class ScriptImpl:
             Blob(position=Position([0x00, 0x00, 0x26]), data=BEBytes([0xAB, 0xCD]), delimiter=LEBytes([0x00])),
             String(
                 position=Position([0x00, 0x00, 0x29]), data=BEBytes([0x00, 0x80, 0xD8, 0xFF]), delimiter=LEBytes([0x88])
+            ),
+            String(
+                position=Position([0x00, 0x00, 0x34]),
+                data=BEBytes([0x81, 0xA8, 0x9B, 0x01, 0xDC]),
+                delimiter=LEBytes([0x00]),
+                string_type=StringTypes.DESCRIPTION,
             ),
         ]
 
@@ -136,7 +142,7 @@ class TestScript:
             position=Position([0x00, 0x00, 0x1F]), opcode=LEBytes([0x80]), data=LEBytes([0xE0])
         )
 
-        assert len(script.blobs) == 4
+        assert len(script.blobs) == 5
         assert script.blobs[0] == Blob(position=Position([0x00, 0x00, 0x21]), data=BEBytes([0x12, 0x34]))
         assert script.blobs[1] == Blob(
             position=Position([0x00, 0x00, 0x23]), data=BEBytes([0x56, 0x78]), delimiter=LEBytes([0xFF])
@@ -147,6 +153,12 @@ class TestScript:
         assert script.blobs[3] == String(
             position=Position([0x00, 0x00, 0x29]), data=BEBytes([0x00, 0x80, 0xD8, 0xFF]), delimiter=LEBytes([0x88])
         )
+        assert script.blobs[4] == String(
+            position=Position([0x00, 0x00, 0x34]),
+            data=BEBytes([0x81, 0xA8, 0x9B, 0x01, 0xDC]),
+            delimiter=LEBytes([0x00]),
+            string_type=StringTypes.DESCRIPTION,
+        )
 
         assert len(script.blob_groups) == 1
         assert len(script.blob_groups[0].blobs) == 4
@@ -154,9 +166,6 @@ class TestScript:
         assert script.blob_groups[0].blobs[1] == String(position=Position([0x00, 0x00, 0x2F]), data=BEBytes([0x9A]))
         assert script.blob_groups[0].blobs[2] == Blob(
             position=Position([0x00, 0x00, 0x30]), data=BEBytes([0xBB]), delimiter=LEBytes([0xFF])
-        )
-        assert script.blob_groups[0].blobs[3] == String(
-            position=Position([0x00, 0x00, 0x32]), data=BEBytes([0x9B]), delimiter=LEBytes([0x00])
         )
 
     def test_to_rom(self):
@@ -176,8 +185,9 @@ class TestScript:
             b"\xe2\x30\xa9\xbb\xa2\xcc"  # Instructions 6-8
             b"\x44\x12\x34\x4c\x05\x00\x80\xe0"  # Instructions 9-11
             b"\x12\x34\x56\x78\xff\xab\xcd\x00"  # Blobs 0-2
-            b"\x00\x80\xd8\xff\x88"  # String 0
+            b"\x00\x80\xd8\xff\x88"  # Menu String 0
             b"\xaa\x9a\xbb\xff\x9b\x00"  # Blob Group 0
+            b"\x81\xa8\x9b\x01\xdc\x00"  # Description 0
         )
 
     def test_from_rom(self):
@@ -255,10 +265,10 @@ class TestScript:
         assert script == (
             """m=8,x=8
 
-start=C00001
+@start=C00001
   ptr label_c01234
   ptr archie
-archie
+@archie
   TAX
   LDA ($12,X)
   LDX #$FEDC
@@ -276,6 +286,7 @@ archie
   $ABCD,$00
   "<0x00>A<KNIFE> ",$88
   $AA | "a" | $BB,$FF | "b",$00
+  txt2 "Bob<LINE><FIRE>",$00
 
-label_c01234=C01234"""
+@label_c01234=C01234"""
         )

@@ -31,7 +31,7 @@ class Label(ScriptLine, ToLineMixin):
         return output
 
     def __str__(self) -> str:
-        return f"{self.name}"
+        return f"@{self.name}"
 
     def __repr__(self) -> str:
         return f"{self.position}: {self.name}"

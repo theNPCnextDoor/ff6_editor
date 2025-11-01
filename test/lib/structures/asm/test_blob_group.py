@@ -5,15 +5,20 @@ import pytest
 from src.lib.structures.asm.blob import Blob
 from src.lib.structures.asm.blob_group import BlobGroup
 from src.lib.structures.asm.regex import Regex
-from src.lib.structures.asm.string import String
+from src.lib.structures.asm.string import String, StringTypes
 from src.lib.structures.bytes import Position, BEBytes, LEBytes
 
 GROUP = BlobGroup(
     blobs=[
         Blob(data=BEBytes([0xAA])),
-        String(data=BEBytes([0x9A]), position=Position([0x00, 0x00, 0x01])),
+        String(data=BEBytes([0x9A]), position=Position([0x00, 0x00, 0x01]), string_type=StringTypes.MENU),
         Blob(data=BEBytes([0xBB]), position=Position([0x00, 0x00, 0x02]), delimiter=LEBytes([0xFF])),
-        String(data=BEBytes([0x9B]), position=Position([0x00, 0x00, 0x04]), delimiter=LEBytes([0x00])),
+        String(
+            data=BEBytes([0x9B]),
+            position=Position([0x00, 0x00, 0x04]),
+            delimiter=LEBytes([0x00]),
+            string_type=StringTypes.MENU,
+        ),
     ]
 )
 

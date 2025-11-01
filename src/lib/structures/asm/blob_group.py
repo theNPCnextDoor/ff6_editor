@@ -28,7 +28,7 @@ class BlobGroup(ScriptLine, ToLineMixin):
             cleaned_part = re.sub(' #[^"]*$', "", part)
 
             if blob_match := re.search(Regex.MENU_STRING, cleaned_part):
-                blob = String.from_regex_match(blob_match, position=Position([cursor]), charset=charset)
+                blob = String.from_regex_match(blob_match, position=Position([cursor]))
 
             elif blob_match := re.search(Regex.BLOB, cleaned_part):
                 blob = Blob.from_regex_match(blob_match, position=Position([cursor]))

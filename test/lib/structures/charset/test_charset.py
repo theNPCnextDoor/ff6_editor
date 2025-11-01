@@ -1,6 +1,6 @@
 import pytest
 
-from src.lib.structures.charset.charset import MENU_CHARSET, Charset
+from src.lib.structures.charset.charset import MENU_CHARSET, Charset, DESCRIPTION_CHARSET
 
 
 class TestCharset:
@@ -19,7 +19,21 @@ class TestCharset:
 
     @pytest.mark.parametrize(
         ["value", "number"],
-        [("<0x00>", b"\x00"), ("A", b"\x80"), ("<DOTTED PIPE>", b"\xCF"), ("<0xEB>", b"\xEB"), (" ", b"\xFF")],
+        [("<0x00>", b"\x00"), ("A", b"\x80"), ("<DOTTED PIPE>", b"\xcf"), ("<0xEB>", b"\xeb"), (" ", b"\xff")],
     )
     def test_get_bytes(self, value: str, number: bytes):
         assert Charset(charset=MENU_CHARSET).get_bytes(value=value) == number
+
+    @pytest.mark.parametrize(
+        ["value", "number"],
+        [
+            ("<0x00>", b"\x00"),
+            ("A", b"\x80"),
+            ("<LINE>", b"\x01"),
+            ("<HOLY>", b"\xd6"),
+            ("<0xEB>", b"\xeb"),
+            (" ", b"\xff"),
+        ],
+    )
+    def test_get_bytes_description_charset(self, value: str, number: bytes):
+        assert Charset(charset=DESCRIPTION_CHARSET).get_bytes(value=value) == number
