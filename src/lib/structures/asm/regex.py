@@ -23,9 +23,10 @@ class Regex:
     ANY_BLOB = rf"({BLOB}|{MENU_STRING})"
 
     FLAGS_LINE = r"^m=(8|16|true|false),x=(8|16|true|false)$"
-    LABEL_LINE = rf"^{LABEL}(={SNES_ADDRESS})?"
+    LABEL_LINE = rf"^@{LABEL}(={SNES_ADDRESS})?"
     BLOB_LINE = rf"^ +{BLOB}"
     MENU_STRING_LINE = rf"^ +{MENU_STRING}"
+    DESCRIPTION_LINE = rf"^ +(?P<string_type>txt2) {MENU_STRING}"
     BLOB_GROUP_LINE = rf"^ *((((\$({BYTE})+)|\"({MENU_CHAR})+\")(,\${BYTE})?) \| )+(((\$({BYTE})+)|\"({MENU_CHAR})+\")(,\${BYTE})?)( ?;.*)?"
     INSTRUCTION_LINE = rf"^ +(?P<command>[A-Z]{{3}})( {CHUNK})?"
     BRANCHING_INSTRUCTION_LINE = (

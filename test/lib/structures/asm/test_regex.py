@@ -162,6 +162,7 @@ class TestRegex:
             ('"a  $00', False),
             ('"<GREY>",$FF', True),
             ('"a",$FFF', False),
+            ('"a<LINE>",$FF', True),
             ('"<0x00>"', True),
             ('"<0xFF>",$88', True),
         ],
@@ -192,6 +193,7 @@ class TestRegex:
             ('"<>"', False),
             ('"<ATB 0', False),
             ('"a" $00', True),
+            ('"a<LINE>" $00', True),
             ('"a  $00', False),
             ('"<GREY>",$FF', True),
             ('"a",$FFF', False),
@@ -220,9 +222,9 @@ class TestRegex:
     @pytest.mark.parametrize(
         "line,label,snes_address",
         [
-            ("abulita=C00000", "abulita", "C00000"),
-            ("label_c34567=C34567", "label_c34567", "C34567"),
-            ("abulita", "abulita", None),
+            ("@abulita=C00000", "abulita", "C00000"),
+            ("@label_c34567=C34567", "label_c34567", "C34567"),
+            ("@abulita", "abulita", None),
         ],
     )
     def test_label_line(self, line: str, label: str, snes_address: Optional[str]):
@@ -271,6 +273,31 @@ class TestRegex:
     )
     def test_menu_string_line(self, line: str, is_match: bool):
         assert bool(re.match(Regex.MENU_STRING_LINE, line)) == is_match
+
+    @pytest.mark.parametrize(
+        ["line", "is_match"],
+        [
+            ('  ""', False),
+            ('  txt2 ""', False),
+            ('  txt2 "abc"', True),
+            ('  txt2 "<WHITE>"', True),
+            ('  txt2 "<ATB 0>"', True),
+            ('  txt2 "abc<BLACK><ATB 4>.   fjj:;+=12345"', True),
+            ('  txt2 "$"', False),
+            ("  txt2 abc", False),
+            ('  txt2 "<>"', False),
+            ('  txt2 "<ATB 0', False),
+            ('  txt2 "a" $00', True),
+            ('  txt2 "a  $00', False),
+            ('  txt2 "<GREY>",$FF', True),
+            ('  txt2 "a",$FFF', False),
+            ('  txt2 "<0x00>"', True),
+            ('  txt2 "<0xFF>",$88', True),
+            (r'  txt2 "Bob<LINE><FIRE>",$00', True),
+        ],
+    )
+    def test_description_line(self, line: str, is_match: bool):
+        assert bool(re.match(Regex.DESCRIPTION_LINE, line)) == is_match
 
     @pytest.mark.parametrize(
         ["line", "is_match"],

@@ -12,10 +12,10 @@ from src.lib.structures.asm.instruction import BranchingInstruction, Instruction
 from src.lib.structures.asm.flags import Flags
 from src.lib.structures.asm.label import Label
 from src.lib.structures.asm.regex import Regex
-from src.lib.structures.asm.string import String
+from src.lib.structures.asm.string import String, StringTypes
 from src.lib.structures.asm.script_line import ScriptLine
 from src.lib.structures.bytes import Position, BEBytes, LEBytes
-from src.lib.structures.charset.charset import MENU_CHARSET, Charset
+from src.lib.structures.charset.charset import MENU_CHARSET, DESCRIPTION_CHARSET, Charset
 
 
 class ScriptMode(Enum):
@@ -23,6 +23,7 @@ class ScriptMode(Enum):
     POINTERS = auto()
     BLOBS = auto()
     MENU_STRINGS = auto()
+    DESCRIPTION_STRINGS = auto()
     BLOB_GROUPS = auto()
 
 
@@ -35,16 +36,9 @@ class ScriptSection:
 
 
 class SubSection:
-    def __init__(
-        self,
-        mode: ScriptMode,
-        length: int | None = None,
-        delimiter: LEBytes | None = None,
-        charset: Charset | None = None,
-    ):
+    def __init__(self, mode: ScriptMode, length: int | None = None, delimiter: LEBytes | None = None):
         if length is None and delimiter is None:
             raise MissingSectionAttribute("Please provide either the length or the delimiter.")
-        self.charset = charset
         self.mode = mode
         self.length = length
         self.delimiter = delimiter
@@ -74,7 +68,7 @@ class Script:
         return output
 
     @classmethod
-    def from_script_file(cls, filename: str | Path, flags: Flags | None = None, charset: Charset | None = None) -> Self:
+    def from_script_file(cls, filename: str | Path, flags: Flags | None = None) -> Self:
         with open(filename, encoding="utf-8") as f:
             lines = f.readlines()
         lines = [stripped_line for line in lines if (stripped_line := line.rstrip())]
@@ -82,14 +76,16 @@ class Script:
 
         cursor = 0
         flags = flags or Flags()
-        charset = charset or Charset(charset=MENU_CHARSET)
         lines_with_labels = list()
 
         for line in lines:
-            if match := re.fullmatch(Regex.BLOB_GROUP_LINE, line):
-                blob_group = BlobGroup.from_regex_match(
-                    match=match, position=Position.from_int(cursor), charset=charset
-                )
+            if match := re.match(Regex.DESCRIPTION_LINE, line):
+                string = String.from_regex_match(match=match, position=Position.from_int(cursor))
+                cursor += len(string)
+                script.blobs.append(string)
+
+            elif match := re.fullmatch(Regex.BLOB_GROUP_LINE, line):
+                blob_group = BlobGroup.from_regex_match(match=match, position=Position.from_int(cursor))
                 cursor += len(blob_group)
                 script.blob_groups.append(blob_group)
 
@@ -99,7 +95,7 @@ class Script:
                 script.blobs.append(blob)
 
             elif match := re.search(Regex.MENU_STRING_LINE, line):
-                string = String.from_regex_match(match=match, position=Position.from_int(cursor), charset=charset)
+                string = String.from_regex_match(match=match, position=Position.from_int(cursor))
                 cursor += len(string)
                 script.blobs.append(string)
 
@@ -220,7 +216,7 @@ class Script:
                 elif section.mode == ScriptMode.INSTRUCTIONS:
                     cls._disassamble_instructions(cursor, f, script, section)
 
-                elif section.mode in (ScriptMode.BLOBS, ScriptMode.MENU_STRINGS):
+                elif section.mode in (ScriptMode.BLOBS, ScriptMode.MENU_STRINGS, ScriptMode.DESCRIPTION_STRINGS):
                     cls._disassemble_blobs(cursor, f, script, section)
 
                 elif section.mode == ScriptMode.BLOB_GROUPS:
@@ -248,7 +244,14 @@ class Script:
                         data=BEBytes.from_bytes(data),
                         position=Position.from_int(cursor),
                         delimiter=delimiter,
-                        charset=sub_section.charset,
+                        string_type=StringTypes.MENU,
+                    )
+                elif sub_section.mode == ScriptMode.DESCRIPTION_STRINGS:
+                    blob = String(
+                        data=BEBytes.from_bytes(data),
+                        position=Position.from_int(cursor),
+                        delimiter=delimiter,
+                        string_type=StringTypes.DESCRIPTION,
                     )
                 else:
                     raise ValueError(f"Mode '{sub_section.mode}' unrecognized.")
@@ -263,8 +266,6 @@ class Script:
                 "Attribute 'length' and 'delimiter' are missing. Please provide either of them."
                 f"Attributes: {section.attributes}"
             )
-        if section.mode == ScriptMode.MENU_STRINGS and not section.attributes.get("charset", None):
-            raise MissingSectionAttribute(f"Attribute 'charset' is missing. Attributes: {section.attributes}")
 
         f.seek(cursor)
         delimiter = section.attributes.get("delimiter", None)
@@ -274,16 +275,21 @@ class Script:
             )
 
             if data == b"":
-                break
+                cursor += 1
+                continue
 
             if section.mode == ScriptMode.BLOBS:
                 blob = Blob.from_bytes(data=data, position=Position.from_int(cursor), delimiter=delimiter)
-            else:
+            elif section.mode == ScriptMode.MENU_STRINGS:
+                blob = String.from_bytes(
+                    data=data, position=Position.from_int(cursor), delimiter=delimiter, string_type=StringTypes.MENU
+                )
+            elif section.mode == ScriptMode.DESCRIPTION_STRINGS:
                 blob = String.from_bytes(
                     data=data,
                     position=Position.from_int(cursor),
                     delimiter=delimiter,
-                    charset=section.attributes["charset"],
+                    string_type=StringTypes.DESCRIPTION,
                 )
             script.blobs.append(blob)
             cursor += len(blob)
