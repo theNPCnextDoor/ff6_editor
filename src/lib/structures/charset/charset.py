@@ -153,7 +153,8 @@ MENU_CHARSET = {
     # 0xFC: " ",
     # 0xFD: " ",
     # 0xFE: " ",
-    0xFF: " ",
+    0xFE: " ",
+    0xFF: "_",
 }
 
 DESCRIPTION_CHARSET = {
