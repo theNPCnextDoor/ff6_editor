@@ -1,3 +1,5 @@
+import os
+
 from src.lib.game_structures.field_dialog import FieldDialog
 from src.lib.game_structures.monster import Monster
 from src.lib.structures import Binary, Transcript
@@ -45,3 +47,10 @@ class Rom:
                 raise ValueError("File size suggests unconventional file size.")
 
         self.header = False
+
+    @classmethod
+    def expand(cls, filename: str) -> None:
+        size = os.path.getsize(filename)
+        with open(filename, "rb+") as f:
+            f.read()
+            f.write(b"\xff" * (0x400000 - size))
