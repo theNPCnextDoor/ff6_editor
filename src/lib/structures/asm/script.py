@@ -149,7 +149,7 @@ class Script:
 
         return script
 
-    def to_script_file(self, filename: str | Path, flags: Flags | None = None) -> None:
+    def to_script_file(self, filename: str | Path, flags: Flags | None = None, debug: bool = False) -> None:
         self._extract_labels()
         lines = (
             self.labels
@@ -185,7 +185,7 @@ class Script:
                 self.labels.append(label)
                 output.append(label.to_line(show_address=True))
 
-            output.append(line.to_line(labels=self.labels))
+            output.append(line.to_line(labels=self.labels, show_address=debug))
             cursor = int(line.position) + len(line)
 
         with open(filename, "w", encoding="utf-8") as f:
