@@ -1,51 +1,51 @@
 m=8,x=16
 
-reset_function=C20006
+@reset_function=C20006
 
-draw_3_digits=C30486
-draw_8_digits=C304A3
-draw_3_digits_8_bits=C304C0
-draw_text=C304C7
-prepare_right_aligned_8_bit_number=C304E0
-prepare_right_aligned_16_bit_number=C3052E
-prepare_right_aligned_24_bit_number=C30582
-draw_lv_hp_and_mp=C30C6C
-can_use_magic=C30D2B
-sound_click=C30EB2
-process_animation_queue=C311B0
-handle_gogo_in_status_menu=C32254
-draw_actor_name=C334CF
-draw_equipped_esper=C334E6
-prepare_string=C33519
-reset_stuff_for_animations=C3352F
-handle_swapping_character=C35D83
-draw_command_name=C35EE1
-draw_multiple_strings=C369BA
-draw_memorized_string=C37FD9
-define_current_or_projected_bat_pwr=C39371
-set_text_position=C3946D
-draw_equipment=C39479
-define_bat_pwr_mode=C399E8
+@draw_3_digits=C30486
+@draw_8_digits=C304A3
+@draw_3_digits_8_bits=C304C0
+@draw_text=C304C7
+@prepare_right_aligned_8_bit_number=C304E0
+@prepare_right_aligned_16_bit_number=C3052E
+@prepare_right_aligned_24_bit_number=C30582
+@draw_lv_hp_and_mp=C30C6C
+@can_use_magic=C30D2B
+@sound_click=C30EB2
+@process_animation_queue=C311B0
+@handle_gogo_in_status_menu=C32254
+@draw_actor_name=C334CF
+@draw_equipped_esper=C334E6
+@prepare_string=C33519
+@reset_stuff_for_animations=C3352F
+@handle_swapping_character=C35D83
+@draw_command_name=C35EE1
+@draw_multiple_strings=C369BA
+@draw_memorized_string=C37FD9
+@define_current_or_projected_bat_pwr=C39371
+@set_text_position=C3946D
+@draw_equipment=C39479
+@define_bat_pwr_mode=C399E8
 
-initialize_status_menu=C31C46
+@initialize_status_menu=C31C46
   JSR reset_stuff_for_status_menu
 
-jump_to_handle_y_and_b_in_status_menu=C32246
+@jump_to_handle_y_and_b_in_status_menu=C32246
   JMP handle_y_and_b_in_status_menu
   NOP
   NOP
-handle_b_in_status_menu
+@handle_b_in_status_menu
 
-gogo_commands_cursor_positions=C33713
+@gogo_commands_cursor_positions=C33713
   $9E41
   $9E4D
   $9E59
   $9E65
 
-draw_blue_text_and_symbols=C35D3C
+@draw_blue_text_and_symbols=C35D3C
   JSR draw_lv_hp_mp_and_non_blue_symbols
   BRA draw_other_blue_text
-draw_lv_hp_mp_and_non_blue_symbols
+@draw_lv_hp_mp_and_non_blue_symbols
   LDA #$20
   STA $29
   LDX #$6453
@@ -57,27 +57,27 @@ draw_lv_hp_mp_and_non_blue_symbols
   LDY #$0008
   JSR draw_multiple_strings
   RTS
-draw_other_blue_text
+@draw_other_blue_text
   LDA #$2C
   STA $29
   LDX #$6437
   LDY #$0014
   JMP draw_multiple_strings
 
-gogo_portrait_position=C35F50
+@gogo_portrait_position=C35F50
   LDX #$610A
 
-window_layout=C35F79
+@window_layout=C35F79
   $B758 | $0601
   $2F5A | $0906
   $8B58 | $1C18
   $C758 | $0012
   $8760 | $0712
 
-status_menu_actor_jump_table=C35F92
+@status_menu_actor_jump_table=C35F92
   JMP set_actor_id_in_status_menu
 
-draw_actor_values=C35FC2
+@draw_actor_values=C35FC2
   JSL reset_function
   LDY $67
   JSR define_bat_pwr_mode
@@ -129,27 +129,27 @@ draw_actor_values=C35FC2
   JSR can_use_magic
   BCS draw_experience
   JSR hide_mp_in_status_menu
-draw_experience
+@draw_experience
   LDA $9E
   BNE jump_to_draw_total_exp
   JSR draw_needed_experience
   BRA resume_drawing_status_menu
-jump_to_draw_total_exp
+@jump_to_draw_total_exp
   JSR draw_total_experience
-resume_drawing_status_menu
+@resume_drawing_status_menu
   STZ $47
   JSR process_animation_queue
   JMP draw_status_effects
 
-lv_hp_mp_quantity_position=C36096
+@lv_hp_mp_quantity_position=C36096
   $E738
   $2339
   $2D39
   $6339
   $6D39
-calculate_xp_needed_for_level_up
+@calculate_xp_needed_for_level_up
 
-draw_actor_commands=C36102
+@draw_actor_commands=C36102
   LDY #$7AF5
   JSR prepare_string
   JSR draw_command_name
@@ -169,17 +169,17 @@ draw_actor_commands=C36102
   INY
   JMP draw_command_name
 
-draw_status_effects=C3625B
+@draw_status_effects=C3625B
   LDY #$3A1D
   LDX #$2D50
 
-initialize_lineup=C3631D
+@initialize_lineup=C3631D
   JSR reset_stuff_for_status_menu
 
-jump_to_draw_actor_value_in_lineup=C3635D
+@jump_to_draw_actor_value_in_lineup=C3635D
   JSR set_actor_id_in_lineup
 
-text_pointers=C36437
+@text_pointers=C36437
   ptr text_status               ;37
   ptr text_vigor                ;39
   ptr text_speed                ;3B
@@ -200,48 +200,48 @@ text_pointers=C36437
   ptr text_mblock_percentage    ;59
   ptr text_max_level            ;5B
   ptr text_hide_mp              ;5D
-text_status
+@text_status
   $F978 | "Status",$00
-text_hp_slash
+@text_hp_slash
   $2B39 | "/",$00
-text_mp_slash
+@text_mp_slash
   $6B39 | "/",$00
-text_evade_percentage
+@text_evade_percentage
   $637F | "%",$00
-text_mblock_percentage
+@text_mblock_percentage
   $6388 | "%",$00
-text_lv
+@text_lv
   $DD38 | "LV",$00
-text_hp
+@text_hp
   $1D39 | "HP",$00
-text_mp
+@text_mp
   $5D39 | "MP",$00
-text_your_exp
+@text_your_exp
   $9D39 | "XP  ",$00
-text_vigor
+@text_vigor
   $4D7C | "Vigor  ¨",$00
-text_speed
+@text_speed
   $CD7C | "Speed  ¨",$00
-text_stamina
+@text_stamina
   $4D7D | "Stamina¨",$00
-text_mag_pwr
+@text_mag_pwr
   $CD7D | "Mag.Pwr¨",$00
-text_bat_pwr
+@text_bat_pwr
   $4D7E | "Bat.Pwr¨",$00
-text_defense
+@text_defense
   $CD7E | "Defense¨",$00
-text_evade
+@text_evade
   $4D7F | "Evade %¨",$00
-text_mag_def
+@text_mag_def
   $CD7F | "Mag.Def¨",$00
-text_mblock
+@text_mblock
   $4D88 | "MBlock%¨",$00
-text_max_level
+@text_max_level
   $A339 | "Max level!",$00
-text_hide_mp
+@text_hide_mp
   $6539 | " --/  --",$00
 
-draw_passive_abilities=C3F0AA
+@draw_passive_abilities=C3F0AA
   JSR prepare_string
   LDA $2C           ; Load actor id
   ASL               ; Double it
@@ -255,7 +255,7 @@ draw_passive_abilities=C3F0AA
   NOP
   LDX $4216         ; Load product in X
   LDY #$0010        ; Set counter at 16
-draw_passive_abilities_loop_start
+@draw_passive_abilities_loop_start
   LDA $F00000,X     ; Load character
   STA $2180
   INX               ; Next character
@@ -264,7 +264,7 @@ draw_passive_abilities_loop_start
   STZ $2180
   JMP draw_memorized_string
 
-draw_equipped_weapon
+@draw_equipped_weapon
 ; There is another function to draw equipment, but it didn't work properly
 ; when using it in the lineup menu.
   CMP #$FF
@@ -277,7 +277,7 @@ draw_equipped_weapon
   NOP
   LDX $4216
   LDY #$000D
-draw_equipped_weapon_loop_start
+@draw_equipped_weapon_loop_start
   LDA $D2B300,X
   STA $2180
   INX
@@ -285,17 +285,17 @@ draw_equipped_weapon_loop_start
   BNE draw_equipped_weapon_loop_start
   STZ $2180
   JMP draw_memorized_string
-blank_equipped_weapon
+@blank_equipped_weapon
   LDY #$000D
   LDA #$FF
-blank_equipped_weapon_loop_start
+@blank_equipped_weapon_loop_start
   STA $2180
   DEY
   BNE blank_equipped_weapon_loop_start
   STZ $2180
   JMP draw_memorized_string
 
-draw_esper_equipment_and_passive_abilities
+@draw_esper_equipment_and_passive_abilities
 ; Passive abilities
   LDY #$7ACD
   STZ $2B
@@ -351,7 +351,7 @@ draw_esper_equipment_and_passive_abilities
 
   JMP draw_actor_commands
 
-set_actor_id_in_status_menu
+@set_actor_id_in_status_menu
   PHX
   LDA $28
   TAX
@@ -360,12 +360,12 @@ set_actor_id_in_status_menu
   PLX
   JMP ($5F95,X)
 
-set_actor_id_in_lineup
+@set_actor_id_in_lineup
   LDA $28
   STA $2C
   JMP draw_actor_values
 
-draw_9_digits
+@draw_9_digits
 ; A 24-bit character uses 8 characters maximum, which allows to put one non-decimal
 ; character in there, either at $F7 or $FF. In this script, it is used to insert
 ; the "↑" character after the needed experience.
@@ -374,7 +374,7 @@ draw_9_digits
   LDY $00
   JMP draw_text
 
-draw_total_experience
+@draw_total_experience
   LDX $67
   LDA $0011,X
   STA $F1
@@ -388,7 +388,7 @@ draw_total_experience
   LDX #$39A5
   JMP draw_9_digits
 
-draw_needed_experience
+@draw_needed_experience
   LDX $67               ; Loading actor address
   LDA $0008,X           ; Loading level
   CMP #$63
@@ -399,17 +399,17 @@ draw_needed_experience
   STA $FF
   LDX #$39A5            ; Next to XP quantity
   JMP draw_9_digits
-draw_max_level
+@draw_max_level
   LDX #$645B
   LDY #$0002
   JMP draw_multiple_strings
 
-handle_y_and_b_in_status_menu
+@handle_y_and_b_in_status_menu
   LDA $09
   BIT #$80
   BEQ handle_y                              ; If "B" isn't pressed, then branch
   JMP handle_b_in_status_menu
-handle_y
+@handle_y
   BIT #$40
   BEQ jump_to_handle_gogo_in_status_menu    ; If "Y" isn't pressed, then branch
   JSR sound_click
@@ -419,16 +419,16 @@ handle_y
   ; There probably is a more efficient way to do this, but so far this is
   ; the only thing that worked.
   JMP handle_swapping_character
-jump_to_handle_gogo_in_status_menu
+@jump_to_handle_gogo_in_status_menu
   JMP handle_gogo_in_status_menu
 
-reset_stuff_for_status_menu
+@reset_stuff_for_status_menu
 ; Clearing the bool used for switching between needed and total XP
 ; This is the same value used in the Magic menu to switch between %learned and MP cost.
   STZ $9E
   JMP reset_stuff_for_animations
 
-hide_mp_in_status_menu
+@hide_mp_in_status_menu
 ; The following subroutine is not efficient, as we are first writing the line,
 ; then removing it completely (which is the behavior in vanilla) only to
 ; then write it again with the dashes.
@@ -443,7 +443,7 @@ hide_mp_in_status_menu
   LDY #$0002
   JMP draw_multiple_strings
 
-passive_abilities=F00000
+@passive_abilities=F00000
   "AP raises Morph " | "duration. Learns" | "spells on LV up."
   "Can unlock      " | "certain locked  " | "doors.          "
   "Learns Swdtechs " | "on level up.    " | "                "
