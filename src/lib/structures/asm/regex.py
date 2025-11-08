@@ -11,7 +11,7 @@ class Regex:
     BYTE = r"[0-9A-F]{2}"
     TWO_BYTES = rf"[0-9A-F]{{4}}{NOT_HEXA}"
     DATA = rf"({BYTE}){{1,3}}{NOT_HEXA}"
-    MENU_CHAR = r"[0-9a-zA-Z!?/:”\'\-.,…;#+\(\)%~=¨↑→↙× _]|<[xA-Z0-9 ]+>"
+    MENU_CHAR = r"[0-9a-zA-Z!?/:“”\'\-.,…;#+\(\)%~=¨↑→↙× _]|<[xA-Z0-9 ]+>"
     DELIMITER_1 = rf",\$(?P<d1>{BYTE}){NOT_HEXA}"
     DELIMITER_2 = rf",\$(?P<d2>{BYTE}){NOT_HEXA}"
     CHUNK = rf"(?P<chunk>(\[\$(?P<n1>{DATA})\](,Y)?)|\(\$(?P<n2>{DATA})(,S)?\),Y|\(\$(?P<n3>{DATA})(,X)?\)|\$(?P<n4>{DATA}),[SXY]|#\$(?P<n5>{DATA})(,#\$(?P<mov2>{BYTE}))?|\$(?P<n6>{DATA}))"
