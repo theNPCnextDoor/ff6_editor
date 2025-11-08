@@ -193,7 +193,8 @@ Thumbs.db
 **/dummy_output_script.asm
 **/dummy_output_rom.sfc
 **/dummy*.bak
-**/ff3.smc
-**/ff3.sfc
-**/test.smc
-**/test.sfc
+**/*.smc
+**/*.sfc
+**/*.srm
+**/*.cpu.sym
+
