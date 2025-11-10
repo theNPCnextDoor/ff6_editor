@@ -37,10 +37,10 @@ m=8,x=16
 @handle_b_in_status_menu
 
 @gogo_commands_cursor_positions=C33713
-  $9E41
-  $9E4D
-  $9E59
-  $9E65
+  $419E
+  $4D9E
+  $599E
+  $659E
 
 @draw_blue_text_and_symbols=C35D3C
   JSR draw_lv_hp_mp_and_non_blue_symbols
@@ -68,11 +68,11 @@ m=8,x=16
   LDX #$610A
 
 @window_layout=C35F79
-  $B758 | $0601
-  $2F5A | $0906
-  $8B58 | $1C18
-  $C758 | $0012
-  $8760 | $0712
+  $58B7 | $0106
+  $5A2F | $0609
+  $588B | $181C
+  $58C7 | $1200
+  $6087 | $1207
 
 @status_menu_actor_jump_table=C35F92
   JMP set_actor_id_in_status_menu
@@ -142,11 +142,11 @@ m=8,x=16
   JMP draw_status_effects
 
 @lv_hp_mp_quantity_position=C36096
-  $E738
-  $2339
-  $2D39
-  $6339
-  $6D39
+  $38E7
+  $3923
+  $392D
+  $3963
+  $396D
 @calculate_xp_needed_for_level_up
 
 @draw_actor_commands=C36102
@@ -201,45 +201,45 @@ m=8,x=16
   ptr text_max_level            ;5B
   ptr text_hide_mp              ;5D
 @text_status
-  $F978 | "Status",$00
+  $78F9 | "Status",$00
 @text_hp_slash
-  $2B39 | "/",$00
+  $392B | "/",$00
 @text_mp_slash
-  $6B39 | "/",$00
+  $396B | "/",$00
 @text_evade_percentage
-  $637F | "%",$00
+  $7F63 | "%",$00
 @text_mblock_percentage
-  $6388 | "%",$00
+  $8863 | "%",$00
 @text_lv
-  $DD38 | "LV",$00
+  $38DD | "LV",$00
 @text_hp
-  $1D39 | "HP",$00
+  $391D | "HP",$00
 @text_mp
-  $5D39 | "MP",$00
+  $395D | "MP",$00
 @text_your_exp
-  $9D39 | "XP  ",$00
+  $399D | "XP  ",$00
 @text_vigor
-  $4D7C | "Vigor  ¨",$00
+  $7C4D | "Vigor  ¨",$00
 @text_speed
-  $CD7C | "Speed  ¨",$00
+  $7CCD | "Speed  ¨",$00
 @text_stamina
-  $4D7D | "Stamina¨",$00
+  $7D4D | "Stamina¨",$00
 @text_mag_pwr
-  $CD7D | "Mag.Pwr¨",$00
+  $7DCD | "Mag.Pwr¨",$00
 @text_bat_pwr
-  $4D7E | "Bat.Pwr¨",$00
+  $7E4D | "Bat.Pwr¨",$00
 @text_defense
-  $CD7E | "Defense¨",$00
+  $7ECD | "Defense¨",$00
 @text_evade
-  $4D7F | "Evade %¨",$00
+  $7F4D | "Evade %¨",$00
 @text_mag_def
-  $CD7F | "Mag.Def¨",$00
+  $7FCD | "Mag.Def¨",$00
 @text_mblock
-  $4D88 | "MBlock%¨",$00
+  $884D | "MBlock%¨",$00
 @text_max_level
-  $A339 | "Max level!",$00
+  $39A3 | "Max level!",$00
 @text_hide_mp
-  $6539 | " --/  --",$00
+  $3965 | " --/  --",$00
 
 @draw_passive_abilities=C3F0AA
   JSR prepare_string

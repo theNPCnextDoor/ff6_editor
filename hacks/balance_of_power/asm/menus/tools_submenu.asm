@@ -82,7 +82,7 @@ m=8,x=16
   RTS
 
 @skills_submenu_dimensions=C34D9E
-  $070C
+  $0C07
 
 @submenu_names=C34CFD
   ptr espers_submenu_name
@@ -128,19 +128,19 @@ m=8,x=16
   JSR set_source_for_skill_name
 
 @espers_submenu_name=C35C48
-  $0D79 | "Espers",$00
+  $790D | "Espers",$00
 @magic_submenu_name
-  $8D79 | "Magic",$00
+  $798D | "Magic",$00
 @swdtech_submenu_name
-  $8D7A | "SwdTech",$00
+  $7A8D | "SwdTech",$00
 @blitz_submenu_name
-  $0D7B | "Blitz",$00
+  $7B0D | "Blitz",$00
 @lore_submenu_name
-  $8D7B | "Lore",$00
+  $7B8D | "Lore",$00
 @rage_submenu_name
-  $0D7C | "Rage",$00
+  $7C0D | "Rage",$00
 @dance_submenu_name
-  $8D7C | "Dance",$00
+  $7C8D | "Dance",$00
 ; Tools/Arsenal is separated from the rest. It currently is located at C3F212.
 
 @load_last_two_bytes_of_rare_item_for_list=C383B0
@@ -175,17 +175,17 @@ m=8,x=16
 
 ; This is separated from the rest. Eventually, would be nice to find a place where it all fits together.
 @tools_submenu_name=C3F212
-  $0D7D | "Tools  ",$00
+  $7D0D | "Tools  ",$00
 
 @cursor_positions_for_skills_menu
-  $0014
-  $0024
-  $0044
-  $0054
-  $0064
-  $0074
-  $0084
-  $0094
+  $1400
+  $2400
+  $4400
+  $5400
+  $6400
+  $7400
+  $8400
+  $9400
 
 @jump_table_for_initializing_submenus
   ptr initialize_esper_submenu
@@ -270,7 +270,7 @@ m=8,x=16
   RTS
 
 @menu_title_tools
-  $B781 | "Tools  ",$00
+  $81B7 | "Tools  ",$00
 
 @sustain_dance_menu
   JSR queue_list_upload      ; Queue list upload
