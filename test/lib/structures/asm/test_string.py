@@ -43,7 +43,7 @@ class TestString:
 
     @pytest.mark.parametrize(
         ["string", "expected"],
-        [(String(data=BEBytes([0x00, 0x80, 0xD8, 0xEB, 0xFF], length=5)), '"<0x00>A<KNIFE><0xEB> "')],
+        [(String(data=BEBytes([0x00, 0x80, 0xD8, 0xEB, 0xFF], length=5)), '"<0x00>A<KNIFE><0xEB>_"')],
     )
     def test_str(self, string: String, expected: str):
         assert str(string) == expected
@@ -51,17 +51,17 @@ class TestString:
     @pytest.mark.parametrize(
         ["string", "show_address", "expected"],
         [
-            (String(data=BEBytes([0x00, 0x80, 0xD8, 0xEB, 0xFF], length=5)), False, '  "<0x00>A<KNIFE><0xEB> "'),
-            (String(data=BEBytes([0x00, 0x80, 0xD8, 0xEB, 0xFF])), True, '  "<0x00>A<KNIFE><0xEB> " ; C00000'),
+            (String(data=BEBytes([0x00, 0x80, 0xD8, 0xEB, 0xFF], length=5)), False, '  "<0x00>A<KNIFE><0xEB>_"'),
+            (String(data=BEBytes([0x00, 0x80, 0xD8, 0xEB, 0xFF])), True, '  "<0x00>A<KNIFE><0xEB>_" ; C00000'),
             (
                 String(data=BEBytes([0x00, 0x80, 0xD8, 0xEB, 0xFF], length=5), delimiter=LEBytes([0x00])),
                 False,
-                '  "<0x00>A<KNIFE><0xEB> ",$00',
+                '  "<0x00>A<KNIFE><0xEB>_",$00',
             ),
             (
                 String(data=BEBytes([0x00, 0x80, 0xD8, 0xEB, 0xFF]), delimiter=LEBytes([0xFF])),
                 True,
-                '  "<0x00>A<KNIFE><0xEB> ",$FF ; C00000',
+                '  "<0x00>A<KNIFE><0xEB>_",$FF ; C00000',
             ),
         ],
     )
