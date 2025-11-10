@@ -130,6 +130,9 @@ class Script:
                 if instruction.is_flag_setter():
                     flags = instruction.set_flags(flags)
 
+            elif not line.strip().startswith(";"):
+                raise UnrecognizedLine(f"Line '{line}' is not recognized.")
+
         for line, cursor in lines_with_labels:
             if match := re.match(Regex.BRANCHING_INSTRUCTION_LINE, line):
                 instruction = BranchingInstruction.from_regex_match(
@@ -349,3 +352,7 @@ class Script:
                     break
                 data += _char
         return data
+
+
+class UnrecognizedLine(Exception):
+    pass

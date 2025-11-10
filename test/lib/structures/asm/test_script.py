@@ -1,5 +1,7 @@
 from pathlib import Path
 
+import pytest
+
 from src.lib.structures.asm.blob import Blob
 from src.lib.structures.asm.blob_group import BlobGroup
 from src.lib.structures.asm.string import String, StringTypes
@@ -8,11 +10,12 @@ from src.lib.structures.asm.flags import Flags
 from src.lib.structures.asm.instruction import Instruction, BranchingInstruction
 from src.lib.structures.asm.label import Label
 from src.lib.structures.asm.pointer import Pointer
-from src.lib.structures.asm.script import Script, ScriptMode, ScriptSection, SubSection
+from src.lib.structures.asm.script import Script, ScriptMode, ScriptSection, SubSection, UnrecognizedLine
 from src.lib.structures.charset.charset import MENU_CHARSET, Charset
 from test import TEST_FOLDER
 
 DUMMY_INPUT_SCRIPT = Path(TEST_FOLDER, "dummy_input_script.asm")
+DUMMY_ERROR_SCRIPT = Path(TEST_FOLDER, "dummy_error_script.asm")
 DUMMY_OUTPUT_SCRIPT = Path(TEST_FOLDER, "dummy_output_script.asm")
 DUMMY_INPUT_ROM = Path(TEST_FOLDER, "dummy_input_rom.sfc")
 DUMMY_OUTPUT_ROM = Path(TEST_FOLDER, "dummy_output_rom.sfc")
@@ -167,6 +170,11 @@ class TestScript:
         assert script.blob_groups[0].blobs[2] == Blob(
             position=Position([0x00, 0x00, 0x30]), data=LEBytes([0xBB]), delimiter=LEBytes([0xFF])
         )
+
+    def test_from_script_file_raises_error_when_line_is_unrecognized(self):
+        with pytest.raises(UnrecognizedLine) as e:
+            Script.from_script_file(DUMMY_ERROR_SCRIPT)
+        assert str(e.value) == "Line '  txt3 \"Lorem ipsum\"' is not recognized."
 
     def test_to_rom(self):
 
