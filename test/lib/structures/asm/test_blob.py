@@ -28,9 +28,9 @@ class TestBlob:
     @pytest.mark.parametrize(
         ["line", "blob"],
         [
-            ("  $12", Blob(data=BEBytes([0x12]))),
-            ("  $0123456789ABCDEF", Blob(data=BEBytes([0xEF, 0xCD, 0xAB, 0x89, 0x67, 0x45, 0x23, 0x01]))),
-            ("  $FFFF # C0/0000", Blob(data=BEBytes([0xFF, 0xFF]))),
+            ("  $12", Blob(data=LEBytes([0x12]))),
+            ("  $0123456789ABCDEF", Blob(data=LEBytes([0xEF, 0xCD, 0xAB, 0x89, 0x67, 0x45, 0x23, 0x01]))),
+            ("  $FFFF # C0/0000", Blob(data=LEBytes([0xFF, 0xFF]))),
         ],
     )
     def test_from_regex_match(self, line: str, blob: Blob):
@@ -40,9 +40,9 @@ class TestBlob:
     @pytest.mark.parametrize(
         ["data", "blob"],
         [
-            (b"\x12", Blob(data=BEBytes([0x12]))),
-            (b"\x01\x23\x45\x67\x89\xab\xcd\xef", Blob(data=BEBytes([0xEF, 0xCD, 0xAB, 0x89, 0x67, 0x45, 0x23, 0x01]))),
-            (b"\xff\xff", Blob(data=BEBytes([0xFF, 0xFF]))),
+            (b"\x12", Blob(data=LEBytes([0x12]))),
+            (b"\x01\x23\x45\x67\x89\xab\xcd\xef", Blob(data=LEBytes([0xEF, 0xCD, 0xAB, 0x89, 0x67, 0x45, 0x23, 0x01]))),
+            (b"\xff\xff", Blob(data=LEBytes([0xFF, 0xFF]))),
         ],
     )
     def test_from_bytes(self, data: LEBytes, blob: Blob):

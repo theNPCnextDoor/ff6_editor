@@ -55,9 +55,9 @@ class ScriptImpl:
         ]
 
         self.script.blobs = [
-            Blob(position=Position([0x00, 0x00, 0x21]), data=BEBytes([0x12, 0x34])),
-            Blob(position=Position([0x00, 0x00, 0x23]), data=BEBytes([0x56, 0x78]), delimiter=LEBytes([0xFF])),
-            Blob(position=Position([0x00, 0x00, 0x26]), data=BEBytes([0xAB, 0xCD]), delimiter=LEBytes([0x00])),
+            Blob(position=Position([0x00, 0x00, 0x21]), data=LEBytes([0x12, 0x34])),
+            Blob(position=Position([0x00, 0x00, 0x23]), data=LEBytes([0x56, 0x78]), delimiter=LEBytes([0xFF])),
+            Blob(position=Position([0x00, 0x00, 0x26]), data=LEBytes([0xAB, 0xCD]), delimiter=LEBytes([0x00])),
             String(
                 position=Position([0x00, 0x00, 0x29]), data=BEBytes([0x00, 0x80, 0xD8, 0xFF]), delimiter=LEBytes([0x88])
             ),
@@ -72,9 +72,9 @@ class ScriptImpl:
         self.script.blob_groups = [
             BlobGroup(
                 blobs=[
-                    Blob(position=Position([0x00, 0x00, 0x2E]), data=BEBytes([0xAA])),
+                    Blob(position=Position([0x00, 0x00, 0x2E]), data=LEBytes([0xAA])),
                     String(position=Position([0x00, 0x00, 0x2F]), data=BEBytes([0x9A])),
-                    Blob(position=Position([0x00, 0x00, 0x30]), data=BEBytes([0xBB]), delimiter=LEBytes([0xFF])),
+                    Blob(position=Position([0x00, 0x00, 0x30]), data=LEBytes([0xBB]), delimiter=LEBytes([0xFF])),
                     String(position=Position([0x00, 0x00, 0x32]), data=BEBytes([0x9B]), delimiter=LEBytes([0x00])),
                 ],
                 position=Position([0x00, 0x00, 0x2E]),
@@ -143,12 +143,12 @@ class TestScript:
         )
 
         assert len(script.blobs) == 5
-        assert script.blobs[0] == Blob(position=Position([0x00, 0x00, 0x21]), data=BEBytes([0x12, 0x34]))
+        assert script.blobs[0] == Blob(position=Position([0x00, 0x00, 0x21]), data=LEBytes([0x12, 0x34]))
         assert script.blobs[1] == Blob(
-            position=Position([0x00, 0x00, 0x23]), data=BEBytes([0x56, 0x78]), delimiter=LEBytes([0xFF])
+            position=Position([0x00, 0x00, 0x23]), data=LEBytes([0x56, 0x78]), delimiter=LEBytes([0xFF])
         )
         assert script.blobs[2] == Blob(
-            position=Position([0x00, 0x00, 0x26]), data=BEBytes([0xAB, 0xCD]), delimiter=LEBytes([0x00])
+            position=Position([0x00, 0x00, 0x26]), data=LEBytes([0xAB, 0xCD]), delimiter=LEBytes([0x00])
         )
         assert script.blobs[3] == String(
             position=Position([0x00, 0x00, 0x29]), data=BEBytes([0x00, 0x80, 0xD8, 0xFF]), delimiter=LEBytes([0x88])
@@ -162,10 +162,10 @@ class TestScript:
 
         assert len(script.blob_groups) == 1
         assert len(script.blob_groups[0].blobs) == 4
-        assert script.blob_groups[0].blobs[0] == Blob(position=Position([0x00, 0x00, 0x2E]), data=BEBytes([0xAA]))
+        assert script.blob_groups[0].blobs[0] == Blob(position=Position([0x00, 0x00, 0x2E]), data=LEBytes([0xAA]))
         assert script.blob_groups[0].blobs[1] == String(position=Position([0x00, 0x00, 0x2F]), data=BEBytes([0x9A]))
         assert script.blob_groups[0].blobs[2] == Blob(
-            position=Position([0x00, 0x00, 0x30]), data=BEBytes([0xBB]), delimiter=LEBytes([0xFF])
+            position=Position([0x00, 0x00, 0x30]), data=LEBytes([0xBB]), delimiter=LEBytes([0xFF])
         )
 
     def test_to_rom(self):
@@ -184,7 +184,7 @@ class TestScript:
             b"\xc2\x30\xa9\x56\x34\xa2\xdc\xfe"  # Instructions 3-5
             b"\xe2\x30\xa9\xbb\xa2\xcc"  # Instructions 6-8
             b"\x44\x12\x34\x4c\x05\x00\x80\xe0"  # Instructions 9-11
-            b"\x12\x34\x56\x78\xff\xab\xcd\x00"  # Blobs 0-2
+            b"\x34\x12\x78\x56\xff\xcd\xab\x00"  # Blobs 0-2
             b"\x00\x80\xd8\xff\x88"  # Menu String 0
             b"\xaa\x9a\xbb\xff\x9b\x00"  # Blob Group 0
             b"\x81\xa8\x9b\x01\xdc\x00"  # Description 0
@@ -240,15 +240,15 @@ class TestScript:
         )
 
         assert len(script.blobs) == 4
-        assert script.blobs[0] == Blob(position=Position([0x00, 0x00, 0x12]), data=BEBytes([0x12, 0x34]))
+        assert script.blobs[0] == Blob(position=Position([0x00, 0x00, 0x12]), data=LEBytes([0x12, 0x34]))
         assert script.blobs[1] == Blob(
-            position=Position([0x00, 0x00, 0x14]), data=BEBytes([0x56, 0x78]), delimiter=LEBytes([0xFF])
+            position=Position([0x00, 0x00, 0x14]), data=LEBytes([0x56, 0x78]), delimiter=LEBytes([0xFF])
         )
         assert script.blobs[2] == Blob(
-            position=Position([0x00, 0x00, 0x17]), data=BEBytes([0xCD, 0xAB]), delimiter=LEBytes([0x00])
+            position=Position([0x00, 0x00, 0x17]), data=LEBytes([0xCD, 0xAB]), delimiter=LEBytes([0x00])
         )
         assert script.blobs[3] == Blob(
-            position=Position([0x00, 0x00, 0x1A]), data=BEBytes([0x00, 0x80, 0xD8, 0xFF]), delimiter=LEBytes([0x88])
+            position=Position([0x00, 0x00, 0x1A]), data=LEBytes([0x00, 0x80, 0xD8, 0xFF]), delimiter=LEBytes([0x88])
         )
 
         assert len(script.labels) == 5
@@ -284,7 +284,7 @@ class TestScript:
   $1234
   $5678,$FF
   $ABCD,$00
-  "<0x00>A<KNIFE> ",$88
+  "<0x00>A<KNIFE>_",$88
   $AA | "a" | $BB,$FF | "b",$00
   txt2 "Bob<LINE><FIRE>",$00
 
