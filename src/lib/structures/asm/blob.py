@@ -12,7 +12,7 @@ if TYPE_CHECKING:
 
 
 class Blob(ScriptLine, ToLineMixin):
-    def __init__(self, data: BEBytes, position: Position | None = None, delimiter: LEBytes | None = None):
+    def __init__(self, data: LEBytes | BEBytes, position: Position | None = None, delimiter: LEBytes | None = None):
         super().__init__(position=position)
         self.data = data
         self.delimiter = delimiter
@@ -25,11 +25,11 @@ class Blob(ScriptLine, ToLineMixin):
         if delimiter is not None:
             delimiter = LEBytes.from_str(delimiter)
 
-        return cls(position=position, data=BEBytes.from_str(data), delimiter=delimiter)
+        return cls(position=position, data=LEBytes.from_str(data), delimiter=delimiter)
 
     @classmethod
     def from_bytes(cls, data: bytes, position: Position | None = None, delimiter: bytes | None = None) -> Self:
-        data = BEBytes.from_bytes(data)
+        data = LEBytes.from_bytes(data)
         if delimiter is not None:
             delimiter = LEBytes.from_bytes(delimiter)
         return Blob(position=position, data=data, delimiter=delimiter)
