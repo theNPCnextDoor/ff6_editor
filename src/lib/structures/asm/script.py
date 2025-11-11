@@ -44,6 +44,14 @@ class SubSection:
         self.delimiter = delimiter
 
 
+class LabelConflict(Exception):
+    pass
+
+
+class LineConflict(Exception):
+    pass
+
+
 class Script:
     def __init__(self):
         self.blobs = list()
@@ -67,15 +75,122 @@ class Script:
             output += f"{repr(line)}\n"
         return output
 
+    def append_script_file(self, filename: str | Path):
+        with open(filename, encoding="utf-8") as f:
+            lines = f.readlines()
+        lines = [stripped_line for line in lines if (stripped_line := line.rstrip())]
+
+        cursor = 0
+        flags = Flags()
+        lines_with_labels = list()
+
+        for line in lines:
+            if match := re.match(Regex.DESCRIPTION_LINE, line):
+                string = String.from_regex_match(match=match, position=Position.from_int(cursor))
+                cursor += len(string)
+                self.blobs.append(string)
+
+            elif match := re.fullmatch(Regex.BLOB_GROUP_LINE, line):
+                blob_group = BlobGroup.from_regex_match(match=match, position=Position.from_int(cursor))
+                cursor += len(blob_group)
+                self.blob_groups.append(blob_group)
+
+            elif match := re.search(Regex.BLOB_LINE, line):
+                blob = Blob.from_regex_match(match=match, position=Position.from_int(cursor))
+                cursor += len(blob)
+                self.blobs.append(blob)
+
+            elif match := re.search(Regex.MENU_STRING_LINE, line):
+                string = String.from_regex_match(match=match, position=Position.from_int(cursor))
+                cursor += len(string)
+                self.blobs.append(string)
+
+            elif match := re.search(Regex.FLAGS_LINE, line):
+                flags = Flags.from_regex_match(match=match)
+
+            elif match := re.search(Regex.LABEL_LINE, line):
+                label = Label.from_regex_match(match=match, position=Position.from_int(cursor))
+                cursor = int(label.position)
+                self.labels.append(label)
+
+            elif re.search(Regex.POINTER_LINE, line):
+                lines_with_labels.append((line, cursor))
+                cursor += 2
+
+            elif match := re.search(Regex.BRANCHING_INSTRUCTION_LINE, line):
+                command = match.group("command")
+
+                if match.group("label"):
+                    lines_with_labels.append((line, cursor))
+                else:
+                    instruction = BranchingInstruction.from_regex_match(match=match, position=Position.from_int(cursor))
+                    self.branching_instructions.append(instruction)
+
+                cursor += BranchingInstruction.find_length(command=command) + 1
+
+            elif match := re.match(Regex.INSTRUCTION_LINE, line):
+                instruction = Instruction.from_regex_match(match=match, position=Position.from_int(cursor), flags=flags)
+                cursor += len(instruction)
+                self.instructions.append(instruction)
+
+                if instruction.is_flag_setter():
+                    flags = instruction.set_flags(flags)
+
+            elif not line.strip().startswith(";"):
+                raise UnrecognizedLine(f"Line '{line}' is not recognized.")
+
+        for line, cursor in lines_with_labels:
+            if match := re.match(Regex.BRANCHING_INSTRUCTION_LINE, line):
+                instruction = BranchingInstruction.from_regex_match(
+                    match=match, position=Position.from_int(cursor), labels=self.labels
+                )
+                self.branching_instructions.append(instruction)
+
+            elif match := re.match(Regex.POINTER_LINE, line):
+                pointer = Pointer.from_regex_match(match=match, position=Position.from_int(cursor), labels=self.labels)
+                self.pointers.append(pointer)
+
+        for name in ["blobs", "blob_groups", "instructions", "branching_instructions", "pointers"]:
+            _list = getattr(self, name)
+            _list.sort()
+
     @classmethod
-    def from_script_file(cls, filename: str | Path, flags: Flags | None = None) -> Self:
+    def from_script_files(cls, *filenames: str | Path) -> Self:
+        script = cls()
+        for filename in filenames:
+            script.append_script_file(filename)
+        script.detect_conflicts()
+        return script
+
+    def detect_conflicts(self):
+        self._sort_lists()
+        # for label in self.labels:
+        #      print(label)
+
+        for i in range(len(self.labels) - 1):
+            if self.labels[i].position == self.labels[i + 1].position:
+                raise LabelConflict(
+                    f"Labels '{self.labels[i].to_line()}' and '{self.labels[i + 1].to_line()}' point to the same address: {self.labels[i].position}"
+                )
+
+        lines = self.blobs + self.blob_groups + self.instructions + self.branching_instructions + self.pointers
+
+        for i in range(len(sorted(lines)) - 1):
+            length = len(lines[i])
+            if lines[i].position + length > lines[i + 1].position:
+                raise LineConflict(
+                    f"Lines '{lines[i].to_line(show_address=True)}' and '{lines[i + 1].to_line(show_address=True)}' are conflicting with one another."
+                )
+
+    @classmethod
+    def from_script_file(cls, filename: str | Path) -> Self:
         with open(filename, encoding="utf-8") as f:
             lines = f.readlines()
         lines = [stripped_line for line in lines if (stripped_line := line.rstrip())]
         script = cls()
 
         cursor = 0
-        flags = flags or Flags()
+        flags = Flags()
         lines_with_labels = list()
 
         for line in lines:
@@ -328,7 +443,7 @@ class Script:
             cursor += len(instruction)
 
     def _sort_lists(self) -> None:
-        self.labels = list(set(sorted(self.labels)))
+        self.labels = sorted(self.labels)
         self.blobs.sort()
         self.blob_groups.sort()
         self.branching_instructions.sort()
