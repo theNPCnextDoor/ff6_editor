@@ -174,98 +174,14 @@ class Script:
                 )
 
         lines = self.blobs + self.blob_groups + self.instructions + self.branching_instructions + self.pointers
+        lines.sort()
 
-        for i in range(len(sorted(lines)) - 1):
+        for i in range(len(lines) - 1):
             length = len(lines[i])
             if lines[i].position + length > lines[i + 1].position:
                 raise LineConflict(
                     f"Lines '{lines[i].to_line(show_address=True)}' and '{lines[i + 1].to_line(show_address=True)}' are conflicting with one another."
                 )
-
-    @classmethod
-    def from_script_file(cls, filename: str | Path) -> Self:
-        with open(filename, encoding="utf-8") as f:
-            lines = f.readlines()
-        lines = [stripped_line for line in lines if (stripped_line := line.rstrip())]
-        script = cls()
-
-        cursor = 0
-        flags = Flags()
-        lines_with_labels = list()
-
-        for line in lines:
-            if match := re.match(Regex.DESCRIPTION_LINE, line):
-                string = String.from_regex_match(match=match, position=Position.from_int(cursor))
-                cursor += len(string)
-                script.blobs.append(string)
-
-            elif match := re.fullmatch(Regex.BLOB_GROUP_LINE, line):
-                blob_group = BlobGroup.from_regex_match(match=match, position=Position.from_int(cursor))
-                cursor += len(blob_group)
-                script.blob_groups.append(blob_group)
-
-            elif match := re.search(Regex.BLOB_LINE, line):
-                blob = Blob.from_regex_match(match=match, position=Position.from_int(cursor))
-                cursor += len(blob)
-                script.blobs.append(blob)
-
-            elif match := re.search(Regex.MENU_STRING_LINE, line):
-                string = String.from_regex_match(match=match, position=Position.from_int(cursor))
-                cursor += len(string)
-                script.blobs.append(string)
-
-            elif match := re.search(Regex.FLAGS_LINE, line):
-                flags = Flags.from_regex_match(match=match)
-
-            elif match := re.search(Regex.LABEL_LINE, line):
-                label = Label.from_regex_match(match=match, position=Position.from_int(cursor))
-                cursor = int(label.position)
-                script.labels.append(label)
-
-            elif re.search(Regex.POINTER_LINE, line):
-                lines_with_labels.append((line, cursor))
-                cursor += 2
-
-            elif match := re.search(Regex.BRANCHING_INSTRUCTION_LINE, line):
-                command = match.group("command")
-
-                if match.group("label"):
-                    lines_with_labels.append((line, cursor))
-                else:
-                    instruction = BranchingInstruction.from_regex_match(match=match, position=Position.from_int(cursor))
-                    script.branching_instructions.append(instruction)
-
-                cursor += BranchingInstruction.find_length(command=command) + 1
-
-            elif match := re.match(Regex.INSTRUCTION_LINE, line):
-                instruction = Instruction.from_regex_match(match=match, position=Position.from_int(cursor), flags=flags)
-                cursor += len(instruction)
-                script.instructions.append(instruction)
-
-                if instruction.is_flag_setter():
-                    flags = instruction.set_flags(flags)
-
-            elif not line.strip().startswith(";"):
-                raise UnrecognizedLine(f"Line '{line}' is not recognized.")
-
-        for line, cursor in lines_with_labels:
-            if match := re.match(Regex.BRANCHING_INSTRUCTION_LINE, line):
-                instruction = BranchingInstruction.from_regex_match(
-                    match=match, position=Position.from_int(cursor), labels=script.labels
-                )
-                script.branching_instructions.append(instruction)
-
-            elif match := re.match(Regex.POINTER_LINE, line):
-                pointer = Pointer.from_regex_match(
-                    match=match, position=Position.from_int(cursor), labels=script.labels
-                )
-                script.pointers.append(pointer)
-
-        for name in ["blobs", "blob_groups", "instructions", "branching_instructions", "pointers"]:
-            _list = getattr(script, name)
-            _list.sort()
-
-        return script
 
     def to_script_file(self, filename: str | Path, flags: Flags | None = None, debug: bool = False) -> None:
         self._extract_labels()
@@ -309,7 +225,7 @@ class Script:
         with open(filename, "w", encoding="utf-8") as f:
             f.write("\n".join(output))
 
-    def to_rom(self, output_path: str, input_path: str | None = None) -> None:
+    def to_rom(self, output_path: str | Path, input_path: str | Path | None = None) -> None:
         input_path = input_path or output_path
         with open(input_path, "rb") as input_rom, open(output_path, "wb") as output_rom:
             rom = input_rom.read()
