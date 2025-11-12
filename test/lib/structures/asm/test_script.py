@@ -1,5 +1,7 @@
 from pathlib import Path
 
+import pytest
+
 from src.lib.structures.asm.blob import Blob
 from src.lib.structures.asm.blob_group import BlobGroup
 from src.lib.structures.asm.string import String, StringTypes
@@ -8,14 +10,28 @@ from src.lib.structures.asm.flags import Flags
 from src.lib.structures.asm.instruction import Instruction, BranchingInstruction
 from src.lib.structures.asm.label import Label
 from src.lib.structures.asm.pointer import Pointer
-from src.lib.structures.asm.script import Script, ScriptMode, ScriptSection, SubSection
+from src.lib.structures.asm.script import (
+    Script,
+    ScriptMode,
+    ScriptSection,
+    SubSection,
+    UnrecognizedLine,
+    LabelConflict,
+    LineConflict,
+)
 from src.lib.structures.charset.charset import MENU_CHARSET, Charset
-from test import TEST_FOLDER
+from test import RESOURCES_FOLDER
 
-DUMMY_INPUT_SCRIPT = Path(TEST_FOLDER, "dummy_input_script.asm")
-DUMMY_OUTPUT_SCRIPT = Path(TEST_FOLDER, "dummy_output_script.asm")
-DUMMY_INPUT_ROM = Path(TEST_FOLDER, "dummy_input_rom.sfc")
-DUMMY_OUTPUT_ROM = Path(TEST_FOLDER, "dummy_output_rom.sfc")
+CONFLICTING_FILE_1 = Path(RESOURCES_FOLDER, "conflicting_file_1.asm")
+CONFLICTING_FILE_2 = Path(RESOURCES_FOLDER, "conflicting_file_2.asm")
+CONFLICTING_LABELS_SCRIPT = Path(RESOURCES_FOLDER, "conflicting_labels_script.asm")
+CONFLICTING_LINES_SCRIPT = Path(RESOURCES_FOLDER, "conflicting_lines_script.asm")
+DUMMY_INPUT_SCRIPT_1 = Path(RESOURCES_FOLDER, "dummy_input_script_1.asm")
+DUMMY_INPUT_SCRIPT_2 = Path(RESOURCES_FOLDER, "dummy_input_script_2.asm")
+DUMMY_ERROR_SCRIPT = Path(RESOURCES_FOLDER, "dummy_error_script.asm")
+DUMMY_OUTPUT_SCRIPT = Path(RESOURCES_FOLDER, "dummy_output_script.asm")
+DUMMY_INPUT_ROM = Path(RESOURCES_FOLDER, "dummy_input_rom.sfc")
+DUMMY_OUTPUT_ROM = Path(RESOURCES_FOLDER, "dummy_output_rom.sfc")
 
 
 class ScriptImpl:
@@ -85,7 +101,7 @@ class ScriptImpl:
 class TestScript:
 
     def test_from_script(self):
-        script = Script.from_script_file(filename=DUMMY_INPUT_SCRIPT)
+        script = Script.from_script_files(DUMMY_INPUT_SCRIPT_1, DUMMY_INPUT_SCRIPT_2)
 
         assert len(script.labels) == 2
         assert script.labels[0] == Label(position=Position([0x00, 0x00, 0x01]), name="start")
@@ -167,6 +183,29 @@ class TestScript:
         assert script.blob_groups[0].blobs[2] == Blob(
             position=Position([0x00, 0x00, 0x30]), data=LEBytes([0xBB]), delimiter=LEBytes([0xFF])
         )
+
+    def test_from_script_file_raises_error_when_line_is_unrecognized(self):
+        with pytest.raises(UnrecognizedLine) as e:
+            Script.from_script_files(DUMMY_ERROR_SCRIPT)
+        assert str(e.value) == "Line '  txt3 \"Lorem ipsum\"' is not recognized."
+
+    def test_from_script_files_raises_error_when_labels_conflict(self):
+        with pytest.raises(LabelConflict) as e:
+            Script.from_script_files(CONFLICTING_LABELS_SCRIPT)
+        assert str(e.value) == "Labels '@label_00' and '@label_02' point to the same address: 001234"
+
+    def test_from_script_files_raises_error_when_lines_conflict(self):
+        with pytest.raises(LineConflict) as e:
+            Script.from_script_files(CONFLICTING_LINES_SCRIPT)
+        assert (
+            str(e.value)
+            == "Lines '  LDA #$1234 ; C01234' and '  LDX #$5678 ; C01235' are conflicting with one another."
+        )
+
+    def test_from_script_files_raises_error_when_lines_conflict_in_multiple_files(self):
+        with pytest.raises(LineConflict) as e:
+            Script.from_script_files(CONFLICTING_FILE_1, CONFLICTING_FILE_2)
+        assert str(e.value) == "Lines '  TAX ; C01237' and '  STA $1337 ; C01237' are conflicting with one another."
 
     def test_to_rom(self):
 
@@ -252,11 +291,11 @@ class TestScript:
         )
 
         assert len(script.labels) == 5
-        assert script.labels[0] == Label(position=Position([0x00, 0x23, 0x01]))
-        assert script.labels[1] == Label(position=Position([0x00, 0x67, 0x45]))
-        assert script.labels[2] == Label(position=Position([0x00, 0xAB, 0x89]))
-        assert script.labels[3] == Label(position=Position([0x00, 0xEF, 0xCD]))
-        assert script.labels[4] == Label(position=Position([0x00, 0x00, 0x10]))
+        assert script.labels[0] == Label(position=Position([0x00, 0x00, 0x10]))
+        assert script.labels[1] == Label(position=Position([0x00, 0x23, 0x01]))
+        assert script.labels[2] == Label(position=Position([0x00, 0x67, 0x45]))
+        assert script.labels[3] == Label(position=Position([0x00, 0xAB, 0x89]))
+        assert script.labels[4] == Label(position=Position([0x00, 0xEF, 0xCD]))
 
     def test_to_script_file(self):
         ScriptImpl().script.to_script_file(filename=DUMMY_OUTPUT_SCRIPT, flags=Flags(m=True, x=True))
