@@ -26,7 +26,8 @@ CONFLICTING_FILE_1 = Path(RESOURCES_FOLDER, "conflicting_file_1.asm")
 CONFLICTING_FILE_2 = Path(RESOURCES_FOLDER, "conflicting_file_2.asm")
 CONFLICTING_LABELS_SCRIPT = Path(RESOURCES_FOLDER, "conflicting_labels_script.asm")
 CONFLICTING_LINES_SCRIPT = Path(RESOURCES_FOLDER, "conflicting_lines_script.asm")
-DUMMY_INPUT_SCRIPT = Path(RESOURCES_FOLDER, "dummy_input_script.asm")
+DUMMY_INPUT_SCRIPT_1 = Path(RESOURCES_FOLDER, "dummy_input_script_1.asm")
+DUMMY_INPUT_SCRIPT_2 = Path(RESOURCES_FOLDER, "dummy_input_script_2.asm")
 DUMMY_ERROR_SCRIPT = Path(RESOURCES_FOLDER, "dummy_error_script.asm")
 DUMMY_OUTPUT_SCRIPT = Path(RESOURCES_FOLDER, "dummy_output_script.asm")
 DUMMY_INPUT_ROM = Path(RESOURCES_FOLDER, "dummy_input_rom.sfc")
@@ -100,7 +101,7 @@ class ScriptImpl:
 class TestScript:
 
     def test_from_script(self):
-        script = Script.from_script_file(filename=DUMMY_INPUT_SCRIPT)
+        script = Script.from_script_files(DUMMY_INPUT_SCRIPT_1, DUMMY_INPUT_SCRIPT_2)
 
         assert len(script.labels) == 2
         assert script.labels[0] == Label(position=Position([0x00, 0x00, 0x01]), name="start")
@@ -185,7 +186,7 @@ class TestScript:
 
     def test_from_script_file_raises_error_when_line_is_unrecognized(self):
         with pytest.raises(UnrecognizedLine) as e:
-            Script.from_script_file(DUMMY_ERROR_SCRIPT)
+            Script.from_script_files(DUMMY_ERROR_SCRIPT)
         assert str(e.value) == "Line '  txt3 \"Lorem ipsum\"' is not recognized."
 
     def test_from_script_files_raises_error_when_labels_conflict(self):

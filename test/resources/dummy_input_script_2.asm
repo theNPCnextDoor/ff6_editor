@@ -1,9 +1,5 @@
 m=8,x=16
 
-@start=C00001
-  ptr $1234
-  ptr $0005
-
 @archie=C00005
   TAX ; some comment
   LDA ($12,X)
@@ -26,5 +22,3 @@ m=8,x=16
   $AA | "a" | $BB,$FF | "b",$00
 
   txt2 "Bob<LINE><FIRE>",$00
-
-; some final comment
