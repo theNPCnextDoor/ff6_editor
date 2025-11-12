@@ -1,5 +1,3 @@
 from pathlib import Path
 
-TEST_FOLDER = Path(__file__).parent.resolve()
-
-
+RESOURCES_FOLDER = (Path(__file__).parent / Path("resources")).resolve()
