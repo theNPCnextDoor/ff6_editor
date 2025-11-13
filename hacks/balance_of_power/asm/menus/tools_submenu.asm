@@ -1,25 +1,5 @@
 m=8,x=16
 
-@draw_string=C302F9
-@upload_bg3_a_plus_b=C30E6E
-@sound_click=C30EB2
-@queue_list_upload=C30EFD
-@play_buzzer=C3209E
-@initialize_esper_submenu=C320B3
-@initialize_swdtech_submenu=C320EE
-@draw_string=C302F9
-@initialize_blitz_submenu=C32105
-@initialize_magic_submenu=C3211C
-@initialize_lore_submenu=C3216E
-@initialize_rage_submenu=C321A6
-@initialize_dance_submenu=C321DE
-@exit_submenu=C329A5
-@handle_d_pad=C34BD4
-@load_member_sram_address_in_skills_menu=C34EDD
-@load_description=C3572A
-@set_source_as_dance_name=C357C1
-@draw_menu_title_dance=C35781
-
 @jump_to_sustain_dance_menu=C30213
   ptr sustain_dance_menu
 
@@ -175,7 +155,7 @@ m=8,x=16
 
 ; This is separated from the rest. Eventually, would be nice to find a place where it all fits together.
 @tools_submenu_name=C3F212
-  $7D0D | "Tools  ",$00
+  $7D0D | "Arsenal",$00
 
 @cursor_positions_for_skills_menu
   $1400
@@ -242,10 +222,7 @@ m=8,x=16
   LDA $1D4C
   RTS
 @load_tools_list
-  LDX $02
-  STX $1EBA
-  STX $1EBC
-  LDA #$FF
+  LDA $1EBC
   RTS
 
 @set_source_for_skill_name
@@ -265,12 +242,12 @@ m=8,x=16
   LDY #$5C9F
   RTS
 @draw_tools
-  LDY #$F2B2
+  LDY #$F2AB
 @jump_to_draw_string
   RTS
 
 @menu_title_tools
-  $81B7 | "Tools  ",$00
+  $81B7 | "Arsenal",$00
 
 @sustain_dance_menu
   JSR queue_list_upload      ; Queue list upload
@@ -298,120 +275,3 @@ m=8,x=16
   STA $E9         ; Set ptr loc HB
   STA $ED         ; Set text loc HB
   JMP load_description      ; Load description
-
-@rare_item_names=CFCF50
-  "Cider________"
-  "Old Clock-Key"
-  "Yummy Fish___"
-  "Fresh Fish___"
-  "Stale Fish___"
-  "Rotten Fish__"
-  "Lump of Metal"
-  "Lola's Letter"
-  "Coral________"
-  "Books________"
-  "Royal Letter_"
-  "Rust-Rid_____"
-  "Autograph____"
-  "Manicure_____"
-  "Opera Record_"
-  "Magn.Glass___"
-  "<TOOL>NoiseBlaster"
-  "<TOOL>Bio Blaster_"
-  "<TOOL>Flash_______"
-  "<TOOL>Chain Saw___"
-  "<TOOL>Debilitator_"
-  "<TOOL>Drill_______"
-  "<TOOL>Air Anchor__"
-  "<TOOL>AutoCrossbow"
-  "Eerie Stone__"
-  "Odd Picture__"
-  "Dull Picture_"
-  "Pendant______"
-
-@pointers_to_rare_item_descriptions=F00300
-  ptr rare_item_description_cider
-  ptr rare_item_description_old_clock_key
-  ptr rare_item_description_yummy_fish
-  ptr rare_item_description_fresh_fish
-  ptr rare_item_description_stale_fish
-  ptr rare_item_description_rotten_fish
-  ptr rare_item_description_lump_of_metal
-  ptr rare_item_description_lolas_letter
-  ptr rare_item_description_coral
-  ptr rare_item_description_books
-  ptr rare_item_description_royal_letter
-  ptr rare_item_description_rust_rid
-  ptr rare_item_description_autograph
-  ptr rare_item_description_manicure
-  ptr rare_item_description_opera_record
-  ptr rare_item_description_magn_glass
-  ptr tool_description_noiseblaster
-  ptr tool_description_bioblaster
-  ptr tool_description_flash
-  ptr tool_description_chain saw
-  ptr tool_description_debilitator
-  ptr tool_description_drill
-  ptr tool_description_air_anchor
-  ptr tool_description_autocrossbow
-  ptr rare_item_description_eerie_stone
-  ptr rare_item_description_odd_picture
-  ptr rare_item_description_dull_picture
-  ptr rare_item_description_pendant
-
-@rare_item_description_cider
-  txt2 "Cider, taken from a merchant.",$00
-@rare_item_description_old_clock_key
-  txt2 "An old clock-key,<LINE>found on a soldier.",$00
-@rare_item_description_yummy_fish
-  txt2 "A particularly appetizing fish.",$00
-@rare_item_description_fresh_fish
-  txt2 "Alive and kicking.",$00
-@rare_item_description_stale_fish
-  txt2 "Gives off a foul odor.",$00
-@rare_item_description_rotten_fish
-  txt2 "Refrain from feeding this fish<LINE>to a paternal figure.",$00
-@rare_item_description_lump_of_metal
-  txt2 "A heavy weight.<LINE>Put it into a chest, and…",$00
-@rare_item_description_lolas_letter
-  txt2 "Thanks for all those flowers!<LINE>I'm worried about you…",$00
-@rare_item_description_coral
-  txt2 "Piece of coral, found in the<LINE>cave near Ebot's Rock.",$00
-@rare_item_description_books
-  txt2 "Simple book on machinery…<LINE>And “Book of Secrets”…",$00
-@rare_item_description_royal_letter
-  txt2 "At a star-shaped mountain<LINE>range…",$00
-@rare_item_description_rust_rid
-  txt2 "Rust solvent",$00
-@rare_item_description_autograph
-  txt2 "An opera singer's autograph",$00
-@rare_item_description_manicure
-  txt2 "Pretty, red manicure",$00
-@rare_item_description_opera_record
-  txt2 "Has a small scratch",$00
-@rare_item_description_magn_glass
-  txt2 "A convex lens",$00
-@tool_description_noiseblaster
-  txt2 "Confuses multiple enemies",$00
-@tool_description_bioblaster
-  txt2 "Gasses multiple enemies",$00
-@tool_description_flash
-  txt2 "Blinds multiple enemies",$00
-@tool_description_chain saw
-  txt2 "Randomly dispatches an enemy",$00
-@tool_description_debilitator
-  txt2 "Casts weak point randomly",$00
-@tool_description_drill
-  txt2 "Penetrates an enemy's defense",$00
-@tool_description_air_anchor
-  txt2 "Enemy becomes self-destructive",$00
-@tool_description_autocrossbow
-  txt2 "Strikes multiple enemies",$00
-@rare_item_description_eerie_stone
-  txt2 "A stone never seen",$00
-@rare_item_description_odd_picture
-  txt2 "A very curious picture",$00
-@rare_item_description_dull_picture
-  txt2 "Quite a common picture",$00
-@rare_item_description_pendant
-  txt2 "A pendant worn by the girl<LINE>who pilots the Magitek Armor.",$00

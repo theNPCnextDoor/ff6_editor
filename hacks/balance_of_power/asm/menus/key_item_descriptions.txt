@@ -1,0 +1,86 @@
+@pointers_to_key_item_descriptions=F00300
+  ptr key_item_description_cider
+  ptr key_item_description_old_clock_key
+  ptr key_item_description_yummy_fish
+  ptr key_item_description_fresh_fish
+  ptr key_item_description_stale_fish
+  ptr key_item_description_rotten_fish
+  ptr key_item_description_lump_of_metal
+  ptr key_item_description_lolas_letter
+  ptr key_item_description_coral
+  ptr key_item_description_books
+  ptr key_item_description_royal_letter
+  ptr key_item_description_rust_rid
+  ptr key_item_description_autograph
+  ptr key_item_description_manicure
+  ptr key_item_description_opera_record
+  ptr key_item_description_magn_glass
+  ptr tool_description_noiseblaster
+  ptr tool_description_bioblaster
+  ptr tool_description_flash
+  ptr tool_description_chain saw
+  ptr tool_description_debilitator
+  ptr tool_description_drill
+  ptr tool_description_air_anchor
+  ptr tool_description_autocrossbow
+  ptr key_item_description_eerie_stone
+  ptr key_item_description_odd_picture
+  ptr key_item_description_dull_picture
+  ptr key_item_description_pendant
+
+@key_item_description_cider
+  txt2 "Cider, taken from a merchant.",$00
+@key_item_description_old_clock_key
+  txt2 "An old clock-key,<LINE>found on a soldier.",$00
+@key_item_description_yummy_fish
+  txt2 "A particularly appetizing fish.",$00
+@key_item_description_fresh_fish
+  txt2 "Alive and kicking.",$00
+@key_item_description_stale_fish
+  txt2 "Gives off a foul odor.",$00
+@key_item_description_rotten_fish
+  txt2 "Refrain from feeding this fish<LINE>to a paternal figure.",$00
+@key_item_description_lump_of_metal
+  txt2 "A heavy weight.<LINE>Put it into a chest, and…",$00
+@key_item_description_lolas_letter
+  txt2 "Thanks for all those flowers!<LINE>I'm worried about you…",$00
+@key_item_description_coral
+  txt2 "Piece of coral, found in the<LINE>cave near Ebot's Rock.",$00
+@key_item_description_books
+  txt2 "Simple book on machinery…<LINE>And “Book of Secrets”…",$00
+@key_item_description_royal_letter
+  txt2 "At a star-shaped mountain<LINE>range…",$00
+@key_item_description_rust_rid
+  txt2 "Rust solvent",$00
+@key_item_description_autograph
+  txt2 "An opera singer's autograph",$00
+@key_item_description_manicure
+  txt2 "Pretty, red manicure",$00
+@key_item_description_opera_record
+  txt2 "Has a small scratch",$00
+@key_item_description_magn_glass
+  txt2 "A convex lens",$00
+@tool_description_noiseblaster
+  txt2 "Confuses multiple enemies",$00
+@tool_description_bioblaster
+  txt2 "Gasses multiple enemies",$00
+@tool_description_flash
+  txt2 "Blinds multiple enemies",$00
+@tool_description_chain saw
+  txt2 "Randomly dispatches an enemy",$00
+@tool_description_debilitator
+  txt2 "Casts weak point randomly",$00
+@tool_description_drill
+  txt2 "Penetrates an enemy's defense",$00
+@tool_description_air_anchor
+  txt2 "Enemy becomes self-destructive",$00
+@tool_description_autocrossbow
+  txt2 "Strikes multiple enemies",$00
+@key_item_description_eerie_stone
+  txt2 "A stone never seen",$00
+@key_item_description_odd_picture
+  txt2 "A very curious picture",$00
+@key_item_description_dull_picture
+  txt2 "Quite a common picture",$00
+@key_item_description_pendant
+  txt2 "A pendant worn by the girl<LINE>who pilots the Magitek Armor.",$00

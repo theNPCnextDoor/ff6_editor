@@ -1,10 +1,5 @@
 m=8,x=16
 
-@set_x_position=C30AF1
-@load_anim_ptr=C30ACC
-@init_m7=C31206
-@jump_to_put_portrait_in_status_menus=C361AC
-
 @jump_to_create_portrait_in_magic_menu=C34D92
   JSR set_y_value_to_middle_right_corner
 

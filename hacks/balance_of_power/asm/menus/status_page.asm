@@ -1,32 +1,5 @@
 m=8,x=16
 
-@reset_function=C20006
-
-@draw_3_digits=C30486
-@draw_8_digits=C304A3
-@draw_3_digits_8_bits=C304C0
-@draw_text=C304C7
-@prepare_right_aligned_8_bit_number=C304E0
-@prepare_right_aligned_16_bit_number=C3052E
-@prepare_right_aligned_24_bit_number=C30582
-@draw_lv_hp_and_mp=C30C6C
-@can_use_magic=C30D2B
-@sound_click=C30EB2
-@process_animation_queue=C311B0
-@handle_gogo_in_status_menu=C32254
-@draw_actor_name=C334CF
-@draw_equipped_esper=C334E6
-@prepare_string=C33519
-@reset_stuff_for_animations=C3352F
-@handle_swapping_character=C35D83
-@draw_command_name=C35EE1
-@draw_multiple_strings=C369BA
-@draw_memorized_string=C37FD9
-@define_current_or_projected_bat_pwr=C39371
-@set_text_position=C3946D
-@draw_equipment=C39479
-@define_bat_pwr_mode=C399E8
-
 @initialize_status_menu=C31C46
   JSR reset_stuff_for_status_menu
 
@@ -63,9 +36,6 @@ m=8,x=16
   LDX #$6437
   LDY #$0014
   JMP draw_multiple_strings
-
-@gogo_portrait_position=C35F50
-  LDX #$610A
 
 @window_layout=C35F79
   $58B7 | $0106
@@ -443,20 +413,3 @@ m=8,x=16
   LDY #$0002
   JMP draw_multiple_strings
 
-@passive_abilities=F00000
-  "AP raises Morph " | "duration. Learns" | "spells on LV up."
-  "Can unlock      " | "certain locked  " | "doors.          "
-  "Learns Swdtechs " | "on level up.    " | "                "
-  "Randomly        " | "protected by    " | "Interceptor.    "
-  "Some shops may  " | "offer him a     " | "discount.       "
-  "Learns Blitzes  " | "on level up.    " | "                "
-  "Learns spells   " | "on level up.    " | "                "
-  "Learns Lores by " | "getting hit.    " | "                "
-  "                " | "                " | "                "
-  "                " | "                " | "                "
-  "Learns Dances   " | "in new          " | "environments.   "
-  "Learns Rages on " | "the Veldt when  " | "using Leap.     "
-  "Has access to   " | "allies' spells. " | "                "
-  "Berserked. May  " | "gain new moves  " | "with relics.    "
-  "                " | "                " | "                "
-  "                " | "                " | "                "
