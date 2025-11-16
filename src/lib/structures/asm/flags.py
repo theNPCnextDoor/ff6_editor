@@ -6,13 +6,13 @@ from src.lib.structures.asm.regex import ToLineMixin
 
 
 class RegisterWidth:
-    EIGHT_BITS = True
-    SIXTEEN_BITS = False
+    EIGHT_BITS = 8
+    SIXTEEN_BITS = 16
 
 
 class Flags(ToLineMixin):
 
-    def __init__(self, m: bool = RegisterWidth.SIXTEEN_BITS, x: bool = RegisterWidth.SIXTEEN_BITS):
+    def __init__(self, m: int = RegisterWidth.SIXTEEN_BITS, x: int = RegisterWidth.SIXTEEN_BITS):
         self.m = m
         self.x = x
 
@@ -27,13 +27,13 @@ class Flags(ToLineMixin):
          and the indexes than having to convert the bool into number of bits.
         """
         flags = cls()
-        flags.m = True if match.group(1) in ("8", "true") else False
-        flags.x = True if match.group(2) in ("8", "true") else False
+        flags.m = 8 if match.group(1) in ("8", "true") else 16
+        flags.x = 8 if match.group(2) in ("8", "true") else 16
         return flags
 
     def __str__(self) -> str:
-        m = "8" if self.m else "16"
-        x = "8" if self.x else "16"
+        m = str(self.m)
+        x = str(self.x)
         return f"m={m},x={x}"
 
     def to_line(self, show_address: bool = False, labels: list[Label] | None = None) -> str:

@@ -21,10 +21,10 @@ class TestFlags:
     @pytest.mark.parametrize(
         "line,m,x",
         [
-            ("m=8,x=16", True, False),
-            ("m=16,x=8", False, True),
-            ("m=true,x=false", True, False),
-            ("m=false,x=true", False, True),
+            ("m=8,x=16", 8, 16),
+            ("m=16,x=8", 16, 8),
+            ("m=true,x=false", 8, 16),
+            ("m=false,x=true", 16, 8),
         ],
     )
     def test_from_regex_match(self, line: str, m: bool, x: bool):

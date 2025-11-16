@@ -298,7 +298,7 @@ class TestScript:
         assert script.labels[4] == Label(position=Position([0x00, 0xEF, 0xCD]))
 
     def test_to_script_file(self):
-        ScriptImpl().script.to_script_file(filename=DUMMY_OUTPUT_SCRIPT, flags=Flags(m=True, x=True))
+        ScriptImpl().script.to_script_file(filename=DUMMY_OUTPUT_SCRIPT, flags=Flags(m=8, x=8))
         with open(DUMMY_OUTPUT_SCRIPT) as f:
             script = f.read()
         assert script == (

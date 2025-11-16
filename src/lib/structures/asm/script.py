@@ -34,6 +34,12 @@ class ScriptSection:
         self.mode = mode
         self.attributes = attributes
 
+    def __eq__(self, other: Self) -> bool:
+        return self.start == other.start
+
+    def __lt__(self, other: Self) -> bool:
+        return self.start < other.start
+
 
 class SubSection:
     def __init__(self, mode: ScriptMode, length: int | None = None, delimiter: LEBytes | None = None):
