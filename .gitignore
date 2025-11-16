@@ -199,3 +199,4 @@ hacks/../dummy*
 **/*.srm
 **/*.cpu.sym
 
+config.toml
