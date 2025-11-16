@@ -3,7 +3,7 @@ from re import Match
 from typing import Self
 
 from src.lib.misc.exception import TooManyCandidatesException, NoCandidateException
-from src.lib.structures.asm.flags import Flags
+from src.lib.structures.asm.flags import Flags, RegisterWidth
 from src.lib.structures.asm.label import Label
 from src.lib.structures.asm.opcodes import Opcodes
 from src.lib.structures.asm.regex import Regex, ToLineMixin
@@ -36,7 +36,11 @@ class Instruction(ScriptLine, DataMixin, ToLineMixin):
         flags = flags or Flags()
         opcode = LEBytes.from_int(value[0])
         command = Opcodes[int(value[0])]
-        length = command["length"] - flags.m * command["m"] - flags.x * command["x"]
+        length = (
+            command["length"]
+            - (1 if flags.m == RegisterWidth.EIGHT_BITS else 0) * command["m"]
+            - (1 if flags.x == RegisterWidth.EIGHT_BITS else 0) * command["x"]
+        )
         data = LEBytes.from_bytes(value[1 : length + 1]) if length else None
 
         if cls._is_branching_instruction(opcode):
@@ -86,7 +90,11 @@ class Instruction(ScriptLine, DataMixin, ToLineMixin):
         candidates = list()
         for code, operation in Opcodes.items():
             if operation["command"] == command and operation["mode"] == mode:
-                effective_length = operation["length"] - operation["m"] * flags.m - operation["x"] * flags.x
+                effective_length = (
+                    operation["length"]
+                    - operation["m"] * (1 if flags.m == RegisterWidth.EIGHT_BITS else 0)
+                    - operation["x"] * (1 if flags.x == RegisterWidth.EIGHT_BITS else 0)
+                )
                 if effective_length == length:
                     candidates.append(code)
 
@@ -105,7 +113,7 @@ class Instruction(ScriptLine, DataMixin, ToLineMixin):
         return self.command(self.opcode) in ["REP", "SEP"]
 
     def set_flags(self, flags: Flags) -> Flags:
-        flag_state = True if self.command(self.opcode) == "SEP" else False
+        flag_state = 8 if self.command(self.opcode) == "SEP" else 16
         if int(self.data) & 0x10:
             flags.x = flag_state
         if int(self.data) & 0x20:
