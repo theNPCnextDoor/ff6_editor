@@ -193,10 +193,12 @@ Thumbs.db
 **/dummy_output_script.asm
 **/dummy_output_rom.sfc
 **/dummy*.bak
-hacks/../dummy*
 **/*.smc
 **/*.sfc
 **/*.srm
-**/*.cpu.sym
+**/*.sym
+
+hacks/../dummy*
+resources/*
 
 config.toml
