@@ -98,9 +98,9 @@ class TestBytes:
         [
             (0x00, None, [0x00]),
             (0x00, 2, [0x00, 0x00]),
-            (0x1234, None, [0x34, 0x12]),
-            (0x1234, 1, [0x12]),
-            (0x1234, 3, [0x00, 0x34, 0x12]),
+            (0x1234, None, [0x12, 0x34]),
+            (0x1234, 1, [0x34]),
+            (0x1234, 3, [0x00, 0x12, 0x34]),
         ],
     )
     def test_from_int(self, input_value: int, length: int, expected: list[int]):

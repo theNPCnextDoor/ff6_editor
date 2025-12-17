@@ -30,10 +30,7 @@ class Bytes:
 
         while remainder > 0:
             next_byte = remainder % 256
-            if cls.endian == Endian.BIG:
-                _list.insert(0, next_byte)
-            else:
-                _list.append(next_byte)
+            _list.insert(0, next_byte)
             remainder //= 256
 
         return cls(value=_list, length=length)
