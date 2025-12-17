@@ -1,6 +1,6 @@
 import pytest
 
-from src.lib.structures.bytes import Bytes, LEBytes, BEBytes, Position
+from src.lib.structures.bytes import Bytes, BEBytes, Position
 
 
 class TestBytes:
@@ -70,9 +70,9 @@ class TestBytes:
 
     @pytest.mark.parametrize(
         ["input_value", "expected"],
-        [(LEBytes([0x00])[0], [0x00]), (LEBytes([0x12])[0], [0x12]), (LEBytes([0x12, 0x34, 0x56])[1:], [0x34, 0x56])],
+        [(Bytes([0x00])[0], [0x00]), (Bytes([0x12])[0], [0x12]), (Bytes([0x12, 0x34, 0x56])[1:], [0x34, 0x56])],
     )
-    def test_get_item(self, input_value: LEBytes, expected: list[int]):
+    def test_get_item(self, input_value: Bytes, expected: list[int]):
         assert input_value.value == expected
 
     @pytest.mark.parametrize("right", [0x34, Bytes(value=[0x34]), Bytes(value=[0x34, 0x00])])
@@ -93,9 +93,6 @@ class TestBytes:
         with pytest.raises(ValueError):
             Bytes(value=[0x01]) - right
 
-
-class TestLEBytes:
-
     @pytest.mark.parametrize(
         ["input_value", "length", "expected"],
         [
@@ -107,7 +104,7 @@ class TestLEBytes:
         ],
     )
     def test_from_int(self, input_value: int, length: int, expected: list[int]):
-        input = LEBytes.from_int(value=input_value, length=length)
+        input = Bytes.from_int(value=input_value, length=length)
         assert input.value == expected
 
     @pytest.mark.parametrize(
@@ -115,20 +112,20 @@ class TestLEBytes:
         [(b"\x00", [0x00]), (b"\x12", [0x12]), (b"\x00\x00", [0x00, 0x00]), (b"\x12\x34", [0x34, 0x12])],
     )
     def test_from_bytes(self, input_value: bytes, expected: list[int]):
-        assert LEBytes.from_bytes(value=input_value).value == expected
+        assert Bytes.from_bytes(value=input_value).value == expected
 
     @pytest.mark.parametrize(
         ["input_value", "expected"],
         [([0x00], 0), ([0x12], 0x12), ([0x12, 0x34], 0x3412), ([0x56, 0x34, 0x12], 0x123456)],
     )
     def test_int(self, input_value: list[int], expected: int):
-        assert int(LEBytes(value=input_value)) == expected
+        assert int(Bytes(value=input_value)) == expected
 
     @pytest.mark.parametrize(
         ["input_value", "expected"], [([0x00], b"\x00"), ([0x12], b"\x12"), ([0x12, 0x34], b"\x34\x12")]
     )
     def test_bytes(self, input_value: list[int], expected: bytes):
-        assert bytes(LEBytes(value=input_value)) == expected
+        assert bytes(Bytes(value=input_value)) == expected
 
 
 class TestBEBytes:

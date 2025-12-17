@@ -7,7 +7,7 @@ from typing import Self
 from src.lib.structures.asm.blob import Blob
 from src.lib.structures.asm.label import Label
 from src.lib.structures.asm.regex import Regex, ToLineMixin
-from src.lib.structures.bytes import BEBytes, Position, LEBytes
+from src.lib.structures.bytes import BEBytes, Position, Bytes
 
 from src.lib.structures.charset.charset import Charset, MENU_CHARSET, DESCRIPTION_CHARSET
 
@@ -36,7 +36,7 @@ class String(Blob, ToLineMixin):
         self,
         data: BEBytes,
         position: Position | None = None,
-        delimiter: LEBytes | None = None,
+        delimiter: Bytes | None = None,
         charset: Charset | None = None,
         string_type: StringType | None = None,
     ):
@@ -52,7 +52,7 @@ class String(Blob, ToLineMixin):
         except IndexError:
             string_prefix = None
         string_type = StringTypes.get_by_prefix(string_prefix)
-        delimiter = LEBytes.from_str(d) if (d := match.group("d2")) else None
+        delimiter = Bytes.from_str(d) if (d := match.group("d2")) else None
         chars = re.findall(Regex.MENU_CHAR, value)
         data = b""
         for char in chars:
@@ -69,7 +69,7 @@ class String(Blob, ToLineMixin):
     ) -> Self:
         data = BEBytes.from_bytes(value=data)
         if delimiter is not None:
-            delimiter = LEBytes.from_bytes(value=delimiter)
+            delimiter = Bytes.from_bytes(value=delimiter)
         return String(position=position, data=data, delimiter=delimiter, string_type=string_type)
 
     def __str__(self) -> str:

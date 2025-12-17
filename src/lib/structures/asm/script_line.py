@@ -1,7 +1,7 @@
 from __future__ import annotations
 from typing import Match, Optional, TYPE_CHECKING, Self
 
-from src.lib.structures.bytes import LEBytes, Position
+from src.lib.structures.bytes import Position
 
 if TYPE_CHECKING:
     from src.lib.structures.asm.label import Label

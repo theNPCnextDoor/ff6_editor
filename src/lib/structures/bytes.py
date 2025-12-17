@@ -9,7 +9,7 @@ class Endian(Enum):
 
 
 class Bytes:
-    endian = None
+    endian = Endian.LITTLE
 
     def __init__(self, value: list[int], length: int | None = None):
         if not isinstance(value, list):
@@ -123,10 +123,6 @@ class Bytes:
             raise ValueError("Value is below 0.")
 
         return type(self).from_int(difference)
-
-
-class LEBytes(Bytes):
-    endian = Endian.LITTLE
 
 
 class BEBytes(Bytes):

@@ -7,34 +7,34 @@ from src.lib.structures.asm.instruction import Instruction, BranchingInstruction
 from src.lib.misc.exception import NoCandidateException
 from src.lib.structures.asm.label import Label
 from src.lib.structures.asm.regex import Regex
-from src.lib.structures.bytes import LEBytes, Position
+from src.lib.structures.bytes import Bytes, Position
 
 
 class TestInstruction:
     @pytest.mark.parametrize(
         ["line", "flags", "opcode", "data"],
         [
-            (" BRK", Flags(), LEBytes([0x00]), None),
-            (" COP #$FF", Flags(), LEBytes([0x02]), LEBytes([0xFF])),
-            (" MVP #$ED,#$CB", Flags(), LEBytes([0x44]), LEBytes([0xCB, 0xED])),
-            (" TSB $19", Flags(), LEBytes([0x04]), LEBytes([0x19])),
-            (" ORA $CC,S", Flags(), LEBytes([0x03]), LEBytes([0xCC])),
-            (" ORA $99,X", Flags(), LEBytes([0x15]), LEBytes([0x99])),
-            (" ORA $8877,Y", Flags(), LEBytes([0x19]), LEBytes([0x88, 0x77])),
-            (" ORA ($13)", Flags(), LEBytes([0x12]), LEBytes([0x13])),
-            (" ORA ($44),Y", Flags(), LEBytes([0x11]), LEBytes([0x44])),
-            (" ORA ($69,S),Y", Flags(), LEBytes([0x13]), LEBytes([0x69])),
-            (" ORA ($00,X)", Flags(), LEBytes([0x01]), LEBytes([0x00])),
-            (" ORA [$DD]", Flags(), LEBytes([0x07]), LEBytes([0xDD])),
-            (" ORA [$AA],Y", Flags(), LEBytes([0x17]), LEBytes([0xAA])),
-            (" ORA #$1234", Flags(m=16), LEBytes([0x09]), LEBytes([0x12, 0x34])),
-            (" ORA #$12", Flags(m=8), LEBytes([0x09]), LEBytes([0x12])),
-            (" LDY #$1234", Flags(x=16), LEBytes([0xA0]), LEBytes([0x12, 0x34])),
-            (" LDY #$12", Flags(x=8), LEBytes([0xA0]), LEBytes([0x12])),
-            (" ORA $123456", Flags(), LEBytes([0x0F]), LEBytes([0x12, 0x34, 0x56])),
+            (" BRK", Flags(), Bytes([0x00]), None),
+            (" COP #$FF", Flags(), Bytes([0x02]), Bytes([0xFF])),
+            (" MVP #$ED,#$CB", Flags(), Bytes([0x44]), Bytes([0xCB, 0xED])),
+            (" TSB $19", Flags(), Bytes([0x04]), Bytes([0x19])),
+            (" ORA $CC,S", Flags(), Bytes([0x03]), Bytes([0xCC])),
+            (" ORA $99,X", Flags(), Bytes([0x15]), Bytes([0x99])),
+            (" ORA $8877,Y", Flags(), Bytes([0x19]), Bytes([0x88, 0x77])),
+            (" ORA ($13)", Flags(), Bytes([0x12]), Bytes([0x13])),
+            (" ORA ($44),Y", Flags(), Bytes([0x11]), Bytes([0x44])),
+            (" ORA ($69,S),Y", Flags(), Bytes([0x13]), Bytes([0x69])),
+            (" ORA ($00,X)", Flags(), Bytes([0x01]), Bytes([0x00])),
+            (" ORA [$DD]", Flags(), Bytes([0x07]), Bytes([0xDD])),
+            (" ORA [$AA],Y", Flags(), Bytes([0x17]), Bytes([0xAA])),
+            (" ORA #$1234", Flags(m=16), Bytes([0x09]), Bytes([0x12, 0x34])),
+            (" ORA #$12", Flags(m=8), Bytes([0x09]), Bytes([0x12])),
+            (" LDY #$1234", Flags(x=16), Bytes([0xA0]), Bytes([0x12, 0x34])),
+            (" LDY #$12", Flags(x=8), Bytes([0xA0]), Bytes([0x12])),
+            (" ORA $123456", Flags(), Bytes([0x0F]), Bytes([0x12, 0x34, 0x56])),
         ],
     )
-    def test_from_regex_match(self, line: str, flags: Flags, opcode: LEBytes, data: LEBytes):
+    def test_from_regex_match(self, line: str, flags: Flags, opcode: Bytes, data: Bytes):
         match = re.match(Regex.INSTRUCTION_LINE, line)
         instruction = Instruction.from_regex_match(match=match, position=Position([0x12, 0x34, 0x56]), flags=flags)
         assert instruction.position == Position([0x12, 0x34, 0x56])
@@ -44,10 +44,10 @@ class TestInstruction:
     @pytest.mark.parametrize(
         ["instruction", "expected"],
         [
-            (Instruction(opcode=LEBytes([0x00]), data=None), b"\x00"),
-            (Instruction(opcode=LEBytes([0x10]), data=LEBytes([0xFF])), b"\x10\xff"),
-            (Instruction(opcode=LEBytes([0x54]), data=LEBytes([0x12, 0x34])), b"\x54\x34\x12"),
-            (BranchingInstruction(opcode=LEBytes([0x5C]), data=LEBytes([0xD3, 0xE4, 0xF5])), b"\x5c\xf5\xe4\xd3"),
+            (Instruction(opcode=Bytes([0x00]), data=None), b"\x00"),
+            (Instruction(opcode=Bytes([0x10]), data=Bytes([0xFF])), b"\x10\xff"),
+            (Instruction(opcode=Bytes([0x54]), data=Bytes([0x12, 0x34])), b"\x54\x34\x12"),
+            (BranchingInstruction(opcode=Bytes([0x5C]), data=Bytes([0xD3, 0xE4, 0xF5])), b"\x5c\xf5\xe4\xd3"),
         ],
     )
     def test_to_bytes(self, instruction: Instruction, expected: bytes):
@@ -56,27 +56,27 @@ class TestInstruction:
     @pytest.mark.parametrize(
         ["command", "mode", "length", "flags", "opcode"],
         [
-            ("BRK", "_", 0, Flags(), LEBytes([0x00])),
-            ("COP", "#$_", 1, Flags(m=True), LEBytes([0x02])),
-            ("MVP", "#$_,#$_", 2, Flags(x=True), LEBytes([0x44])),
-            ("TSB", "$_", 1, Flags(), LEBytes([0x04])),
-            ("ORA", "$_,S", 1, Flags(), LEBytes([0x03])),
-            ("ORA", "$_,X", 1, Flags(), LEBytes([0x15])),
-            ("ORA", "$_,Y", 2, Flags(), LEBytes([0x19])),
-            ("ORA", "($_)", 1, Flags(), LEBytes([0x12])),
-            ("ORA", "($_),Y", 1, Flags(), LEBytes([0x11])),
-            ("ORA", "($_,S),Y", 1, Flags(), LEBytes([0x13])),
-            ("ORA", "($_,X)", 1, Flags(), LEBytes([0x01])),
-            ("ORA", "[$_]", 1, Flags(), LEBytes([0x07])),
-            ("ORA", "[$_],Y", 1, Flags(), LEBytes([0x17])),
-            ("ORA", "#$_", 2, Flags(m=16), LEBytes([0x09])),
-            ("ORA", "#$_", 1, Flags(m=8), LEBytes([0x09])),
-            ("LDY", "#$_", 2, Flags(x=16), LEBytes([0xA0])),
-            ("LDY", "#$_", 1, Flags(x=8), LEBytes([0xA0])),
-            ("ORA", "$_", 3, Flags(), LEBytes([0x0F])),
+            ("BRK", "_", 0, Flags(), Bytes([0x00])),
+            ("COP", "#$_", 1, Flags(m=True), Bytes([0x02])),
+            ("MVP", "#$_,#$_", 2, Flags(x=True), Bytes([0x44])),
+            ("TSB", "$_", 1, Flags(), Bytes([0x04])),
+            ("ORA", "$_,S", 1, Flags(), Bytes([0x03])),
+            ("ORA", "$_,X", 1, Flags(), Bytes([0x15])),
+            ("ORA", "$_,Y", 2, Flags(), Bytes([0x19])),
+            ("ORA", "($_)", 1, Flags(), Bytes([0x12])),
+            ("ORA", "($_),Y", 1, Flags(), Bytes([0x11])),
+            ("ORA", "($_,S),Y", 1, Flags(), Bytes([0x13])),
+            ("ORA", "($_,X)", 1, Flags(), Bytes([0x01])),
+            ("ORA", "[$_]", 1, Flags(), Bytes([0x07])),
+            ("ORA", "[$_],Y", 1, Flags(), Bytes([0x17])),
+            ("ORA", "#$_", 2, Flags(m=16), Bytes([0x09])),
+            ("ORA", "#$_", 1, Flags(m=8), Bytes([0x09])),
+            ("LDY", "#$_", 2, Flags(x=16), Bytes([0xA0])),
+            ("LDY", "#$_", 1, Flags(x=8), Bytes([0xA0])),
+            ("ORA", "$_", 3, Flags(), Bytes([0x0F])),
         ],
     )
-    def test_find_opcode(self, command: str, mode: str, length: int, flags: Flags, opcode: LEBytes):
+    def test_find_opcode(self, command: str, mode: str, length: int, flags: Flags, opcode: Bytes):
         assert Instruction.find_opcode(command=command, mode=mode, length=length, flags=flags) == opcode
 
     @pytest.mark.parametrize(
@@ -201,8 +201,8 @@ class TestInstruction:
     @pytest.mark.parametrize(
         ["instruction", "command"],
         [
-            (Instruction(opcode=LEBytes([0x00]), data=None), "BRK"),
-            (Instruction(opcode=LEBytes([0xC3]), data=LEBytes([0x13])), "CMP"),
+            (Instruction(opcode=Bytes([0x00]), data=None), "BRK"),
+            (Instruction(opcode=Bytes([0xC3]), data=Bytes([0x13])), "CMP"),
         ],
     )
     def test_command(self, instruction: Instruction, command: str):
@@ -211,10 +211,10 @@ class TestInstruction:
     @pytest.mark.parametrize(
         ["instruction", "is_flag_setter"],
         [
-            (Instruction(opcode=LEBytes([0x00]), data=None), False),
-            (Instruction(opcode=LEBytes([0xC3]), data=LEBytes([0x13])), False),
-            (Instruction(opcode=LEBytes([0xC2]), data=LEBytes([0x13])), True),
-            (Instruction(opcode=LEBytes([0xE2]), data=LEBytes([0x13])), True),
+            (Instruction(opcode=Bytes([0x00]), data=None), False),
+            (Instruction(opcode=Bytes([0xC3]), data=Bytes([0x13])), False),
+            (Instruction(opcode=Bytes([0xC2]), data=Bytes([0x13])), True),
+            (Instruction(opcode=Bytes([0xE2]), data=Bytes([0x13])), True),
         ],
         ids=["BRK", "CMP", "REP", "SEP"],
     )
@@ -224,32 +224,32 @@ class TestInstruction:
     @pytest.mark.parametrize(
         ["instruction", "input", "output"],
         [
-            (Instruction(opcode=LEBytes([0xC2]), data=LEBytes([0x00])), Flags(m=8, x=8), Flags(m=8, x=8)),
-            (Instruction(opcode=LEBytes([0xC2]), data=LEBytes([0x10])), Flags(m=8, x=8), Flags(m=8, x=16)),
-            (Instruction(opcode=LEBytes([0xC2]), data=LEBytes([0x20])), Flags(m=8, x=8), Flags(m=16, x=8)),
-            (Instruction(opcode=LEBytes([0xC2]), data=LEBytes([0x3F])), Flags(m=8, x=8), Flags(m=16, x=16)),
+            (Instruction(opcode=Bytes([0xC2]), data=Bytes([0x00])), Flags(m=8, x=8), Flags(m=8, x=8)),
+            (Instruction(opcode=Bytes([0xC2]), data=Bytes([0x10])), Flags(m=8, x=8), Flags(m=8, x=16)),
+            (Instruction(opcode=Bytes([0xC2]), data=Bytes([0x20])), Flags(m=8, x=8), Flags(m=16, x=8)),
+            (Instruction(opcode=Bytes([0xC2]), data=Bytes([0x3F])), Flags(m=8, x=8), Flags(m=16, x=16)),
             (
-                Instruction(opcode=LEBytes([0xC2]), data=LEBytes([0x30])),
+                Instruction(opcode=Bytes([0xC2]), data=Bytes([0x30])),
                 Flags(m=16, x=16),
                 Flags(m=16, x=16),
             ),
             (
-                Instruction(opcode=LEBytes([0xE2]), data=LEBytes([0x00])),
+                Instruction(opcode=Bytes([0xE2]), data=Bytes([0x00])),
                 Flags(m=16, x=16),
                 Flags(m=16, x=16),
             ),
             (
-                Instruction(opcode=LEBytes([0xE2]), data=LEBytes([0x10])),
+                Instruction(opcode=Bytes([0xE2]), data=Bytes([0x10])),
                 Flags(m=16, x=16),
                 Flags(m=16, x=8),
             ),
             (
-                Instruction(opcode=LEBytes([0xE2]), data=LEBytes([0x20])),
+                Instruction(opcode=Bytes([0xE2]), data=Bytes([0x20])),
                 Flags(m=16, x=16),
                 Flags(m=8, x=16),
             ),
-            (Instruction(opcode=LEBytes([0xE2]), data=LEBytes([0x3F])), Flags(m=16, x=16), Flags(m=8, x=8)),
-            (Instruction(opcode=LEBytes([0xE2]), data=LEBytes([0x30])), Flags(m=8, x=8), Flags(m=8, x=8)),
+            (Instruction(opcode=Bytes([0xE2]), data=Bytes([0x3F])), Flags(m=16, x=16), Flags(m=8, x=8)),
+            (Instruction(opcode=Bytes([0xE2]), data=Bytes([0x30])), Flags(m=8, x=8), Flags(m=8, x=8)),
         ],
     )
     def test_set_flags(self, instruction: Instruction, input: Flags, output: Flags):
@@ -258,9 +258,9 @@ class TestInstruction:
     @pytest.mark.parametrize(
         ["instruction", "expected"],
         [
-            (Instruction(opcode=LEBytes([0xAA])), "TAX"),
-            (Instruction(opcode=LEBytes([0xA9]), data=LEBytes([0x12, 0x34])), "LDA #$1234"),
-            (Instruction(opcode=LEBytes([0x44]), data=LEBytes([0x12, 0x34])), "MVP #$12,#$34"),
+            (Instruction(opcode=Bytes([0xAA])), "TAX"),
+            (Instruction(opcode=Bytes([0xA9]), data=Bytes([0x12, 0x34])), "LDA #$1234"),
+            (Instruction(opcode=Bytes([0x44]), data=Bytes([0x12, 0x34])), "MVP #$12,#$34"),
         ],
     )
     def test_str(self, instruction: Instruction, expected: str):
@@ -269,12 +269,12 @@ class TestInstruction:
     @pytest.mark.parametrize(
         ["instruction", "show_address", "expected"],
         [
-            (Instruction(opcode=LEBytes([0xAA])), False, "  TAX"),
-            (Instruction(opcode=LEBytes([0xA9]), data=LEBytes([0x12, 0x34])), False, "  LDA #$1234"),
-            (Instruction(opcode=LEBytes([0x44]), data=LEBytes([0x12, 0x34])), False, "  MVP #$12,#$34"),
-            (Instruction(opcode=LEBytes([0xAA])), True, "  TAX ; C00000"),
-            (Instruction(opcode=LEBytes([0xA9]), data=LEBytes([0x12, 0x34])), True, "  LDA #$1234 ; C00000"),
-            (Instruction(opcode=LEBytes([0x44]), data=LEBytes([0x12, 0x34])), True, "  MVP #$12,#$34 ; C00000"),
+            (Instruction(opcode=Bytes([0xAA])), False, "  TAX"),
+            (Instruction(opcode=Bytes([0xA9]), data=Bytes([0x12, 0x34])), False, "  LDA #$1234"),
+            (Instruction(opcode=Bytes([0x44]), data=Bytes([0x12, 0x34])), False, "  MVP #$12,#$34"),
+            (Instruction(opcode=Bytes([0xAA])), True, "  TAX ; C00000"),
+            (Instruction(opcode=Bytes([0xA9]), data=Bytes([0x12, 0x34])), True, "  LDA #$1234 ; C00000"),
+            (Instruction(opcode=Bytes([0x44]), data=Bytes([0x12, 0x34])), True, "  MVP #$12,#$34 ; C00000"),
         ],
     )
     def test_to_line(self, instruction: Instruction, show_address: bool, expected: str):
@@ -312,27 +312,27 @@ class TestBranchingInstruction:
     @pytest.mark.parametrize(
         ["line", "position", "data"],
         [
-            (" BRA #$05", Position([0x00, 0x00, 0x00]), LEBytes([0x05])),
-            (" BRA #$FF", Position([0x00, 0x00, 0x00]), LEBytes([0xFF])),
-            (" BRL #$0005", Position([0x00, 0x00, 0x00]), LEBytes([0x00, 0x05])),
-            (" JMP $1234", Position([0x00, 0x00, 0x00]), LEBytes([0x12, 0x34])),
-            (" JML $D23456", Position([0x00, 0x00, 0x00]), LEBytes([0xD2, 0x34, 0x56])),
-            (" JSR $1234", Position([0x00, 0x00, 0x00]), LEBytes([0x12, 0x34])),
-            (" JSL $D23456", Position([0x00, 0x00, 0x00]), LEBytes([0xD2, 0x34, 0x56])),
-            (" JML label_1", Position([0x00, 0x00, 0x00]), LEBytes([0xD2, 0x34, 0x56])),
-            (" JSL label_1", Position([0x12, 0x34, 0x54]), LEBytes([0xD2, 0x34, 0x56])),
-            (" JMP label_1", Position([0x00, 0x00, 0x00]), LEBytes([0x34, 0x56])),
-            (" BRA label_1", Position([0x12, 0x34, 0x54]), LEBytes([0x00])),
-            (" BRA label_1", Position([0x12, 0x34, 0xD4]), LEBytes([0x80])),
-            (" BRA label_1", Position([0x12, 0x33, 0xD5]), LEBytes([0x7F])),
-            (" BRL label_1", Position([0x12, 0x00, 0x00]), LEBytes([0x53, 0x34])),
-            (" BRL label_1", Position([0x12, 0xFF, 0xFF]), LEBytes([0x54, 0x34])),
-            (" BRL label_1", Position([0x12, 0xB4, 0x53]), LEBytes([0x00, 0x80])),
-            (" BRL label_1", Position([0x12, 0xB4, 0x54]), LEBytes([0xFF, 0x7F])),
-            (" BRL label_1", Position([0x12, 0x34, 0x53]), LEBytes([0x00, 0x00])),
+            (" BRA #$05", Position([0x00, 0x00, 0x00]), Bytes([0x05])),
+            (" BRA #$FF", Position([0x00, 0x00, 0x00]), Bytes([0xFF])),
+            (" BRL #$0005", Position([0x00, 0x00, 0x00]), Bytes([0x00, 0x05])),
+            (" JMP $1234", Position([0x00, 0x00, 0x00]), Bytes([0x12, 0x34])),
+            (" JML $D23456", Position([0x00, 0x00, 0x00]), Bytes([0xD2, 0x34, 0x56])),
+            (" JSR $1234", Position([0x00, 0x00, 0x00]), Bytes([0x12, 0x34])),
+            (" JSL $D23456", Position([0x00, 0x00, 0x00]), Bytes([0xD2, 0x34, 0x56])),
+            (" JML label_1", Position([0x00, 0x00, 0x00]), Bytes([0xD2, 0x34, 0x56])),
+            (" JSL label_1", Position([0x12, 0x34, 0x54]), Bytes([0xD2, 0x34, 0x56])),
+            (" JMP label_1", Position([0x00, 0x00, 0x00]), Bytes([0x34, 0x56])),
+            (" BRA label_1", Position([0x12, 0x34, 0x54]), Bytes([0x00])),
+            (" BRA label_1", Position([0x12, 0x34, 0xD4]), Bytes([0x80])),
+            (" BRA label_1", Position([0x12, 0x33, 0xD5]), Bytes([0x7F])),
+            (" BRL label_1", Position([0x12, 0x00, 0x00]), Bytes([0x53, 0x34])),
+            (" BRL label_1", Position([0x12, 0xFF, 0xFF]), Bytes([0x54, 0x34])),
+            (" BRL label_1", Position([0x12, 0xB4, 0x53]), Bytes([0x00, 0x80])),
+            (" BRL label_1", Position([0x12, 0xB4, 0x54]), Bytes([0xFF, 0x7F])),
+            (" BRL label_1", Position([0x12, 0x34, 0x53]), Bytes([0x00, 0x00])),
         ],
     )
-    def test_from_regex_match(self, line: str, position: Position, data: LEBytes, labels: list[Label]):
+    def test_from_regex_match(self, line: str, position: Position, data: Bytes, labels: list[Label]):
         match = re.match(Regex.BRANCHING_INSTRUCTION_LINE, line)
         instruction = BranchingInstruction.from_regex_match(match=match, position=position, labels=labels)
         assert instruction.position == position
@@ -347,13 +347,13 @@ class TestBranchingInstruction:
     @pytest.mark.parametrize(
         ["value", "instruction", "flags"],
         [
-            (b"\x00", Instruction(opcode=LEBytes([0x00])), Flags()),
-            (b"\x44\x30", Instruction(opcode=LEBytes([0x44]), data=LEBytes([0x30])), Flags()),
-            (b"\xa9\x34\x12", Instruction(opcode=LEBytes([0xA9]), data=LEBytes([0x12, 0x34])), Flags()),
-            (b"\xa9\x56", Instruction(opcode=LEBytes([0xA9]), data=LEBytes([0x56])), Flags(m=8)),
-            (b"\xa2\x34\x12", Instruction(opcode=LEBytes([0xA2]), data=LEBytes([0x12, 0x34])), Flags()),
-            (b"\xa2\x56", Instruction(opcode=LEBytes([0xA2]), data=LEBytes([0x56])), Flags(x=8)),
-            (b"\x4f\x56\x34\x12", Instruction(opcode=LEBytes([0x4F]), data=LEBytes([0x12, 0x34, 0x56])), Flags()),
+            (b"\x00", Instruction(opcode=Bytes([0x00])), Flags()),
+            (b"\x44\x30", Instruction(opcode=Bytes([0x44]), data=Bytes([0x30])), Flags()),
+            (b"\xa9\x34\x12", Instruction(opcode=Bytes([0xA9]), data=Bytes([0x12, 0x34])), Flags()),
+            (b"\xa9\x56", Instruction(opcode=Bytes([0xA9]), data=Bytes([0x56])), Flags(m=8)),
+            (b"\xa2\x34\x12", Instruction(opcode=Bytes([0xA2]), data=Bytes([0x12, 0x34])), Flags()),
+            (b"\xa2\x56", Instruction(opcode=Bytes([0xA2]), data=Bytes([0x56])), Flags(x=8)),
+            (b"\x4f\x56\x34\x12", Instruction(opcode=Bytes([0x4F]), data=Bytes([0x12, 0x34, 0x56])), Flags()),
         ],
     )
     def test_from_bytes(self, value: bytes, instruction: Instruction, flags: Flags):
@@ -365,7 +365,7 @@ class TestBranchingInstruction:
             (
                 BranchingInstruction(
                     position=Position([0x12, 0x00, 0x00]),
-                    opcode=LEBytes([0x4C]),
+                    opcode=Bytes([0x4C]),
                     destination=Position([0x12, 0x34, 0x56]),
                 ),
                 True,
@@ -374,7 +374,7 @@ class TestBranchingInstruction:
             (
                 BranchingInstruction(
                     position=Position([0x12, 0x00, 0x00]),
-                    opcode=LEBytes([0x4C]),
+                    opcode=Bytes([0x4C]),
                     destination=Position([0x12, 0x34, 0x57]),
                 ),
                 True,
@@ -383,7 +383,7 @@ class TestBranchingInstruction:
             (
                 BranchingInstruction(
                     position=Position([0x12, 0x00, 0x00]),
-                    opcode=LEBytes([0x4C]),
+                    opcode=Bytes([0x4C]),
                     destination=Position([0x12, 0x34, 0x56]),
                 ),
                 False,
@@ -392,7 +392,7 @@ class TestBranchingInstruction:
             (
                 BranchingInstruction(
                     position=Position([0x12, 0x00, 0x00]),
-                    opcode=LEBytes([0x4C]),
+                    opcode=Bytes([0x4C]),
                     destination=Position([0x12, 0x34, 0x57]),
                 ),
                 False,

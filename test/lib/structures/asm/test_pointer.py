@@ -3,7 +3,7 @@ from typing import Type
 
 import pytest
 
-from src.lib.structures.bytes import LEBytes, Position
+from src.lib.structures.bytes import Bytes, Position
 from src.lib.structures.asm.label import Label
 from src.lib.structures.asm.pointer import Pointer
 from src.lib.structures.asm.script_line import NoLabelException, ImpossibleDestination
@@ -14,21 +14,21 @@ class TestPointer:
     @pytest.mark.parametrize(
         ["pointer", "data"],
         [
-            (Pointer(destination=Position([0x34, 0x12])), LEBytes([0x34, 0x12])),
+            (Pointer(destination=Position([0x34, 0x12])), Bytes([0x34, 0x12])),
             (
                 Pointer(position=Position([0x11, 0x22, 0x33]), destination=Position([0x11, 0x44, 0x55])),
-                LEBytes([0x44, 0x55]),
+                Bytes([0x44, 0x55]),
             ),
         ],
     )
-    def test_init_data_is_properly_set_when_destination_is_given(self, pointer: Pointer, data: LEBytes):
+    def test_init_data_is_properly_set_when_destination_is_given(self, pointer: Pointer, data: Bytes):
         assert pointer.data == data
 
     @pytest.mark.parametrize(
         ["pointer", "destination"],
         [
-            (Pointer(data=LEBytes([0x34, 0x12])), Position([0x00, 0x34, 0x12])),
-            (Pointer(position=Position([0x11, 0x22, 0x33]), data=LEBytes([0x44, 0x55])), Position([0x11, 0x44, 0x55])),
+            (Pointer(data=Bytes([0x34, 0x12])), Position([0x00, 0x34, 0x12])),
+            (Pointer(position=Position([0x11, 0x22, 0x33]), data=Bytes([0x44, 0x55])), Position([0x11, 0x44, 0x55])),
         ],
     )
     def test_init_destination_is_properly_set_when_data_is_given(self, pointer: Pointer, destination: Position):
@@ -54,13 +54,13 @@ class TestPointer:
     @pytest.mark.parametrize(
         ["line", "position", "data", "destination"],
         [
-            (" ptr $1413", Position([0x11, 0x11, 0x11]), LEBytes([0x14, 0x13]), Position([0x11, 0x14, 0x13])),
-            (" ptr label_1", Position([0x12, 0xFF, 0x00]), LEBytes([0x34, 0x56]), Position([0x12, 0x34, 0x56])),
-            (" ptr label_2", Position([0x34, 0x00, 0x03]), LEBytes([0xFF, 0xFE]), Position([0x34, 0xFF, 0xFE])),
+            (" ptr $1413", Position([0x11, 0x11, 0x11]), Bytes([0x14, 0x13]), Position([0x11, 0x14, 0x13])),
+            (" ptr label_1", Position([0x12, 0xFF, 0x00]), Bytes([0x34, 0x56]), Position([0x12, 0x34, 0x56])),
+            (" ptr label_2", Position([0x34, 0x00, 0x03]), Bytes([0xFF, 0xFE]), Position([0x34, 0xFF, 0xFE])),
         ],
     )
     def test_from_regex_match(
-        self, line: str, position: Position, data: LEBytes, destination: Position, labels: list[Label]
+        self, line: str, position: Position, data: Bytes, destination: Position, labels: list[Label]
     ):
         match = re.match(Regex.POINTER_LINE, line)
         pointer = Pointer.from_regex_match(match=match, position=position, labels=labels)
@@ -118,7 +118,7 @@ class TestPointer:
         ["pointer", "expected"],
         [
             (Pointer(position=Position([0x12, 0x00, 0x00]), destination=Position([0x12, 0x34, 0x56])), "ptr $3456"),
-            (Pointer(data=LEBytes([0x12, 0x34])), "ptr $1234"),
+            (Pointer(data=Bytes([0x12, 0x34])), "ptr $1234"),
         ],
     )
     def test_str(self, pointer: Pointer, expected: str):

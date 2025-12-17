@@ -4,7 +4,7 @@ import pytest
 
 from src.lib.structures.asm.label import Label
 from src.lib.structures.asm.regex import Regex
-from src.lib.structures.bytes import LEBytes, Position
+from src.lib.structures.bytes import Position
 
 
 class TestLabel:

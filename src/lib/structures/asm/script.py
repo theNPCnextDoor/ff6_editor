@@ -14,8 +14,7 @@ from src.lib.structures.asm.label import Label
 from src.lib.structures.asm.regex import Regex
 from src.lib.structures.asm.string import String, StringTypes
 from src.lib.structures.asm.script_line import ScriptLine
-from src.lib.structures.bytes import Position, BEBytes, LEBytes
-from src.lib.structures.charset.charset import MENU_CHARSET, DESCRIPTION_CHARSET, Charset
+from src.lib.structures.bytes import Position, BEBytes, Bytes
 
 
 class ScriptMode(Enum):
@@ -42,7 +41,7 @@ class ScriptSection:
 
 
 class SubSection:
-    def __init__(self, mode: ScriptMode, length: int | None = None, delimiter: LEBytes | None = None):
+    def __init__(self, mode: ScriptMode, length: int | None = None, delimiter: Bytes | None = None):
         if length is None and delimiter is None:
             raise MissingSectionAttribute("Please provide either the length or the delimiter.")
         self.mode = mode

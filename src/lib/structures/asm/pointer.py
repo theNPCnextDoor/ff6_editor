@@ -2,14 +2,14 @@ from re import Match
 from typing import Self
 
 from src.lib.structures.asm.regex import ToLineMixin
-from src.lib.structures.bytes import LEBytes, Position
+from src.lib.structures.bytes import Bytes, Position
 from src.lib.structures.asm.label import Label
 
 from src.lib.structures.asm.script_line import ScriptLine, BankMixin, ImpossibleDestination, DestinationMixin
 
 
 class Pointer(ScriptLine, BankMixin, DestinationMixin, ToLineMixin):
-    def __init__(self, position: Position = None, destination: Position = None, data: LEBytes = None):
+    def __init__(self, position: Position = None, destination: Position = None, data: Bytes = None):
         if destination is None and data is None:
             raise ValueError("Either provide the destination or the data.")
 
@@ -31,13 +31,13 @@ class Pointer(ScriptLine, BankMixin, DestinationMixin, ToLineMixin):
         if label_name := match.group("label"):
             destination = cls.find_destination(label_name, labels)
         else:
-            data = LEBytes.from_str(match.group("number"))
+            data = Bytes.from_str(match.group("number"))
 
         return cls(position=position, destination=destination, data=data)
 
     @classmethod
     def from_bytes(cls, value: bytes, position: Position | None = None) -> Self:
-        return Pointer(position=position, data=LEBytes.from_bytes(value))
+        return Pointer(position=position, data=Bytes.from_bytes(value))
 
     def to_line(self, show_address: bool = False, labels: list[Label] | None = None) -> str:
         output = "  ptr "
@@ -70,9 +70,9 @@ class Pointer(ScriptLine, BankMixin, DestinationMixin, ToLineMixin):
     def __len__(self) -> int:
         return 2
 
-    def _data_to_destination(self, data: LEBytes) -> Position:
+    def _data_to_destination(self, data: Bytes) -> Position:
         return Position(data.value) + self.position.bank()
 
     @staticmethod
-    def _destination_to_data(destination: Position) -> LEBytes:
-        return LEBytes(value=destination.value, length=2)
+    def _destination_to_data(destination: Position) -> Bytes:
+        return Bytes(value=destination.value, length=2)

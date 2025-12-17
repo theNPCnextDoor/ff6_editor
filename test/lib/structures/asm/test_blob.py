@@ -5,7 +5,7 @@ import re
 import pytest
 
 from src.lib.structures.asm.regex import Regex
-from src.lib.structures.bytes import LEBytes, Position, BEBytes
+from src.lib.structures.bytes import Bytes, Position, BEBytes
 from src.lib.structures.asm.blob import Blob
 
 
@@ -28,9 +28,9 @@ class TestBlob:
     @pytest.mark.parametrize(
         ["line", "blob"],
         [
-            ("  $12", Blob(data=LEBytes([0x12]))),
-            ("  $0123456789ABCDEF", Blob(data=LEBytes([0xEF, 0xCD, 0xAB, 0x89, 0x67, 0x45, 0x23, 0x01]))),
-            ("  $FFFF # C0/0000", Blob(data=LEBytes([0xFF, 0xFF]))),
+            ("  $12", Blob(data=Bytes([0x12]))),
+            ("  $0123456789ABCDEF", Blob(data=Bytes([0xEF, 0xCD, 0xAB, 0x89, 0x67, 0x45, 0x23, 0x01]))),
+            ("  $FFFF # C0/0000", Blob(data=Bytes([0xFF, 0xFF]))),
         ],
     )
     def test_from_regex_match(self, line: str, blob: Blob):
@@ -40,12 +40,12 @@ class TestBlob:
     @pytest.mark.parametrize(
         ["data", "blob"],
         [
-            (b"\x12", Blob(data=LEBytes([0x12]))),
-            (b"\x01\x23\x45\x67\x89\xab\xcd\xef", Blob(data=LEBytes([0xEF, 0xCD, 0xAB, 0x89, 0x67, 0x45, 0x23, 0x01]))),
-            (b"\xff\xff", Blob(data=LEBytes([0xFF, 0xFF]))),
+            (b"\x12", Blob(data=Bytes([0x12]))),
+            (b"\x01\x23\x45\x67\x89\xab\xcd\xef", Blob(data=Bytes([0xEF, 0xCD, 0xAB, 0x89, 0x67, 0x45, 0x23, 0x01]))),
+            (b"\xff\xff", Blob(data=Bytes([0xFF, 0xFF]))),
         ],
     )
-    def test_from_bytes(self, data: LEBytes, blob: Blob):
+    def test_from_bytes(self, data: Bytes, blob: Blob):
         assert Blob.from_bytes(data) == blob
 
     @pytest.mark.parametrize(
@@ -80,9 +80,9 @@ class TestBlob:
         ["blob", "output"],
         [
             (Blob(data=BEBytes([0x12, 0x34, 0x56, 0x78])), b"\x12\x34\x56\x78"),
-            (Blob(data=BEBytes([0x12, 0x34, 0x56, 0x78]), delimiter=LEBytes([0x00])), b"\x12\x34\x56\x78\x00"),
-            (Blob(data=BEBytes([0x12, 0x34, 0x56, 0x78]), delimiter=LEBytes([0xFF])), b"\x12\x34\x56\x78\xff"),
+            (Blob(data=BEBytes([0x12, 0x34, 0x56, 0x78]), delimiter=Bytes([0x00])), b"\x12\x34\x56\x78\x00"),
+            (Blob(data=BEBytes([0x12, 0x34, 0x56, 0x78]), delimiter=Bytes([0xFF])), b"\x12\x34\x56\x78\xff"),
         ],
     )
-    def test_bytes(self, blob: Blob, output: LEBytes):
+    def test_bytes(self, blob: Blob, output: Bytes):
         assert bytes(blob) == output

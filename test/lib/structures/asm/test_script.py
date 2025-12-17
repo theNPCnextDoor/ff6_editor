@@ -5,7 +5,7 @@ import pytest
 from src.lib.structures.asm.blob import Blob
 from src.lib.structures.asm.blob_group import BlobGroup
 from src.lib.structures.asm.string import String, StringTypes
-from src.lib.structures.bytes import LEBytes, Position, BEBytes
+from src.lib.structures.bytes import Bytes, Position, BEBytes
 from src.lib.structures.asm.flags import Flags
 from src.lib.structures.asm.instruction import Instruction, BranchingInstruction
 from src.lib.structures.asm.label import Label
@@ -51,36 +51,34 @@ class ScriptImpl:
         ]
 
         self.script.instructions = [
-            Instruction(position=Position([0x00, 0x00, 0x05]), opcode=LEBytes([0xAA]), data=None),
-            Instruction(position=Position([0x00, 0x00, 0x06]), opcode=LEBytes([0xA1]), data=LEBytes([0x12])),
-            Instruction(position=Position([0x00, 0x00, 0x08]), opcode=LEBytes([0xA2]), data=LEBytes([0xFE, 0xDC])),
-            Instruction(position=Position([0x00, 0x00, 0x0B]), opcode=LEBytes([0xC2]), data=LEBytes([0x30])),
-            Instruction(position=Position([0x00, 0x00, 0x0D]), opcode=LEBytes([0xA9]), data=LEBytes([0x34, 0x56])),
-            Instruction(position=Position([0x00, 0x00, 0x10]), opcode=LEBytes([0xA2]), data=LEBytes([0xFE, 0xDC])),
-            Instruction(position=Position([0x00, 0x00, 0x13]), opcode=LEBytes([0xE2]), data=LEBytes([0x30])),
-            Instruction(position=Position([0x00, 0x00, 0x15]), opcode=LEBytes([0xA9]), data=LEBytes([0xBB])),
-            Instruction(position=Position([0x00, 0x00, 0x17]), opcode=LEBytes([0xA2]), data=LEBytes([0xCC])),
-            Instruction(position=Position([0x00, 0x00, 0x19]), opcode=LEBytes([0x44]), data=LEBytes([0x34, 0x12])),
+            Instruction(position=Position([0x00, 0x00, 0x05]), opcode=Bytes([0xAA]), data=None),
+            Instruction(position=Position([0x00, 0x00, 0x06]), opcode=Bytes([0xA1]), data=Bytes([0x12])),
+            Instruction(position=Position([0x00, 0x00, 0x08]), opcode=Bytes([0xA2]), data=Bytes([0xFE, 0xDC])),
+            Instruction(position=Position([0x00, 0x00, 0x0B]), opcode=Bytes([0xC2]), data=Bytes([0x30])),
+            Instruction(position=Position([0x00, 0x00, 0x0D]), opcode=Bytes([0xA9]), data=Bytes([0x34, 0x56])),
+            Instruction(position=Position([0x00, 0x00, 0x10]), opcode=Bytes([0xA2]), data=Bytes([0xFE, 0xDC])),
+            Instruction(position=Position([0x00, 0x00, 0x13]), opcode=Bytes([0xE2]), data=Bytes([0x30])),
+            Instruction(position=Position([0x00, 0x00, 0x15]), opcode=Bytes([0xA9]), data=Bytes([0xBB])),
+            Instruction(position=Position([0x00, 0x00, 0x17]), opcode=Bytes([0xA2]), data=Bytes([0xCC])),
+            Instruction(position=Position([0x00, 0x00, 0x19]), opcode=Bytes([0x44]), data=Bytes([0x34, 0x12])),
         ]
 
         self.script.branching_instructions = [
-            BranchingInstruction(
-                position=Position([0x00, 0x00, 0x1C]), opcode=LEBytes([0x4C]), data=LEBytes([0x00, 0x05])
-            ),
-            BranchingInstruction(position=Position([0x00, 0x00, 0x1F]), opcode=LEBytes([0x80]), data=LEBytes([0xE0])),
+            BranchingInstruction(position=Position([0x00, 0x00, 0x1C]), opcode=Bytes([0x4C]), data=Bytes([0x00, 0x05])),
+            BranchingInstruction(position=Position([0x00, 0x00, 0x1F]), opcode=Bytes([0x80]), data=Bytes([0xE0])),
         ]
 
         self.script.blobs = [
-            Blob(position=Position([0x00, 0x00, 0x21]), data=LEBytes([0x12, 0x34])),
-            Blob(position=Position([0x00, 0x00, 0x23]), data=LEBytes([0x56, 0x78]), delimiter=LEBytes([0xFF])),
-            Blob(position=Position([0x00, 0x00, 0x26]), data=LEBytes([0xAB, 0xCD]), delimiter=LEBytes([0x00])),
+            Blob(position=Position([0x00, 0x00, 0x21]), data=Bytes([0x12, 0x34])),
+            Blob(position=Position([0x00, 0x00, 0x23]), data=Bytes([0x56, 0x78]), delimiter=Bytes([0xFF])),
+            Blob(position=Position([0x00, 0x00, 0x26]), data=Bytes([0xAB, 0xCD]), delimiter=Bytes([0x00])),
             String(
-                position=Position([0x00, 0x00, 0x29]), data=BEBytes([0x00, 0x80, 0xD8, 0xFF]), delimiter=LEBytes([0x88])
+                position=Position([0x00, 0x00, 0x29]), data=BEBytes([0x00, 0x80, 0xD8, 0xFF]), delimiter=Bytes([0x88])
             ),
             String(
                 position=Position([0x00, 0x00, 0x34]),
                 data=BEBytes([0x81, 0xA8, 0x9B, 0x01, 0xDC]),
-                delimiter=LEBytes([0x00]),
+                delimiter=Bytes([0x00]),
                 string_type=StringTypes.DESCRIPTION,
             ),
         ]
@@ -88,10 +86,10 @@ class ScriptImpl:
         self.script.blob_groups = [
             BlobGroup(
                 blobs=[
-                    Blob(position=Position([0x00, 0x00, 0x2E]), data=LEBytes([0xAA])),
+                    Blob(position=Position([0x00, 0x00, 0x2E]), data=Bytes([0xAA])),
                     String(position=Position([0x00, 0x00, 0x2F]), data=BEBytes([0x9A])),
-                    Blob(position=Position([0x00, 0x00, 0x30]), data=LEBytes([0xBB]), delimiter=LEBytes([0xFF])),
-                    String(position=Position([0x00, 0x00, 0x32]), data=BEBytes([0x9B]), delimiter=LEBytes([0x00])),
+                    Blob(position=Position([0x00, 0x00, 0x30]), data=Bytes([0xBB]), delimiter=Bytes([0xFF])),
+                    String(position=Position([0x00, 0x00, 0x32]), data=BEBytes([0x9B]), delimiter=Bytes([0x00])),
                 ],
                 position=Position([0x00, 0x00, 0x2E]),
             )
@@ -117,71 +115,71 @@ class TestScript:
 
         assert len(script.instructions) == 10
         assert script.instructions[0] == Instruction(
-            position=Position([0x00, 0x00, 0x05]), opcode=LEBytes([0xAA]), data=None
+            position=Position([0x00, 0x00, 0x05]), opcode=Bytes([0xAA]), data=None
         )
         assert script.instructions[1] == Instruction(
-            position=Position([0x00, 0x00, 0x06]), opcode=LEBytes([0xA1]), data=LEBytes([0x12])
+            position=Position([0x00, 0x00, 0x06]), opcode=Bytes([0xA1]), data=Bytes([0x12])
         )
         assert script.instructions[2] == Instruction(
-            position=Position([0x00, 0x00, 0x08]), opcode=LEBytes([0xA2]), data=LEBytes([0xFE, 0xDC])
+            position=Position([0x00, 0x00, 0x08]), opcode=Bytes([0xA2]), data=Bytes([0xFE, 0xDC])
         )
 
         assert script.instructions[3] == Instruction(
-            position=Position([0x00, 0x00, 0x0B]), opcode=LEBytes([0xC2]), data=LEBytes([0x30])
+            position=Position([0x00, 0x00, 0x0B]), opcode=Bytes([0xC2]), data=Bytes([0x30])
         )
         assert script.instructions[4] == Instruction(
-            position=Position([0x00, 0x00, 0x0D]), opcode=LEBytes([0xA9]), data=LEBytes([0x34, 0x56])
+            position=Position([0x00, 0x00, 0x0D]), opcode=Bytes([0xA9]), data=Bytes([0x34, 0x56])
         )
         assert script.instructions[5] == Instruction(
-            position=Position([0x00, 0x00, 0x10]), opcode=LEBytes([0xA2]), data=LEBytes([0xFE, 0xDC])
+            position=Position([0x00, 0x00, 0x10]), opcode=Bytes([0xA2]), data=Bytes([0xFE, 0xDC])
         )
 
         assert script.instructions[6] == Instruction(
-            position=Position([0x00, 0x00, 0x13]), opcode=LEBytes([0xE2]), data=LEBytes([0x30])
+            position=Position([0x00, 0x00, 0x13]), opcode=Bytes([0xE2]), data=Bytes([0x30])
         )
         assert script.instructions[7] == Instruction(
-            position=Position([0x00, 0x00, 0x15]), opcode=LEBytes([0xA9]), data=LEBytes([0xBB])
+            position=Position([0x00, 0x00, 0x15]), opcode=Bytes([0xA9]), data=Bytes([0xBB])
         )
         assert script.instructions[8] == Instruction(
-            position=Position([0x00, 0x00, 0x17]), opcode=LEBytes([0xA2]), data=LEBytes([0xCC])
+            position=Position([0x00, 0x00, 0x17]), opcode=Bytes([0xA2]), data=Bytes([0xCC])
         )
 
         assert script.instructions[9] == Instruction(
-            position=Position([0x00, 0x00, 0x19]), opcode=LEBytes([0x44]), data=LEBytes([0x12, 0x34])
+            position=Position([0x00, 0x00, 0x19]), opcode=Bytes([0x44]), data=Bytes([0x12, 0x34])
         )
 
         assert len(script.branching_instructions) == 2
         assert script.branching_instructions[0] == BranchingInstruction(
-            position=Position([0x00, 0x00, 0x1C]), opcode=LEBytes([0x4C]), data=LEBytes([0x00, 0x05])
+            position=Position([0x00, 0x00, 0x1C]), opcode=Bytes([0x4C]), data=Bytes([0x00, 0x05])
         )
         assert script.branching_instructions[1] == BranchingInstruction(
-            position=Position([0x00, 0x00, 0x1F]), opcode=LEBytes([0x80]), data=LEBytes([0xE0])
+            position=Position([0x00, 0x00, 0x1F]), opcode=Bytes([0x80]), data=Bytes([0xE0])
         )
 
         assert len(script.blobs) == 5
-        assert script.blobs[0] == Blob(position=Position([0x00, 0x00, 0x21]), data=LEBytes([0x12, 0x34]))
+        assert script.blobs[0] == Blob(position=Position([0x00, 0x00, 0x21]), data=Bytes([0x12, 0x34]))
         assert script.blobs[1] == Blob(
-            position=Position([0x00, 0x00, 0x23]), data=LEBytes([0x56, 0x78]), delimiter=LEBytes([0xFF])
+            position=Position([0x00, 0x00, 0x23]), data=Bytes([0x56, 0x78]), delimiter=Bytes([0xFF])
         )
         assert script.blobs[2] == Blob(
-            position=Position([0x00, 0x00, 0x26]), data=LEBytes([0xAB, 0xCD]), delimiter=LEBytes([0x00])
+            position=Position([0x00, 0x00, 0x26]), data=Bytes([0xAB, 0xCD]), delimiter=Bytes([0x00])
         )
         assert script.blobs[3] == String(
-            position=Position([0x00, 0x00, 0x29]), data=BEBytes([0x00, 0x80, 0xD8, 0xFF]), delimiter=LEBytes([0x88])
+            position=Position([0x00, 0x00, 0x29]), data=BEBytes([0x00, 0x80, 0xD8, 0xFF]), delimiter=Bytes([0x88])
         )
         assert script.blobs[4] == String(
             position=Position([0x00, 0x00, 0x34]),
             data=BEBytes([0x81, 0xA8, 0x9B, 0x01, 0xDC]),
-            delimiter=LEBytes([0x00]),
+            delimiter=Bytes([0x00]),
             string_type=StringTypes.DESCRIPTION,
         )
 
         assert len(script.blob_groups) == 1
         assert len(script.blob_groups[0].blobs) == 4
-        assert script.blob_groups[0].blobs[0] == Blob(position=Position([0x00, 0x00, 0x2E]), data=LEBytes([0xAA]))
+        assert script.blob_groups[0].blobs[0] == Blob(position=Position([0x00, 0x00, 0x2E]), data=Bytes([0xAA]))
         assert script.blob_groups[0].blobs[1] == String(position=Position([0x00, 0x00, 0x2F]), data=BEBytes([0x9A]))
         assert script.blob_groups[0].blobs[2] == Blob(
-            position=Position([0x00, 0x00, 0x30]), data=LEBytes([0xBB]), delimiter=LEBytes([0xFF])
+            position=Position([0x00, 0x00, 0x30]), data=Bytes([0xBB]), delimiter=Bytes([0xFF])
         )
 
     def test_from_script_file_raises_error_when_line_is_unrecognized(self):
@@ -234,8 +232,8 @@ class TestScript:
             ScriptSection(start=0x000000, end=0x000008, mode=ScriptMode.POINTERS),
             ScriptSection(start=0x000008, end=0x000012, mode=ScriptMode.INSTRUCTIONS, flags=Flags()),
             ScriptSection(start=0x000012, end=0x000014, mode=ScriptMode.BLOBS, length=2),
-            ScriptSection(start=0x000014, end=0x000017, mode=ScriptMode.BLOBS, delimiter=LEBytes([0xFF])),
-            ScriptSection(start=0x000017, end=0x00001A, mode=ScriptMode.BLOBS, delimiter=LEBytes([0x00])),
+            ScriptSection(start=0x000014, end=0x000017, mode=ScriptMode.BLOBS, delimiter=Bytes([0xFF])),
+            ScriptSection(start=0x000017, end=0x00001A, mode=ScriptMode.BLOBS, delimiter=Bytes([0x00])),
             ScriptSection(
                 start=0x00001A,
                 end=0x00001F,
@@ -250,8 +248,8 @@ class TestScript:
                 sub_sections=[
                     SubSection(mode=ScriptMode.BLOBS, length=1),
                     SubSection(mode=ScriptMode.MENU_STRINGS, length=1),
-                    SubSection(mode=ScriptMode.BLOBS, delimiter=LEBytes([0xFF])),
-                    SubSection(mode=ScriptMode.MENU_STRINGS, delimiter=LEBytes([0x00])),
+                    SubSection(mode=ScriptMode.BLOBS, delimiter=Bytes([0xFF])),
+                    SubSection(mode=ScriptMode.MENU_STRINGS, delimiter=Bytes([0x00])),
                 ],
             ),
         ]
@@ -264,30 +262,30 @@ class TestScript:
         assert script.pointers[3] == Pointer(position=Position([0x00, 0x00, 0x06]), destination=Position([0xEF, 0xCD]))
 
         assert len(script.instructions) == 4
-        assert script.instructions[0] == Instruction(position=Position([0x00, 0x00, 0x08]), opcode=LEBytes([0x00]))
-        assert script.instructions[1] == Instruction(position=Position([0x00, 0x00, 0x09]), opcode=LEBytes([0xAA]))
+        assert script.instructions[0] == Instruction(position=Position([0x00, 0x00, 0x08]), opcode=Bytes([0x00]))
+        assert script.instructions[1] == Instruction(position=Position([0x00, 0x00, 0x09]), opcode=Bytes([0xAA]))
         assert script.instructions[2] == Instruction(
-            position=Position([0x00, 0x00, 0x0A]), opcode=LEBytes([0xA9]), data=LEBytes([0x34, 0x56])
+            position=Position([0x00, 0x00, 0x0A]), opcode=Bytes([0xA9]), data=Bytes([0x34, 0x56])
         )
         assert script.instructions[3] == Instruction(
-            position=Position([0x00, 0x00, 0x0D]), opcode=LEBytes([0xA2]), data=LEBytes([0xFE, 0xDC])
+            position=Position([0x00, 0x00, 0x0D]), opcode=Bytes([0xA2]), data=Bytes([0xFE, 0xDC])
         )
 
         assert len(script.branching_instructions) == 1
         assert script.branching_instructions[0] == BranchingInstruction(
-            position=Position([0x00, 0x00, 0x10]), opcode=LEBytes([0x80]), data=LEBytes([0xFE])
+            position=Position([0x00, 0x00, 0x10]), opcode=Bytes([0x80]), data=Bytes([0xFE])
         )
 
         assert len(script.blobs) == 4
-        assert script.blobs[0] == Blob(position=Position([0x00, 0x00, 0x12]), data=LEBytes([0x12, 0x34]))
+        assert script.blobs[0] == Blob(position=Position([0x00, 0x00, 0x12]), data=Bytes([0x12, 0x34]))
         assert script.blobs[1] == Blob(
-            position=Position([0x00, 0x00, 0x14]), data=LEBytes([0x56, 0x78]), delimiter=LEBytes([0xFF])
+            position=Position([0x00, 0x00, 0x14]), data=Bytes([0x56, 0x78]), delimiter=Bytes([0xFF])
         )
         assert script.blobs[2] == Blob(
-            position=Position([0x00, 0x00, 0x17]), data=LEBytes([0xCD, 0xAB]), delimiter=LEBytes([0x00])
+            position=Position([0x00, 0x00, 0x17]), data=Bytes([0xCD, 0xAB]), delimiter=Bytes([0x00])
         )
         assert script.blobs[3] == Blob(
-            position=Position([0x00, 0x00, 0x1A]), data=LEBytes([0x00, 0x80, 0xD8, 0xFF]), delimiter=LEBytes([0x88])
+            position=Position([0x00, 0x00, 0x1A]), data=Bytes([0x00, 0x80, 0xD8, 0xFF]), delimiter=Bytes([0x88])
         )
 
         assert len(script.labels) == 5
