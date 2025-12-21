@@ -2,14 +2,14 @@ from re import Match
 from typing import Self
 
 from src.lib.structures.asm.regex import ToLineMixin
-from src.lib.structures.bytes import Bytes, Position
+from src.lib.structures.bytes import Bytes
 from src.lib.structures.asm.label import Label
 
 from src.lib.structures.asm.script_line import ScriptLine, BankMixin, ImpossibleDestination, DestinationMixin
 
 
 class Pointer(ScriptLine, BankMixin, DestinationMixin, ToLineMixin):
-    def __init__(self, position: Position = None, destination: Position = None, data: Bytes = None):
+    def __init__(self, position: Bytes = None, destination: Bytes = None, data: Bytes = None):
         if destination is None and data is None:
             raise ValueError("Either provide the destination or the data.")
 
@@ -23,9 +23,10 @@ class Pointer(ScriptLine, BankMixin, DestinationMixin, ToLineMixin):
 
         self.destination = destination if destination is not None else self._data_to_destination(data=data)
         self.data = data if data is not None else self._destination_to_data(destination=destination)
+        self.data.adjust(length=2)
 
     @classmethod
-    def from_regex_match(cls, match: Match, position: Position, labels: list[Label]) -> Self:
+    def from_regex_match(cls, match: Match, position: Bytes, labels: list[Label]) -> Self:
         data, destination = None, None
 
         if label_name := match.group("label"):
@@ -36,7 +37,7 @@ class Pointer(ScriptLine, BankMixin, DestinationMixin, ToLineMixin):
         return cls(position=position, destination=destination, data=data)
 
     @classmethod
-    def from_bytes(cls, value: bytes, position: Position | None = None) -> Self:
+    def from_bytes(cls, value: bytes, position: Bytes | None = None) -> Self:
         return Pointer(position=position, data=Bytes.from_bytes(value))
 
     def to_line(self, show_address: bool = False, labels: list[Label] | None = None) -> str:
@@ -52,7 +53,7 @@ class Pointer(ScriptLine, BankMixin, DestinationMixin, ToLineMixin):
         return output
 
     @classmethod
-    def _is_possible_destination(cls, position: Position, destination: Position) -> bool:
+    def _is_possible_destination(cls, position: Bytes, destination: Bytes) -> bool:
         return position.bank() == destination.bank()
 
     def __bytes__(self) -> bytes:
@@ -70,9 +71,11 @@ class Pointer(ScriptLine, BankMixin, DestinationMixin, ToLineMixin):
     def __len__(self) -> int:
         return 2
 
-    def _data_to_destination(self, data: Bytes) -> Position:
-        return Position(data.value) + self.position.bank()
+    def _data_to_destination(self, data: Bytes) -> Bytes:
+        instance = Bytes.from_position(int(data) + self.position.bank())
+        return instance
 
     @staticmethod
-    def _destination_to_data(destination: Position) -> Bytes:
-        return Bytes(value=destination.value, length=2)
+    def _destination_to_data(destination: Bytes) -> Bytes:
+        instance = Bytes.from_other(destination, length=2)
+        return instance

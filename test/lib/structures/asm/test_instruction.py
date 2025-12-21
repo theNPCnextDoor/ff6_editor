@@ -7,7 +7,7 @@ from src.lib.structures.asm.instruction import Instruction, BranchingInstruction
 from src.lib.misc.exception import NoCandidateException
 from src.lib.structures.asm.label import Label
 from src.lib.structures.asm.regex import Regex
-from src.lib.structures.bytes import Bytes, Position
+from src.lib.structures.bytes import Bytes
 
 
 class TestInstruction:
@@ -36,8 +36,8 @@ class TestInstruction:
     )
     def test_from_regex_match(self, line: str, flags: Flags, opcode: Bytes, data: Bytes):
         match = re.match(Regex.INSTRUCTION_LINE, line)
-        instruction = Instruction.from_regex_match(match=match, position=Position([0x12, 0x34, 0x56]), flags=flags)
-        assert instruction.position == Position([0x12, 0x34, 0x56])
+        instruction = Instruction.from_regex_match(match=match, position=Bytes([0x12, 0x34, 0x56]), flags=flags)
+        assert instruction.position == Bytes([0x12, 0x34, 0x56])
         assert instruction.opcode == opcode
         assert instruction.data == data
 
@@ -285,25 +285,23 @@ class TestBranchingInstruction:
     @pytest.mark.parametrize(
         ["position", "destination", "command", "expected_result"],
         [
-            (Position([0x00, 0x00, 0x80]), Position([0x00, 0x00, 0x02]), "BVC", True),
-            (Position([0x00, 0x00, 0x80]), Position([0x00, 0x00, 0x01]), "BVC", False),
-            (Position([0x00, 0x00, 0x80]), Position([0x00, 0x01, 0x01]), "BVS", True),
-            (Position([0x00, 0x00, 0x80]), Position([0x00, 0x01, 0x02]), "BVS", False),
-            (Position([0x00, 0x80, 0x00]), Position([0x00, 0xFF, 0xFF]), "BRL", True),
-            (Position([0x00, 0x80, 0x00]), Position([0x00, 0x00, 0x00]), "BRL", True),
-            (Position([0x00, 0x80, 0x00]), Position([0x00, 0x80, 0x00]), "BRL", True),
-            (Position([0x00, 0x80, 0x00]), Position([0x01, 0x00, 0x00]), "BRL", False),
-            (Position([0x01, 0x23, 0x45]), Position([0x00, 0xFF, 0xFF]), "BVS", False),
-            (Position([0x12, 0x34, 0x56]), Position([0x12, 0x45, 0x67]), "JMP", True),
-            (Position([0x12, 0x34, 0x56]), Position([0xAB, 0xCD, 0xEF]), "JMP", True),
-            (Position([0x12, 0x34, 0x56]), Position([0x12, 0x45, 0x67]), "JSR", True),
-            (Position([0x12, 0x34, 0x56]), Position([0xFF, 0xFF, 0xFF]), "JSR", False),
-            (Position([0x12, 0x34, 0x56]), Position([0xAB, 0xCD, 0xEF]), "JSL", True),
+            (Bytes([0x00, 0x00, 0x80]), Bytes([0x00, 0x00, 0x02]), "BVC", True),
+            (Bytes([0x00, 0x00, 0x80]), Bytes([0x00, 0x00, 0x01]), "BVC", False),
+            (Bytes([0x00, 0x00, 0x80]), Bytes([0x00, 0x01, 0x01]), "BVS", True),
+            (Bytes([0x00, 0x00, 0x80]), Bytes([0x00, 0x01, 0x02]), "BVS", False),
+            (Bytes([0x00, 0x80, 0x00]), Bytes([0x00, 0xFF, 0xFF]), "BRL", True),
+            (Bytes([0x00, 0x80, 0x00]), Bytes([0x00, 0x00, 0x00]), "BRL", True),
+            (Bytes([0x00, 0x80, 0x00]), Bytes([0x00, 0x80, 0x00]), "BRL", True),
+            (Bytes([0x00, 0x80, 0x00]), Bytes([0x01, 0x00, 0x00]), "BRL", False),
+            (Bytes([0x01, 0x23, 0x45]), Bytes([0x00, 0xFF, 0xFF]), "BVS", False),
+            (Bytes([0x12, 0x34, 0x56]), Bytes([0x12, 0x45, 0x67]), "JMP", True),
+            (Bytes([0x12, 0x34, 0x56]), Bytes([0xAB, 0xCD, 0xEF]), "JMP", True),
+            (Bytes([0x12, 0x34, 0x56]), Bytes([0x12, 0x45, 0x67]), "JSR", True),
+            (Bytes([0x12, 0x34, 0x56]), Bytes([0xFF, 0xFF, 0xFF]), "JSR", False),
+            (Bytes([0x12, 0x34, 0x56]), Bytes([0xAB, 0xCD, 0xEF]), "JSL", True),
         ],
     )
-    def test_is_destination_possible(
-        self, command: str, position: Position, destination: Position, expected_result: bool
-    ):
+    def test_is_destination_possible(self, command: str, position: Bytes, destination: Bytes, expected_result: bool):
         assert (
             BranchingInstruction.is_destination_possible(position=position, destination=destination, command=command)
             == expected_result
@@ -312,27 +310,27 @@ class TestBranchingInstruction:
     @pytest.mark.parametrize(
         ["line", "position", "data"],
         [
-            (" BRA #$05", Position([0x00, 0x00, 0x00]), Bytes([0x05])),
-            (" BRA #$FF", Position([0x00, 0x00, 0x00]), Bytes([0xFF])),
-            (" BRL #$0005", Position([0x00, 0x00, 0x00]), Bytes([0x00, 0x05])),
-            (" JMP $1234", Position([0x00, 0x00, 0x00]), Bytes([0x12, 0x34])),
-            (" JML $D23456", Position([0x00, 0x00, 0x00]), Bytes([0xD2, 0x34, 0x56])),
-            (" JSR $1234", Position([0x00, 0x00, 0x00]), Bytes([0x12, 0x34])),
-            (" JSL $D23456", Position([0x00, 0x00, 0x00]), Bytes([0xD2, 0x34, 0x56])),
-            (" JML label_1", Position([0x00, 0x00, 0x00]), Bytes([0xD2, 0x34, 0x56])),
-            (" JSL label_1", Position([0x12, 0x34, 0x54]), Bytes([0xD2, 0x34, 0x56])),
-            (" JMP label_1", Position([0x00, 0x00, 0x00]), Bytes([0x34, 0x56])),
-            (" BRA label_1", Position([0x12, 0x34, 0x54]), Bytes([0x00])),
-            (" BRA label_1", Position([0x12, 0x34, 0xD4]), Bytes([0x80])),
-            (" BRA label_1", Position([0x12, 0x33, 0xD5]), Bytes([0x7F])),
-            (" BRL label_1", Position([0x12, 0x00, 0x00]), Bytes([0x34, 0x53])),
-            (" BRL label_1", Position([0x12, 0xFF, 0xFF]), Bytes([0x34, 0x54])),
-            (" BRL label_1", Position([0x12, 0xB4, 0x53]), Bytes([0x80, 0x00])),
-            (" BRL label_1", Position([0x12, 0xB4, 0x54]), Bytes([0x7F, 0xFF])),
-            (" BRL label_1", Position([0x12, 0x34, 0x53]), Bytes([0x00, 0x00])),
+            (" BRA #$05", Bytes([0x00, 0x00, 0x00]), Bytes([0x05])),
+            (" BRA #$FF", Bytes([0x00, 0x00, 0x00]), Bytes([0xFF])),
+            (" BRL #$0005", Bytes([0x00, 0x00, 0x00]), Bytes([0x00, 0x05])),
+            (" JMP $1234", Bytes([0x00, 0x00, 0x00]), Bytes([0x12, 0x34])),
+            (" JML $D23456", Bytes([0x00, 0x00, 0x00]), Bytes([0xD2, 0x34, 0x56])),
+            (" JSR $1234", Bytes([0x00, 0x00, 0x00]), Bytes([0x12, 0x34])),
+            (" JSL $D23456", Bytes([0x00, 0x00, 0x00]), Bytes([0xD2, 0x34, 0x56])),
+            (" JML label_1", Bytes([0x00, 0x00, 0x00]), Bytes([0xD2, 0x34, 0x56])),
+            (" JSL label_1", Bytes([0x12, 0x34, 0x54]), Bytes([0xD2, 0x34, 0x56])),
+            (" JMP label_1", Bytes([0x00, 0x00, 0x00]), Bytes([0x34, 0x56])),
+            (" BRA label_1", Bytes([0x12, 0x34, 0x54]), Bytes([0x00])),
+            (" BRA label_1", Bytes([0x12, 0x34, 0xD4]), Bytes([0x80])),
+            (" BRA label_1", Bytes([0x12, 0x33, 0xD5]), Bytes([0x7F])),
+            (" BRL label_1", Bytes([0x12, 0x00, 0x00]), Bytes([0x34, 0x53])),
+            (" BRL label_1", Bytes([0x12, 0xFF, 0xFF]), Bytes([0x34, 0x54])),
+            (" BRL label_1", Bytes([0x12, 0xB4, 0x53]), Bytes([0x80, 0x00])),
+            (" BRL label_1", Bytes([0x12, 0xB4, 0x54]), Bytes([0x7F, 0xFF])),
+            (" BRL label_1", Bytes([0x12, 0x34, 0x53]), Bytes([0x00, 0x00])),
         ],
     )
-    def test_from_regex_match(self, line: str, position: Position, data: Bytes, labels: list[Label]):
+    def test_from_regex_match(self, line: str, position: Bytes, data: Bytes, labels: list[Label]):
         match = re.match(Regex.BRANCHING_INSTRUCTION_LINE, line)
         instruction = BranchingInstruction.from_regex_match(match=match, position=position, labels=labels)
         assert instruction.position == position
@@ -364,36 +362,36 @@ class TestBranchingInstruction:
         [
             (
                 BranchingInstruction(
-                    position=Position([0x12, 0x00, 0x00]),
+                    position=Bytes([0x12, 0x00, 0x00]),
                     opcode=Bytes([0x4C]),
-                    destination=Position([0x12, 0x34, 0x56]),
+                    destination=Bytes([0x12, 0x34, 0x56]),
                 ),
                 True,
                 "  JMP label_1 ; D20000",
             ),
             (
                 BranchingInstruction(
-                    position=Position([0x12, 0x00, 0x00]),
+                    position=Bytes([0x12, 0x00, 0x00]),
                     opcode=Bytes([0x4C]),
-                    destination=Position([0x12, 0x34, 0x57]),
+                    destination=Bytes([0x12, 0x34, 0x57]),
                 ),
                 True,
                 "  JMP $3457 ; D20000",
             ),
             (
                 BranchingInstruction(
-                    position=Position([0x12, 0x00, 0x00]),
+                    position=Bytes([0x12, 0x00, 0x00]),
                     opcode=Bytes([0x4C]),
-                    destination=Position([0x12, 0x34, 0x56]),
+                    destination=Bytes([0x12, 0x34, 0x56]),
                 ),
                 False,
                 "  JMP label_1",
             ),
             (
                 BranchingInstruction(
-                    position=Position([0x12, 0x00, 0x00]),
+                    position=Bytes([0x12, 0x00, 0x00]),
                     opcode=Bytes([0x4C]),
-                    destination=Position([0x12, 0x34, 0x57]),
+                    destination=Bytes([0x12, 0x34, 0x57]),
                 ),
                 False,
                 "  JMP $3457",

@@ -7,7 +7,7 @@ from typing import Self
 from src.lib.structures.asm.blob import Blob
 from src.lib.structures.asm.label import Label
 from src.lib.structures.asm.regex import Regex, ToLineMixin
-from src.lib.structures.bytes import BEBytes, Position, Bytes
+from src.lib.structures.bytes import Bytes, Endian
 
 from src.lib.structures.charset.charset import Charset, MENU_CHARSET, DESCRIPTION_CHARSET
 
@@ -34,8 +34,8 @@ class StringTypes:
 class String(Blob, ToLineMixin):
     def __init__(
         self,
-        data: BEBytes,
-        position: Position | None = None,
+        data: Bytes,
+        position: Bytes | None = None,
         delimiter: Bytes | None = None,
         charset: Charset | None = None,
         string_type: StringType | None = None,
@@ -45,7 +45,7 @@ class String(Blob, ToLineMixin):
         self.string_type = string_type or StringTypes.MENU
 
     @classmethod
-    def from_regex_match(cls, match: Match, position: Position | None = None) -> Self:
+    def from_regex_match(cls, match: Match, position: Bytes | None = None) -> Self:
         value = match.group("s1") or match.group("s2")
         try:
             string_prefix = match.group("string_type")
@@ -57,17 +57,18 @@ class String(Blob, ToLineMixin):
         data = b""
         for char in chars:
             data += string_type.charset.get_bytes(char)
-        return cls(data=data, position=position, delimiter=delimiter, string_type=string_type)
+        data_bytes = Bytes.from_bytes(value=data, endian=Endian.BIG)
+        return cls(data=data_bytes, position=position, delimiter=delimiter, string_type=string_type)
 
     @classmethod
     def from_bytes(
         cls,
         data: bytes,
-        position: Position | None = None,
+        position: Bytes | None = None,
         delimiter: bytes | None = None,
         string_type: StringType | None = None,
     ) -> Self:
-        data = BEBytes.from_bytes(value=data)
+        data = Bytes.from_bytes(value=data, endian=Endian.BIG)
         if delimiter is not None:
             delimiter = Bytes.from_bytes(value=delimiter)
         return String(position=position, data=data, delimiter=delimiter, string_type=string_type)
@@ -89,6 +90,9 @@ class String(Blob, ToLineMixin):
 
     def __repr__(self) -> str:
         return f"{self.position}: {self}"
+
+    def __eq__(self, other: Self) -> bool:
+        return self.position == other.position and self.data == other.data
 
     def to_line(self, show_address: bool = False, labels: list[Label] | None = None) -> str:
         output = f"  {self}"

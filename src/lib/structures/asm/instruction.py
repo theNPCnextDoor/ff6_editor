@@ -8,17 +8,17 @@ from src.lib.structures.asm.label import Label
 from src.lib.structures.asm.opcodes import Opcodes
 from src.lib.structures.asm.regex import Regex, ToLineMixin
 from src.lib.structures.asm.script_line import ScriptLine, DataMixin, BankMixin, ImpossibleDestination, DestinationMixin
-from src.lib.structures.bytes import Bytes, Position
+from src.lib.structures.bytes import Bytes
 
 
 class Instruction(ScriptLine, DataMixin, ToLineMixin):
-    def __init__(self, opcode: Bytes, position: Position | None = None, data: Bytes | None = None):
+    def __init__(self, opcode: Bytes, position: Bytes | None = None, data: Bytes | None = None):
         super().__init__(position=position)
         self.opcode = opcode
         self.data = data
 
     @classmethod
-    def from_regex_match(cls, match: Match, position: Position, flags: Flags) -> Self:
+    def from_regex_match(cls, match: Match, position: Bytes, flags: Flags) -> Self:
         command = match.group("command")
         mode = cls.mode(match)
         data, length = None, 0
@@ -32,7 +32,7 @@ class Instruction(ScriptLine, DataMixin, ToLineMixin):
         return cls(position=position, opcode=opcode, data=data)
 
     @classmethod
-    def from_bytes(cls, value: bytes, position: Position = None, flags: Flags = None) -> Self:
+    def from_bytes(cls, value: bytes, position: Bytes = None, flags: Flags = None) -> Self:
         flags = flags or Flags()
         opcode = Bytes.from_int(value[0])
         command = Opcodes[int(value[0])]
@@ -142,7 +142,7 @@ class Instruction(ScriptLine, DataMixin, ToLineMixin):
 
 
 class BranchingInstruction(Instruction, BankMixin, DestinationMixin):
-    def __init__(self, opcode: Bytes, position: Position = None, data: Bytes = None, destination: Position = None):
+    def __init__(self, opcode: Bytes, position: Bytes = None, data: Bytes = None, destination: Bytes = None):
         if data is None and destination is None:
             raise ValueError("Please provide either data or destination.")
         super().__init__(position=position, opcode=opcode)
@@ -150,7 +150,7 @@ class BranchingInstruction(Instruction, BankMixin, DestinationMixin):
         self.destination = destination if destination is not None else self.data_to_destination(data=data)
 
     @classmethod
-    def from_regex_match(cls, match: Match, position: Position, labels: list[Label]) -> Self:
+    def from_regex_match(cls, match: Match, position: Bytes, labels: list[Label]) -> Self:
         command = match.group("command")
         data, destination = None, None
 
@@ -176,31 +176,39 @@ class BranchingInstruction(Instruction, BankMixin, DestinationMixin):
         return cls(position=position, opcode=opcode, data=data, destination=destination)
 
     @classmethod
-    def is_destination_possible(cls, position: Position, destination: Position, command: str) -> bool:
+    def is_destination_possible(cls, position: Bytes, destination: Bytes, command: str) -> bool:
         if command in ["JMP", "JML", "JSL"]:
             return True
         if command in ["BRL", "JSR"]:
             return cls.bank(position) == cls.bank(destination)
         return int(position) - 0x7E <= int(destination) <= int(position) + 0x81
 
-    def data_to_destination(self, data: Bytes) -> Position:
+    def data_to_destination(self, data: Bytes) -> Bytes:
         command = self.command(self.opcode)
-        if command in ["JSL", "JML"]:
-            return Position.from_other(data) - 0xC00000
-        if command in ["JMP", "JSR"]:
-            return Position.from_other(data) + self.position.bank()
-        if command == "BRL":
-            return Position.from_int((int(data) + 0x8000) % 0x010000 + int(self.position) - 0x7FFD)
-        return Position.from_int((int(data) + 0x80) % 0x0100 + int(self.position) - 0x7E)
 
-    def destination_to_data(self, destination: Position) -> Bytes:
-        command = self.command(self.opcode)
         if command in ["JSL", "JML"]:
-            return Bytes.from_other(destination + 0xC00000)
+            return Bytes.from_position(int(data) - 0xC00000)
+
         if command in ["JMP", "JSR"]:
-            return Bytes.from_other(destination[1:], length=2)
+            return Bytes.from_position(int(data) + self.position.bank())
+
+        if command == "BRL":
+            return Bytes.from_position((int(data) + 0x8000) % 0x010000 + int(self.position) - 0x7FFD)
+
+        return Bytes.from_position((int(data) + 0x80) % 0x0100 + int(self.position) - 0x7E)
+
+    def destination_to_data(self, destination: Bytes) -> Bytes:
+        command = self.command(self.opcode)
+
+        if command in ["JSL", "JML"]:
+            return Bytes.from_position(int(destination) + 0xC00000)
+
+        if command in ["JMP", "JSR"]:
+            return Bytes.from_other(destination, length=2)
+
         if command == "BRL":
             return Bytes.from_int(((int(destination) - int(self.position) - 3) % 0x010000), length=2)
+
         return Bytes.from_int((((int(destination) - int(self.position) % 0x0100) - 2) % 0x0100), length=1)
 
     @classmethod

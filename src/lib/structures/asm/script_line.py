@@ -1,7 +1,7 @@
 from __future__ import annotations
 from typing import Match, Optional, TYPE_CHECKING, Self
 
-from src.lib.structures.bytes import Position
+from src.lib.structures.bytes import Bytes
 
 if TYPE_CHECKING:
     from src.lib.structures.asm.label import Label
@@ -9,8 +9,8 @@ if TYPE_CHECKING:
 
 class ScriptLine:
 
-    def __init__(self, position: Position | None):
-        self.position = position if position is not None else Position([0x00])
+    def __init__(self, position: Bytes | None):
+        self.position = position if position is not None else Bytes([0x00, 0x00, 0x00])
 
     def __hash__(self) -> int:
         return hash(self.position)
@@ -22,7 +22,7 @@ class ScriptLine:
         return self.position < other.position
 
     @classmethod
-    def sort(cls, value: Self) -> tuple[Position, bool]:
+    def sort(cls, value: Self) -> tuple[Bytes, bool]:
         from src.lib.structures.asm.label import Label
 
         return value.position, not isinstance(value, Label)
@@ -46,8 +46,8 @@ class DataMixin:
 
 class BankMixin:
     @staticmethod
-    def bank(position: Position) -> Position:
-        return Position.from_int(int(position) & 0xFF0000)
+    def bank(position: Bytes) -> Bytes:
+        return Bytes.from_position(int(position) & 0xFF0000)
 
 
 class NoLabelException(Exception):
@@ -60,7 +60,7 @@ class ImpossibleDestination(Exception):
 
 class DestinationMixin:
     @classmethod
-    def find_destination(cls, label_name: str, labels: list[Label]) -> Position:
+    def find_destination(cls, label_name: str, labels: list[Label]) -> Bytes:
         candidates = [label for label in labels if label.name == label_name]
         if len(candidates) == 0:
             raise NoLabelException(f"Can't find a label with name '{label_name}'.")
@@ -69,7 +69,7 @@ class DestinationMixin:
         return destination
 
     @staticmethod
-    def find_label(destination: Position, labels: list[Label]) -> Label:
+    def find_label(destination: Bytes, labels: list[Label]) -> Label:
         for label in labels:
             if destination == label.position:
                 return label
