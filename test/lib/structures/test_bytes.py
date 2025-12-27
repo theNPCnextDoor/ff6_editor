@@ -195,8 +195,12 @@ class TestBytes:
             Bytes(value=[0x01]) - right
 
     @pytest.mark.parametrize(["value", "expected"], [([0x00, 0x00, 0x00], 0x000000), ([0x12, 0x34, 0x56], 0x120000)])
-    def test_to_bank(self, value: list[int], expected: int):
+    def test_bank(self, value: list[int], expected: int):
         assert Bytes(value=value).bank() == expected
+
+    def test_bank_raises_an_error_when_not_a_position(self):
+        with pytest.raises(AttributeError):
+            Bytes([0x00]).bank()
 
     @pytest.mark.parametrize(["address", "expected"], [("C00000", [0x00, 0x00, 0x00]), ("D23456", [0x12, 0x34, 0x56])])
     def test_from_snes_address(self, address: str, expected: list[int]):
