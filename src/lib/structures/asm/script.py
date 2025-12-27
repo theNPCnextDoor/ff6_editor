@@ -14,8 +14,7 @@ from src.lib.structures.asm.label import Label
 from src.lib.structures.asm.regex import Regex
 from src.lib.structures.asm.string import String, StringTypes
 from src.lib.structures.asm.script_line import ScriptLine
-from src.lib.structures.bytes import Position, BEBytes, LEBytes
-from src.lib.structures.charset.charset import MENU_CHARSET, DESCRIPTION_CHARSET, Charset
+from src.lib.structures.bytes import Bytes
 
 
 class ScriptMode(Enum):
@@ -42,7 +41,7 @@ class ScriptSection:
 
 
 class SubSection:
-    def __init__(self, mode: ScriptMode, length: int | None = None, delimiter: LEBytes | None = None):
+    def __init__(self, mode: ScriptMode, length: int | None = None, delimiter: Bytes | None = None):
         if length is None and delimiter is None:
             raise MissingSectionAttribute("Please provide either the length or the delimiter.")
         self.mode = mode
@@ -92,22 +91,22 @@ class Script:
 
         for line in lines:
             if match := re.match(Regex.DESCRIPTION_LINE, line):
-                string = String.from_regex_match(match=match, position=Position.from_int(cursor))
+                string = String.from_regex_match(match=match, position=Bytes.from_position(cursor))
                 cursor += len(string)
                 self.blobs.append(string)
 
             elif match := re.fullmatch(Regex.BLOB_GROUP_LINE, line):
-                blob_group = BlobGroup.from_regex_match(match=match, position=Position.from_int(cursor))
+                blob_group = BlobGroup.from_regex_match(match=match, position=Bytes.from_position(cursor))
                 cursor += len(blob_group)
                 self.blob_groups.append(blob_group)
 
             elif match := re.search(Regex.BLOB_LINE, line):
-                blob = Blob.from_regex_match(match=match, position=Position.from_int(cursor))
+                blob = Blob.from_regex_match(match=match, position=Bytes.from_position(cursor))
                 cursor += len(blob)
                 self.blobs.append(blob)
 
             elif match := re.search(Regex.MENU_STRING_LINE, line):
-                string = String.from_regex_match(match=match, position=Position.from_int(cursor))
+                string = String.from_regex_match(match=match, position=Bytes.from_position(cursor))
                 cursor += len(string)
                 self.blobs.append(string)
 
@@ -115,7 +114,7 @@ class Script:
                 flags = Flags.from_regex_match(match=match)
 
             elif match := re.search(Regex.LABEL_LINE, line):
-                label = Label.from_regex_match(match=match, position=Position.from_int(cursor))
+                label = Label.from_regex_match(match=match, position=Bytes.from_position(cursor))
                 cursor = int(label.position)
                 self.labels.append(label)
 
@@ -130,14 +129,16 @@ class Script:
                     lines_with_labels.append((line, cursor))
                 else:
                     instruction = BranchingInstruction.from_regex_match(
-                        match=match, position=Position.from_int(cursor), labels=self.labels
+                        match=match, position=Bytes.from_position(cursor), labels=self.labels
                     )
                     self.branching_instructions.append(instruction)
 
                 cursor += BranchingInstruction.find_length(command=command) + 1
 
             elif match := re.match(Regex.INSTRUCTION_LINE, line):
-                instruction = Instruction.from_regex_match(match=match, position=Position.from_int(cursor), flags=flags)
+                instruction = Instruction.from_regex_match(
+                    match=match, position=Bytes.from_position(cursor), flags=flags
+                )
                 cursor += len(instruction)
                 self.instructions.append(instruction)
 
@@ -150,12 +151,14 @@ class Script:
         for line, cursor in lines_with_labels:
             if match := re.match(Regex.BRANCHING_INSTRUCTION_LINE, line):
                 instruction = BranchingInstruction.from_regex_match(
-                    match=match, position=Position.from_int(cursor), labels=self.labels
+                    match=match, position=Bytes.from_position(cursor), labels=self.labels
                 )
                 self.branching_instructions.append(instruction)
 
             elif match := re.match(Regex.POINTER_LINE, line):
-                pointer = Pointer.from_regex_match(match=match, position=Position.from_int(cursor), labels=self.labels)
+                pointer = Pointer.from_regex_match(
+                    match=match, position=Bytes.from_position(cursor), labels=self.labels
+                )
                 self.pointers.append(pointer)
 
         for name in ["blobs", "blob_groups", "instructions", "branching_instructions", "pointers"]:
@@ -272,24 +275,24 @@ class Script:
             raise MissingSectionAttribute("Attribute 'sub_sections' is missing." f"Attributes: {section.attributes}")
         f.seek(cursor)
         while cursor < section.end:
-            blob_group = BlobGroup(position=Position.from_int(cursor))
+            blob_group = BlobGroup(position=Bytes.from_position(cursor))
 
             for sub_section in section.attributes["sub_sections"]:
                 data = cls._extract_blob_bytes(f=f, length=sub_section.length, delimiter=sub_section.delimiter)
                 delimiter = sub_section.delimiter
                 if sub_section.mode == ScriptMode.BLOBS:
-                    blob = Blob(data=BEBytes.from_bytes(data), position=Position.from_int(cursor), delimiter=delimiter)
+                    blob = Blob(data=Bytes.from_bytes(data), position=Bytes.from_position(cursor), delimiter=delimiter)
                 elif sub_section.mode == ScriptMode.MENU_STRINGS:
                     blob = String(
-                        data=BEBytes.from_bytes(data),
-                        position=Position.from_int(cursor),
+                        data=Bytes.from_bytes(data),
+                        position=Bytes.from_position(cursor),
                         delimiter=delimiter,
                         string_type=StringTypes.MENU,
                     )
                 elif sub_section.mode == ScriptMode.DESCRIPTION_STRINGS:
                     blob = String(
-                        data=BEBytes.from_bytes(data),
-                        position=Position.from_int(cursor),
+                        data=Bytes.from_bytes(data),
+                        position=Bytes.from_position(cursor),
                         delimiter=delimiter,
                         string_type=StringTypes.DESCRIPTION,
                     )
@@ -319,15 +322,15 @@ class Script:
                 continue
 
             if section.mode == ScriptMode.BLOBS:
-                blob = Blob.from_bytes(data=data, position=Position.from_int(cursor), delimiter=delimiter)
+                blob = Blob.from_bytes(data=data, position=Bytes.from_position(cursor), delimiter=delimiter)
             elif section.mode == ScriptMode.MENU_STRINGS:
                 blob = String.from_bytes(
-                    data=data, position=Position.from_int(cursor), delimiter=delimiter, string_type=StringTypes.MENU
+                    data=data, position=Bytes.from_position(cursor), delimiter=delimiter, string_type=StringTypes.MENU
                 )
             elif section.mode == ScriptMode.DESCRIPTION_STRINGS:
                 blob = String.from_bytes(
                     data=data,
-                    position=Position.from_int(cursor),
+                    position=Bytes.from_int(cursor),
                     delimiter=delimiter,
                     string_type=StringTypes.DESCRIPTION,
                 )
@@ -338,7 +341,7 @@ class Script:
     def _disassemble_pointers(cls, cursor: int, f: BinaryIO, script: Self, section: ScriptSection) -> None:
         while cursor < section.end:
             pointer_bytes = f.read(2)
-            pointer = Pointer.from_bytes(position=Position.from_int(cursor), value=pointer_bytes)
+            pointer = Pointer.from_bytes(position=Bytes.from_position(cursor), value=pointer_bytes)
             script.labels.append(Label(position=pointer.destination))
             script.pointers.append(pointer)
             cursor += 2
@@ -352,7 +355,7 @@ class Script:
             f.seek(cursor)
             value = f.read(4)
 
-            instruction = Instruction.from_bytes(position=Position.from_int(cursor), value=value, flags=flags)
+            instruction = Instruction.from_bytes(position=Bytes.from_position(cursor), value=value, flags=flags)
 
             if isinstance(instruction, BranchingInstruction):
                 script.branching_instructions.append(instruction)
