@@ -33,6 +33,7 @@ class Regex:
         rf"^ +(?P<command>(BCC|BCS|BEQ|BMI|BNE|BPL|BRA|BRL|BVC|BVS|JMP|JML|JSR|JSL)) ({CHUNK}|{LABEL})"
     )
     POINTER_LINE = rf"^ +ptr ((?P<chunk>\$(?P<number>{TWO_BYTES}))|{LABEL})"
+    ANCHOR = rf"^anchor: {LABEL}"
 
 
 class ToLineMixin:

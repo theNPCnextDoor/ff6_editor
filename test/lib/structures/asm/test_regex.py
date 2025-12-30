@@ -370,3 +370,8 @@ class TestRegex:
         if is_match:
             assert match.group("chunk") == chunk
             assert match.group("label") == label
+
+    @pytest.mark.parametrize(["line", "is_match"], [("anchor: label1", True), ("anchor: C12345", False)])
+    def test_anchor(self, line: str, is_match: bool):
+        match = re.match(Regex.ANCHOR, line)
+        assert bool(match) is is_match
