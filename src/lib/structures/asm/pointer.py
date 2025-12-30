@@ -9,24 +9,51 @@ from src.lib.structures.asm.script_line import ScriptLine, BankMixin, Impossible
 
 
 class Pointer(ScriptLine, BankMixin, DestinationMixin, ToLineMixin):
-    def __init__(self, position: Bytes = None, destination: Bytes = None, data: Bytes = None):
+    """
+    Pointers are used in the script to point to an element in a list containing elements of varying sizes. Pointers can
+     either be direct, where they can point to anywhere in the same bank at the pointer itself. Or they can be relative,
+     where they can point to anywhere from an anchor to the end of said anchor's bank.
+    """
+
+    def __init__(
+        self,
+        position: Bytes | None = None,
+        destination: Bytes | None = None,
+        data: Bytes | None = None,
+        anchor: Bytes | None = None,
+    ):
+        """
+        :param position: The position of the pointer.
+        :param destination: The destination of the pointer.
+        :param data: The actual data of the pointer.
+        :param anchor: The address from which the game derives the destination. If None, will use the beginning of
+         the position's bank.
+        :raises ValueError: Raised when neither the data nor the destination is provided.
+        :raises ImpossibleDestination: Raised when the destination is not in the same bank as the anchor.
+        """
+
         if destination is None and data is None:
             raise ValueError("Either provide the destination or the data.")
 
         super().__init__(position=position)
+        self.anchor = anchor or Bytes.from_position(self.position.bank())
+        self.destination = destination if destination is not None else self._data_to_destination(data=data)
 
-        if destination and self.position.bank() != destination.bank():
+        if (anchor and self.destination < anchor) or self.anchor.bank() != self.destination.bank():
             raise ImpossibleDestination(
-                f"Destination '{destination.to_snes_address()}' can't be reached with pointer"
-                f" at position '{self.position.to_snes_address()}'"
+                f"Destination '{destination.to_snes_address()}' can't be reached with pointer's"
+                f" anchor at '{self.anchor.to_snes_address()}'. "
             )
 
-        self.destination = destination if destination is not None else self._data_to_destination(data=data)
-        self.data = data if data is not None else self._destination_to_data(destination=destination)
-        self.data.adjust(length=2)
-
     @classmethod
-    def from_regex_match(cls, match: Match, position: Bytes, labels: list[Label]) -> Self:
+    def from_regex_match(cls, match: Match, position: Bytes, labels: list[Label], anchor: Bytes | None = None) -> Self:
+        """
+        :param match: A regex.Match object that matched Regex.POINTER_LINE.
+        :param position: The position of the Pointer object.
+        :param labels: A list of labels used to determine the destination.
+        :param anchor: The address from which the game derives the destination.
+        :return: A Pointer object.
+        """
         data, destination = None, None
 
         if label_name := match.group("label"):
@@ -34,13 +61,35 @@ class Pointer(ScriptLine, BankMixin, DestinationMixin, ToLineMixin):
         else:
             data = Bytes.from_str(match.group("number"))
 
-        return cls(position=position, destination=destination, data=data)
+        return cls(position=position, destination=destination, data=data, anchor=anchor)
 
     @classmethod
-    def from_bytes(cls, value: bytes, position: Bytes | None = None) -> Self:
-        return Pointer(position=position, data=Bytes.from_bytes(value))
+    def from_bytes(cls, value: bytes, position: Bytes | None = None, anchor: Bytes | None = None) -> Self:
+        """
+        Converts a bytes array into a Pointer.
+        :param value: A bytes array representing the data of the Pointer.
+        :param position: The position of the Pointer.
+        :param anchor: The address from which the game derives the destination.
+        :return: A Pointer.
+        """
+        return Pointer(position=position, data=Bytes.from_bytes(value), anchor=anchor)
+
+    @property
+    def data(self) -> Bytes:
+        """
+        Calculates the data out of the destination and the anchor, if it exists.
+        :return: A Bytes object of length 2.
+        """
+        delta = int(self.destination) - int(self.anchor)
+        return Bytes.from_int(delta, length=2)
 
     def to_line(self, show_address: bool = False, labels: list[Label] | None = None) -> str:
+        """
+        Converts a Pointer into a script line.
+        :param show_address: When True, will add the Pointer's position as a comment.
+        :param labels: A list of labels in order to represent the destination as a label and not a SNES address.
+        :return: A string.
+        """
         output = "  ptr "
         label = None
 
@@ -52,11 +101,11 @@ class Pointer(ScriptLine, BankMixin, DestinationMixin, ToLineMixin):
 
         return output
 
-    @classmethod
-    def _is_possible_destination(cls, position: Bytes, destination: Bytes) -> bool:
-        return position.bank() == destination.bank()
-
     def __bytes__(self) -> bytes:
+        """
+        Converts the Pointer into a bytes array.
+        :return: The bytes array corresponding to the data.
+        """
         return bytes(self.data)
 
     def __eq__(self, other: Self) -> bool:
@@ -66,16 +115,23 @@ class Pointer(ScriptLine, BankMixin, DestinationMixin, ToLineMixin):
         return f"ptr ${self.data}"
 
     def __repr__(self) -> str:
-        return f"{self.position}: {str(self)}"
+        return (
+            "Pointer("
+            f"position={repr(self.position)}, "
+            f"data={repr(self.data)}, "
+            f"destination={repr(self.destination)}, "
+            f"anchor={repr(self.anchor)}"
+            ")"
+        )
 
     def __len__(self) -> int:
         return 2
 
     def _data_to_destination(self, data: Bytes) -> Bytes:
-        instance = Bytes.from_position(int(data) + self.position.bank())
-        return instance
-
-    @staticmethod
-    def _destination_to_data(destination: Bytes) -> Bytes:
-        instance = Bytes.from_other(destination, length=2)
+        """
+        Converts the data of the Pointer into the intended destination.
+        :param data: A Bytes object of length 2.
+        :return: The destination of the pointer as a Bytes object.
+        """
+        instance = Bytes.from_position(int(data) + int(self.anchor))
         return instance
