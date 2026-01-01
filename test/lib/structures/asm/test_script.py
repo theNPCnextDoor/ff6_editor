@@ -43,6 +43,7 @@ class ScriptImpl:
         self.script.labels = [
             Label(position=Bytes([0x00, 0x00, 0x01]), name="start"),
             Label(position=Bytes([0x00, 0x00, 0x05]), name="archie"),
+            Label(position=Bytes([0x12, 0x00, 0x01]), name="anchor_1"),
         ]
 
         self.script.pointers = [
@@ -97,19 +98,54 @@ class ScriptImpl:
             )
         ]
 
+        # Relative pointers
+        self.script.pointers.append(
+            Pointer(
+                position=Bytes([0x00, 0x00, 0x3A]),
+                destination=Bytes([0x12, 0x34, 0x56]),
+                anchor=Bytes([0x12, 0x00, 0x01]),
+            )
+        )
+        self.script.pointers.append(
+            Pointer(
+                position=Bytes([0x00, 0x00, 0x3C]),
+                destination=Bytes([0x12, 0x34, 0x57]),
+                anchor=Bytes([0x12, 0x00, 0x01]),
+            )
+        )
+        self.script.pointers.append(
+            Pointer(
+                position=Bytes([0x00, 0x00, 0x3E]),
+                destination=Bytes([0x12, 0x34, 0x57]),
+                anchor=Bytes([0x12, 0x00, 0x02]),
+            )
+        )
+
 
 class TestScript:
 
     def test_from_script(self):
         script = Script.from_script_files(DUMMY_INPUT_SCRIPT_1, DUMMY_INPUT_SCRIPT_2)
 
-        assert len(script.labels) == 2
+        assert len(script.labels) == 5
         assert script.labels[0] == Label(position=Bytes([0x00, 0x00, 0x01]), name="start")
         assert script.labels[1] == Label(position=Bytes([0x00, 0x00, 0x05]), name="archie")
+        assert script.labels[2] == Label(position=Bytes([0x12, 0x00, 0x01]), name="anchor_1")
+        assert script.labels[3] == Label(position=Bytes([0x12, 0x34, 0x56]), name="rptr_1")
+        assert script.labels[4] == Label(position=Bytes([0x12, 0x34, 0x57]), name="rptr_2")
 
-        assert len(script.pointers) == 2
+        assert len(script.pointers) == 5
         assert script.pointers[0] == Pointer(position=Bytes([0x00, 0x00, 0x01]), destination=Bytes([0x00, 0x12, 0x34]))
         assert script.pointers[1] == Pointer(position=Bytes([0x00, 0x00, 0x03]), destination=Bytes([0x00, 0x00, 0x05]))
+        assert script.pointers[2] == Pointer(
+            position=Bytes([0x00, 0x00, 0x3A]), anchor=Bytes([0x12, 0x00, 0x01]), destination=Bytes([0x12, 0x34, 0x56])
+        )
+        assert script.pointers[3] == Pointer(
+            position=Bytes([0x00, 0x00, 0x3C]), anchor=Bytes([0x12, 0x00, 0x01]), destination=Bytes([0x12, 0x34, 0x57])
+        )
+        assert script.pointers[4] == Pointer(
+            position=Bytes([0x00, 0x00, 0x3E]), anchor=Bytes([0x12, 0x00, 0x02]), destination=Bytes([0x12, 0x34, 0x57])
+        )
 
         assert len(script.instructions) == 10
         assert script.instructions[0] == Instruction(
@@ -222,6 +258,7 @@ class TestScript:
             b"\x00\x80\xd8\xff\x88"  # Menu String 0
             b"\xaa\x9a\xbb\xff\x9b\x00"  # Blob Group 0
             b"\x81\xa8\x9b\x01\xdc\x00"  # Description 0
+            b"\x55\x34\x56\x34\x55\x34"  # Relative pointers 0-2
         )
 
     def test_from_rom(self):
@@ -321,6 +358,17 @@ class TestScript:
   "<0x00>A<KNIFE>_",$88
   $AA | "a" | $BB,$FF | "b",$00
   txt2 "Bob<LINE><FIRE>",$00
+anchor: @anchor_1
+  rptr label_d23456
+  rptr label_d23457
+anchor: $D20002
+  rptr label_d23457
 
-@label_c01234=C01234"""
+@label_c01234=C01234
+
+@anchor_1=D20001
+
+@label_d23456=D23456
+
+@label_d23457=D23457"""
         )

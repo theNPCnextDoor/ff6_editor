@@ -1,8 +1,12 @@
 from __future__ import annotations
 from enum import Enum, auto
-from typing import Self, Any
+from re import Match
+from typing import Self, TYPE_CHECKING
 
 from src.lib.misc.exception import UnderflowError
+
+if TYPE_CHECKING:
+    from src.lib.structures.asm.label import Label
 
 
 class Endian(Enum):
@@ -74,10 +78,29 @@ class Bytes:
         return cls.from_int(value=value, length=3)
 
     @classmethod
+    def from_anchor_match(cls, value: Match, labels: list[Label]) -> Self:
+        """
+        Converts a string that matched Regex.ANCHOR into a Bytes object.
+        :param value: The Match object.
+        :param labels: The list of labels in which to find the anchor position.
+        :return: Either the destination of the Label or a Bytes object made out of the SNES address.
+        :raises ValueError: Raised when a label is provided but can't be find in the list of labels.
+        """
+        name, snes_address = value.group("label"), value.group("snes_address")
+
+        if name:
+            for label in labels:
+                if name == label.name:
+                    return label.position
+            raise ValueError(f"Can't find anchor label '{name}'.")
+
+        return cls.from_snes_address(snes_address)
+
+    @classmethod
     def from_str(cls, value: str, endian: Endian = Endian.LITTLE) -> Self:
         """
         Converts a hexadecimal representation of bytes into a Bytes object. The representation is always considered to
-        be in big endian, although the Bytes object itself can be in whatever endianness.
+         be in big endian, although the Bytes object itself can be in whatever endianness.
         :param value: The hexadecimal representation of bytes.
         :param endian: The endianness to be considered when converting the Bytes object to a bytes array.
         :return: A Bytes object.
