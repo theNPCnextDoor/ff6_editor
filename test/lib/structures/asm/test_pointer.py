@@ -64,21 +64,21 @@ class TestPointer:
             (" ptr label_1", Bytes([0x12, 0xFF, 0x00]), None, Bytes([0x34, 0x56]), Bytes([0x12, 0x34, 0x56])),
             (" ptr label_2", Bytes([0x34, 0x00, 0x03]), None, Bytes([0xFF, 0xFE]), Bytes([0x34, 0xFF, 0xFE])),
             (
-                " ptr $1413",
+                " rptr $1413",
                 Bytes([0x01, 0x11, 0x11]),
                 Bytes([0x12, 0x34, 0x56]),
                 Bytes([0x14, 0x13]),
                 Bytes([0x12, 0x48, 0x69]),
             ),
             (
-                " ptr label_1",
+                " rptr label_1",
                 Bytes([0x01, 0xFF, 0x00]),
                 Bytes([0x12, 0x34, 0x56]),
                 Bytes([0x00, 0x00]),
                 Bytes([0x12, 0x34, 0x56]),
             ),
             (
-                " ptr label_2",
+                " rptr label_2",
                 Bytes([0x01, 0x00, 0x03]),
                 Bytes([0x34, 0x00, 0x01]),
                 Bytes([0xFF, 0xFD]),
@@ -120,32 +120,33 @@ class TestPointer:
         assert Pointer.from_bytes(value=value) == pointer
 
     @pytest.mark.parametrize(
-        ["pointer", "show_address", "expected"],
+        ["current_anchor", "anchor", "expected"],
         [
-            (
-                Pointer(position=Bytes([0x12, 0x00, 0x00]), destination=Bytes([0x12, 0x34, 0x56])),
-                True,
-                "  ptr label_1 ; D20000",
-            ),
-            (
-                Pointer(position=Bytes([0x12, 0x00, 0x00]), destination=Bytes([0x12, 0x34, 0x57])),
-                True,
-                "  ptr $3457 ; D20000",
-            ),
-            (
-                Pointer(position=Bytes([0x12, 0x00, 0x00]), destination=Bytes([0x12, 0x34, 0x56])),
-                False,
-                "  ptr label_1",
-            ),
-            (
-                Pointer(position=Bytes([0x12, 0x00, 0x00]), destination=Bytes([0x12, 0x34, 0x57])),
-                False,
-                "  ptr $3457",
-            ),
+            (None, None, "  ptr"),
+            (None, Bytes([0x12, 0x11, 0x11]), "  rptr"),
+            (Bytes([0x00, 0x00, 0x01]), Bytes([0x12, 0x11, 0x11]), "  rptr"),
         ],
     )
-    def test_to_line(self, pointer: Pointer, show_address: bool, expected: str, labels: list[Label]):
-        assert pointer.to_line(show_address=show_address, labels=labels) == expected
+    @pytest.mark.parametrize(
+        ["destination", "has_label"], [(Bytes([0x12, 0x34, 0x56]), True), (Bytes([0x12, 0x34, 0x57]), False)]
+    )
+    @pytest.mark.parametrize("debug", [True, False])
+    def test_to_line(
+        self,
+        labels: list[Label],
+        current_anchor: Bytes | None,
+        anchor: Bytes | None,
+        destination: Bytes,
+        has_label: bool,
+        expected: str,
+        debug: bool,
+    ):
+        pointer = Pointer(position=Bytes([0x12, 0x00, 0x00]), destination=destination, anchor=anchor)
+        if current_anchor:
+            expected = "anchor: $D21111\n" + expected
+        expected += " label_1" if has_label else f" ${str(pointer.data)}"
+        expected += " ; D20000" if debug else ""
+        assert pointer.to_line(show_address=debug, labels=labels, current_anchor=current_anchor) == expected
 
     @pytest.mark.parametrize(
         ["pointer", "expected_bytes"],
@@ -199,21 +200,11 @@ class TestPointer:
         [
             (
                 Pointer(position=Bytes([0x12, 0x00, 0x01]), destination=Bytes([0x12, 0x34, 0x56])),
-                "Pointer("
-                f"position={repr(Bytes([0x12, 0x00, 0x01]))}, "
-                f"data={repr(Bytes([0x34, 0x56]))}, "
-                f"destination={repr(Bytes([0x12, 0x34, 0x56]))}, "
-                f"anchor={repr(Bytes([0x12, 0x00, 0x00]))}"
-                ")",
+                "Pointer(position=0x120001, data=0x3456, destination=0x123456, anchor=0x120000)",
             ),
             (
                 Pointer(data=Bytes([0x12, 0x34]), anchor=Bytes([0x34, 0x56, 0x78])),
-                "Pointer("
-                f"position={repr(Bytes([0x00, 0x00, 0x00]))}, "
-                f"data={repr(Bytes([0x12, 0x34]))}, "
-                f"destination={repr(Bytes([0x34, 0x68, 0xAC]))}, "
-                f"anchor={repr(Bytes([0x34, 0x56, 0x78]))}"
-                ")",
+                "Pointer(position=0x000000, data=0x1234, destination=0x3468AC, anchor=0x345678)",
             ),
         ],
     )

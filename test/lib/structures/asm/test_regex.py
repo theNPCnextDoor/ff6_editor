@@ -362,6 +362,7 @@ class TestRegex:
             (" ptr $1234", True, "$1234", None),
             (" ptr $123456", False, None, None),
             (" ptr pastagate", True, None, "pastagate"),
+            (" rptr pastagate", True, None, "pastagate"),
         ],
     )
     def test_pointer_line(self, line: str, is_match: bool, chunk: str, label: str):
@@ -371,7 +372,9 @@ class TestRegex:
             assert match.group("chunk") == chunk
             assert match.group("label") == label
 
-    @pytest.mark.parametrize(["line", "is_match"], [("anchor: label1", True), ("anchor: C12345", False)])
+    @pytest.mark.parametrize(
+        ["line", "is_match"], [("anchor: label1", True), ("anchor: $C12345", True), ("anchor: $GGGGGG", False)]
+    )
     def test_anchor(self, line: str, is_match: bool):
         match = re.match(Regex.ANCHOR, line)
         assert bool(match) is is_match

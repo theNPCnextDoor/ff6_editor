@@ -37,6 +37,7 @@ class Pointer(ScriptLine, BankMixin, DestinationMixin, ToLineMixin):
 
         super().__init__(position=position)
         self.anchor = anchor or Bytes.from_position(self.position.bank())
+        self.is_relative = bool(anchor)
         self.destination = destination if destination is not None else self._data_to_destination(data=data)
 
         if (anchor and self.destination < anchor) or self.anchor.bank() != self.destination.bank():
@@ -61,6 +62,9 @@ class Pointer(ScriptLine, BankMixin, DestinationMixin, ToLineMixin):
         else:
             data = Bytes.from_str(match.group("number"))
 
+        is_relative = match.group("is_relative")
+        anchor = anchor if is_relative else None
+
         return cls(position=position, destination=destination, data=data, anchor=anchor)
 
     @classmethod
@@ -83,20 +87,31 @@ class Pointer(ScriptLine, BankMixin, DestinationMixin, ToLineMixin):
         delta = int(self.destination) - int(self.anchor)
         return Bytes.from_int(delta, length=2)
 
-    def to_line(self, show_address: bool = False, labels: list[Label] | None = None) -> str:
+    def to_line(
+        self, show_address: bool = False, labels: list[Label] | None = None, current_anchor: Bytes | None = None
+    ) -> str:
         """
         Converts a Pointer into a script line.
         :param show_address: When True, will add the Pointer's position as a comment.
         :param labels: A list of labels in order to represent the destination as a label and not a SNES address.
+        :param current_anchor: If the Pointer is relative and the current_anchor is different from the Pointer's one,
+         an anchor line will be prepended to the output.
         :return: A string.
         """
-        output = "  ptr "
-        label = None
+        output = ""
+        destination_label, anchor_label = None, None
 
         if labels:
-            label = self.find_label(destination=self.destination, labels=labels)
+            destination_label = self.find_label(destination=self.destination, labels=labels)
+            anchor_label = self.find_label(destination=self.anchor, labels=labels)
 
-        output += f"{label.name}" if label else f"${self.data}"
+        if self.is_relative and current_anchor and current_anchor != self.anchor:
+            output += "anchor: "
+            output += f"@{anchor_label.name}" if anchor_label else f"${self.anchor.to_snes_address()}"
+            output += "\n"
+
+        output += f"  {'r' if self.is_relative else ''}ptr "
+        output += f"{destination_label.name}" if destination_label else f"${self.data}"
         output += f" ; {self.position.to_snes_address()}" if show_address else ""
 
         return output
@@ -117,10 +132,10 @@ class Pointer(ScriptLine, BankMixin, DestinationMixin, ToLineMixin):
     def __repr__(self) -> str:
         return (
             "Pointer("
-            f"position={repr(self.position)}, "
-            f"data={repr(self.data)}, "
-            f"destination={repr(self.destination)}, "
-            f"anchor={repr(self.anchor)}"
+            f"position=0x{str(self.position)}, "
+            f"data=0x{str(self.data)}, "
+            f"destination=0x{str(self.destination)}, "
+            f"anchor=0x{str(self.anchor)}"
             ")"
         )
 
