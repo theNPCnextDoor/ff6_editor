@@ -207,10 +207,10 @@ class TestRegex:
     @pytest.mark.parametrize(
         "line,m,x",
         [
-            ("m=8,x=16", True, False),
-            ("m=16,x=8", False, True),
-            ("m=true,x=false", True, False),
-            ("m=false,x=true", False, True),
+            ("m=8,x=16", 8, 16),
+            ("m=16,x=8", 16, 8),
+            ("m=true,x=false", 8, 16),
+            ("m=false,x=true", 16, 8),
         ],
     )
     def test_flags_line(self, line: str, m: bool, x: bool):
@@ -362,6 +362,7 @@ class TestRegex:
             (" ptr $1234", True, "$1234", None),
             (" ptr $123456", False, None, None),
             (" ptr pastagate", True, None, "pastagate"),
+            (" rptr pastagate", True, None, "pastagate"),
         ],
     )
     def test_pointer_line(self, line: str, is_match: bool, chunk: str, label: str):
@@ -370,3 +371,10 @@ class TestRegex:
         if is_match:
             assert match.group("chunk") == chunk
             assert match.group("label") == label
+
+    @pytest.mark.parametrize(
+        ["line", "is_match"], [("anchor: label1", True), ("anchor: $C12345", True), ("anchor: $GGGGGG", False)]
+    )
+    def test_anchor(self, line: str, is_match: bool):
+        match = re.match(Regex.ANCHOR, line)
+        assert bool(match) is is_match

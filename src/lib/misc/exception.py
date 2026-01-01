@@ -10,5 +10,9 @@ class MissingSectionAttribute(Exception):
     pass
 
 
+class UnderflowError(Exception):
+    pass
+
+
 class UnrecognizedBlob(Exception):
     pass

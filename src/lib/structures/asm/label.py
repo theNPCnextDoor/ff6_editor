@@ -3,19 +3,19 @@ from typing import Self
 
 from src.lib.structures.asm.regex import ToLineMixin
 from src.lib.structures.asm.script_line import ScriptLine
-from src.lib.structures.bytes import Position
+from src.lib.structures.bytes import Bytes
 
 
 class Label(ScriptLine, ToLineMixin):
 
-    def __init__(self, position: Position, name: str = None):
+    def __init__(self, position: Bytes, name: str = None):
         super().__init__(position=position)
         self.name = (name or f"label_{self.position.to_snes_address().replace('/', '')}").lower()
 
     @classmethod
-    def from_regex_match(cls, match: Match, position: Position = None) -> Self:
+    def from_regex_match(cls, match: Match, position: Bytes = None) -> Self:
         name = match.group(1)
-        position = Position.from_snes_address(match.group("snes_address")) if match.group("snes_address") else position
+        position = Bytes.from_snes_address(match.group("snes_address")) if match.group("snes_address") else position
 
         return cls(
             position=position,

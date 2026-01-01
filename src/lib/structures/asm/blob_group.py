@@ -7,19 +7,19 @@ from src.lib.structures.asm.label import Label
 from src.lib.structures.asm.regex import Regex, ToLineMixin
 from src.lib.structures.asm.script_line import ScriptLine
 from src.lib.structures.asm.string import String
-from src.lib.structures.bytes import Position
+from src.lib.structures.bytes import Bytes
 from src.lib.structures.charset.charset import Charset
 from src.lib.misc.exception import UnrecognizedBlob
 
 
 class BlobGroup(ScriptLine, ToLineMixin):
 
-    def __init__(self, blobs: list[Blob] | None = None, position: Position | None = None):
+    def __init__(self, blobs: list[Blob] | None = None, position: Bytes | None = None):
         super().__init__(position=position)
         self.blobs = blobs or list()
 
     @classmethod
-    def from_regex_match(cls, match: Match, position: Position | None = None, charset: Charset | None = None) -> Self:
+    def from_regex_match(cls, match: Match, position: Bytes | None = None, charset: Charset | None = None) -> Self:
         parts = [part.strip() for part in match.group(0).split("|")]
         cursor = int(position)
         blobs = list()
@@ -28,10 +28,10 @@ class BlobGroup(ScriptLine, ToLineMixin):
             cleaned_part = re.sub(' #[^"]*$', "", part)
 
             if blob_match := re.search(Regex.MENU_STRING, cleaned_part):
-                blob = String.from_regex_match(blob_match, position=Position([cursor]))
+                blob = String.from_regex_match(blob_match, position=Bytes.from_position(cursor))
 
             elif blob_match := re.search(Regex.BLOB, cleaned_part):
-                blob = Blob.from_regex_match(blob_match, position=Position([cursor]))
+                blob = Blob.from_regex_match(blob_match, position=Bytes.from_position(cursor))
 
             else:
                 raise UnrecognizedBlob(f"Blob part {i} is unrecognized.\n{cleaned_part=}\n{match.group(0)}")

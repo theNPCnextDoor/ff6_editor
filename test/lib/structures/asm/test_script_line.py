@@ -2,7 +2,7 @@ import pytest
 
 from src.lib.structures.asm.label import Label
 from src.lib.structures.asm.script_line import ScriptLine
-from src.lib.structures.bytes import Position
+from src.lib.structures.bytes import Bytes
 
 
 class TestScriptLine:
@@ -10,8 +10,8 @@ class TestScriptLine:
     @pytest.mark.parametrize(
         ["left", "right", "are_equal"],
         [
-            (ScriptLine(Position([0x01])), ScriptLine(Position([0x01])), True),
-            (ScriptLine(Position([0x01])), ScriptLine(Position([0x02])), False),
+            (ScriptLine(Bytes([0x01])), ScriptLine(Bytes([0x01])), True),
+            (ScriptLine(Bytes([0x01])), ScriptLine(Bytes([0x02])), False),
         ],
     )
     def test_eq(self, left: ScriptLine, right: ScriptLine, are_equal: bool):
@@ -20,11 +20,11 @@ class TestScriptLine:
     @pytest.mark.parametrize(
         ["left", "right", "expected"],
         [
-            (ScriptLine(Position([0x01])), ScriptLine(Position([0x01])), True),
-            (ScriptLine(Position([0x01])), ScriptLine(Position([0x02])), True),
-            (ScriptLine(Position([0x02])), ScriptLine(Position([0x01])), False),
-            (ScriptLine(Position([0x01])), Label(Position([0x01])), False),
-            (Label(Position([0x01])), ScriptLine(Position([0x01])), True),
+            (ScriptLine(Bytes([0x00, 0x00, 0x01])), ScriptLine(Bytes([0x00, 0x00, 0x01])), True),
+            (ScriptLine(Bytes([0x00, 0x00, 0x01])), ScriptLine(Bytes([0x00, 0x00, 0x02])), True),
+            (ScriptLine(Bytes([0x00, 0x00, 0x02])), ScriptLine(Bytes([0x00, 0x00, 0x01])), False),
+            (ScriptLine(Bytes([0x00, 0x00, 0x01])), Label(Bytes([0x00, 0x00, 0x01])), False),
+            (Label(Bytes([0x00, 0x00, 0x01])), ScriptLine(Bytes([0x00, 0x00, 0x01])), True),
         ],
     )
     def test_lt(self, left: ScriptLine, right: ScriptLine, expected: bool):

@@ -32,7 +32,8 @@ class Regex:
     BRANCHING_INSTRUCTION_LINE = (
         rf"^ +(?P<command>(BCC|BCS|BEQ|BMI|BNE|BPL|BRA|BRL|BVC|BVS|JMP|JML|JSR|JSL)) ({CHUNK}|{LABEL})"
     )
-    POINTER_LINE = rf"^ +ptr ((?P<chunk>\$(?P<number>{TWO_BYTES}))|{LABEL})"
+    POINTER_LINE = rf"^ +(?P<is_relative>r)?ptr ((?P<chunk>\$(?P<number>{TWO_BYTES}))|{LABEL})"
+    ANCHOR = rf"^anchor: (\${SNES_ADDRESS}|{LABEL})"
 
 
 class ToLineMixin:
