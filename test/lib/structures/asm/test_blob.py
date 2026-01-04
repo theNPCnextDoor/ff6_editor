@@ -7,6 +7,7 @@ import pytest
 from src.lib.structures.asm.regex import Regex
 from src.lib.structures.bytes import Bytes
 from src.lib.structures.asm.blob import Blob
+from test.lib.structures.conftest import TEST_BYTE
 
 
 class TestBlob:
@@ -28,7 +29,7 @@ class TestBlob:
     @pytest.mark.parametrize(
         ["line", "blob"],
         [
-            ("  $12", Blob(data=Bytes([0x12]))),
+            ("  $12", Blob(data=TEST_BYTE)),
             ("  $0123456789ABCDEF", Blob(data=Bytes([0xEF, 0xCD, 0xAB, 0x89, 0x67, 0x45, 0x23, 0x01]))),
             ("  $FFFF # C0/0000", Blob(data=Bytes([0xFF, 0xFF]))),
         ],
@@ -40,7 +41,7 @@ class TestBlob:
     @pytest.mark.parametrize(
         ["data", "blob"],
         [
-            (b"\x12", Blob(data=Bytes([0x12]))),
+            (b"\x12", Blob(data=TEST_BYTE)),
             (b"\x01\x23\x45\x67\x89\xab\xcd\xef", Blob(data=Bytes([0xEF, 0xCD, 0xAB, 0x89, 0x67, 0x45, 0x23, 0x01]))),
             (b"\xff\xff", Blob(data=Bytes([0xFF, 0xFF]))),
         ],

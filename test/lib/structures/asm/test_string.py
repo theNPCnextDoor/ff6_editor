@@ -5,6 +5,7 @@ import pytest
 from src.lib.structures.asm.regex import Regex
 from src.lib.structures.asm.string import String
 from src.lib.structures.bytes import Bytes
+from test.lib.structures.conftest import TEST_BYTE
 
 
 class TestString:
@@ -20,7 +21,7 @@ class TestString:
                 '  "<0x01>" $FF',
                 String(data=Bytes([0x01]), delimiter=Bytes([0xFF])),
             ),
-            ('  "  " $12 # C0/0000', String(data=Bytes([0xFE, 0xFE]), delimiter=Bytes([0x12]))),
+            ('  "  " $12 # C0/0000', String(data=Bytes([0xFE, 0xFE]), delimiter=TEST_BYTE)),
         ],
     )
     def test_from_regex_match(self, line: str, expected: String):

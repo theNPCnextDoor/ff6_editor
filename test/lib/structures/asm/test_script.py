@@ -21,6 +21,7 @@ from src.lib.structures.asm.script import (
 )
 from src.lib.structures.charset.charset import MENU_CHARSET, Charset
 from test import RESOURCES_FOLDER
+from test.lib.structures.conftest import TEST_BYTE, TEST_WORD, TEST_POSITION
 
 CONFLICTING_FILE_1 = Path(RESOURCES_FOLDER, "conflicting_file_1.asm")
 CONFLICTING_FILE_2 = Path(RESOURCES_FOLDER, "conflicting_file_2.asm")
@@ -53,7 +54,7 @@ class ScriptImpl:
 
         self.script.instructions = [
             Instruction(position=Bytes([0x00, 0x00, 0x05]), opcode=Bytes([0xAA]), data=None),
-            Instruction(position=Bytes([0x00, 0x00, 0x06]), opcode=Bytes([0xA1]), data=Bytes([0x12])),
+            Instruction(position=Bytes([0x00, 0x00, 0x06]), opcode=Bytes([0xA1]), data=TEST_BYTE),
             Instruction(position=Bytes([0x00, 0x00, 0x08]), opcode=Bytes([0xA2]), data=Bytes([0xFE, 0xDC])),
             Instruction(position=Bytes([0x00, 0x00, 0x0B]), opcode=Bytes([0xC2]), data=Bytes([0x30])),
             Instruction(position=Bytes([0x00, 0x00, 0x0D]), opcode=Bytes([0xA9]), data=Bytes([0x34, 0x56])),
@@ -70,7 +71,7 @@ class ScriptImpl:
         ]
 
         self.script.blobs = [
-            Blob(position=Bytes([0x00, 0x00, 0x21]), data=Bytes([0x12, 0x34])),
+            Blob(position=Bytes([0x00, 0x00, 0x21]), data=TEST_WORD),
             Blob(position=Bytes([0x00, 0x00, 0x23]), data=Bytes([0x56, 0x78]), delimiter=Bytes([0xFF])),
             Blob(position=Bytes([0x00, 0x00, 0x26]), data=Bytes([0xAB, 0xCD]), delimiter=Bytes([0x00])),
             String(
@@ -102,7 +103,7 @@ class ScriptImpl:
         self.script.pointers.append(
             Pointer(
                 position=Bytes([0x00, 0x00, 0x3A]),
-                destination=Bytes([0x12, 0x34, 0x56]),
+                destination=TEST_POSITION,
                 anchor=Bytes([0x12, 0x00, 0x01]),
             )
         )
@@ -131,14 +132,14 @@ class TestScript:
         assert script.labels[0] == Label(position=Bytes([0x00, 0x00, 0x01]), name="start")
         assert script.labels[1] == Label(position=Bytes([0x00, 0x00, 0x05]), name="archie")
         assert script.labels[2] == Label(position=Bytes([0x12, 0x00, 0x01]), name="anchor_1")
-        assert script.labels[3] == Label(position=Bytes([0x12, 0x34, 0x56]), name="rptr_1")
+        assert script.labels[3] == Label(position=TEST_POSITION, name="rptr_1")
         assert script.labels[4] == Label(position=Bytes([0x12, 0x34, 0x57]), name="rptr_2")
 
         assert len(script.pointers) == 5
         assert script.pointers[0] == Pointer(position=Bytes([0x00, 0x00, 0x01]), destination=Bytes([0x00, 0x12, 0x34]))
         assert script.pointers[1] == Pointer(position=Bytes([0x00, 0x00, 0x03]), destination=Bytes([0x00, 0x00, 0x05]))
         assert script.pointers[2] == Pointer(
-            position=Bytes([0x00, 0x00, 0x3A]), anchor=Bytes([0x12, 0x00, 0x01]), destination=Bytes([0x12, 0x34, 0x56])
+            position=Bytes([0x00, 0x00, 0x3A]), anchor=Bytes([0x12, 0x00, 0x01]), destination=TEST_POSITION
         )
         assert script.pointers[3] == Pointer(
             position=Bytes([0x00, 0x00, 0x3C]), anchor=Bytes([0x12, 0x00, 0x01]), destination=Bytes([0x12, 0x34, 0x57])
@@ -152,7 +153,7 @@ class TestScript:
             position=Bytes([0x00, 0x00, 0x05]), opcode=Bytes([0xAA]), data=None
         )
         assert script.instructions[1] == Instruction(
-            position=Bytes([0x00, 0x00, 0x06]), opcode=Bytes([0xA1]), data=Bytes([0x12])
+            position=Bytes([0x00, 0x00, 0x06]), opcode=Bytes([0xA1]), data=TEST_BYTE
         )
         assert script.instructions[2] == Instruction(
             position=Bytes([0x00, 0x00, 0x08]), opcode=Bytes([0xA2]), data=Bytes([0xFE, 0xDC])
@@ -179,7 +180,7 @@ class TestScript:
         )
 
         assert script.instructions[9] == Instruction(
-            position=Bytes([0x00, 0x00, 0x19]), opcode=Bytes([0x44]), data=Bytes([0x12, 0x34])
+            position=Bytes([0x00, 0x00, 0x19]), opcode=Bytes([0x44]), data=TEST_WORD
         )
 
         assert len(script.branching_instructions) == 2
@@ -191,7 +192,7 @@ class TestScript:
         )
 
         assert len(script.blobs) == 5
-        assert script.blobs[0] == Blob(position=Bytes([0x00, 0x00, 0x21]), data=Bytes([0x12, 0x34]))
+        assert script.blobs[0] == Blob(position=Bytes([0x00, 0x00, 0x21]), data=TEST_WORD)
         assert script.blobs[1] == Blob(
             position=Bytes([0x00, 0x00, 0x23]), data=Bytes([0x56, 0x78]), delimiter=Bytes([0xFF])
         )
@@ -311,7 +312,7 @@ class TestScript:
         )
 
         assert len(script.blobs) == 4
-        assert script.blobs[0] == Blob(position=Bytes([0x00, 0x00, 0x12]), data=Bytes([0x12, 0x34]))
+        assert script.blobs[0] == Blob(position=Bytes([0x00, 0x00, 0x12]), data=TEST_WORD)
         assert script.blobs[1] == Blob(
             position=Bytes([0x00, 0x00, 0x14]), data=Bytes([0x56, 0x78]), delimiter=Bytes([0xFF])
         )

@@ -7,6 +7,7 @@ from src.lib.structures.asm.blob_group import BlobGroup
 from src.lib.structures.asm.regex import Regex
 from src.lib.structures.asm.string import String, StringTypes
 from src.lib.structures.bytes import Bytes
+from test.lib.structures.conftest import TEST_WORD
 
 GROUP = BlobGroup(
     blobs=[
@@ -32,7 +33,7 @@ class TestBlobGroup:
                 '  "This is a string # " | $01',
                 BlobGroup(
                     blobs=[
-                        String(data=Bytes([0x12, 0x34])),
+                        String(data=TEST_WORD),
                         Blob(data=Bytes([0x01]), position=Bytes([0x00, 0x00, 0x13])),
                     ]
                 ),
@@ -42,7 +43,7 @@ class TestBlobGroup:
                 BlobGroup(
                     blobs=[
                         Blob(data=Bytes([0xCD, 0x78])),
-                        String(data=Bytes([0x12, 0x34]), delimiter=Bytes([0x00])),
+                        String(data=TEST_WORD, delimiter=Bytes([0x00])),
                     ]
                 ),
             ),

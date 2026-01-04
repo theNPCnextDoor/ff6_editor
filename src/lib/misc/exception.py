@@ -16,3 +16,7 @@ class UnderflowError(Exception):
 
 class UnrecognizedBlob(Exception):
     pass
+
+
+class ReassignmentException(Exception):
+    pass

@@ -5,14 +5,15 @@ import pytest
 from src.lib.structures.asm.label import Label
 from src.lib.structures.asm.regex import Regex
 from src.lib.structures.bytes import Bytes
+from test.lib.structures.conftest import TEST_POSITION
 
 
 class TestLabel:
     @pytest.mark.parametrize(
         ["line", "position", "expected_position"],
         [
-            ("@label_123", Bytes([0x12, 0x34, 0x56]), Bytes([0x12, 0x34, 0x56])),
-            ("@label_456=C3FFFF", Bytes([0x12, 0x34, 0x56]), Bytes([0x03, 0xFF, 0xFF])),
+            ("@label_123", TEST_POSITION, TEST_POSITION),
+            ("@label_456=C3FFFF", TEST_POSITION, Bytes([0x03, 0xFF, 0xFF])),
         ],
     )
     def test_position(self, line: str, position: Bytes, expected_position: Bytes):
@@ -31,4 +32,4 @@ class TestLabel:
         assert label.to_line(show_address=show_address) == name
 
     def test_len(self):
-        assert len(Label(position=Bytes([0x12, 0x34, 0x56]))) == 0
+        assert len(Label(position=TEST_POSITION)) == 0

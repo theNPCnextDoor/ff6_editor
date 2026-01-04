@@ -30,7 +30,7 @@ class TestRegex:
         ],
     )
     def test_two_bytes(self, line: str, is_match: bool):
-        assert bool(re.search(Regex.TWO_BYTES, line)) == is_match
+        assert bool(re.search(Regex.WORD, line)) == is_match
 
     @pytest.mark.parametrize(
         "line,is_match", [("00", True), ("AAAA", True), ("9F9F9F", True), ("1G89", False), ("$00", False)]
@@ -125,8 +125,8 @@ class TestRegex:
             ("abulita=granma", False),
         ],
     )
-    def test_label(self, line: str, is_match):
-        assert bool(re.fullmatch(Regex.LABEL, line)) == is_match
+    def test_variable(self, line: str, is_match):
+        assert bool(re.fullmatch(Regex.VARIABLE, line)) == is_match
 
     @pytest.mark.parametrize(
         ["line", "is_match"],
@@ -371,6 +371,23 @@ class TestRegex:
         if is_match:
             assert match.group("chunk") == chunk
             assert match.group("label") == label
+
+    @pytest.mark.parametrize(
+        ["line", "expected"],
+        [
+            ("let alice=$12", False),
+            ("let .alice=$12", True),
+            ("let !bob = $1234", True),
+            ("let @charlie = $123456", True),
+            ("let !0delta=$12", False),
+            ("let !eleanor", False),
+            ("let @francis=$12345678", False),
+            ("let .gideon=1234", False),
+        ],
+    )
+    def test_variable_assignment(self, line: str, expected: bool):
+        match = re.fullmatch(Regex.VARIABLE_ASSIGNMENT, line)
+        assert bool(match) is expected
 
     @pytest.mark.parametrize(
         ["line", "is_match"], [("anchor: label1", True), ("anchor: $C12345", True), ("anchor: $GGGGGG", False)]

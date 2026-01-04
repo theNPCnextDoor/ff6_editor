@@ -8,6 +8,7 @@ from src.lib.structures.asm.label import Label
 from src.lib.structures.asm.pointer import Pointer
 from src.lib.structures.asm.script_line import NoLabelException, ImpossibleDestination
 from src.lib.structures.asm.regex import Regex
+from test.lib.structures.conftest import TEST_POSITION, TEST_WORD
 
 
 class TestPointer:
@@ -19,7 +20,7 @@ class TestPointer:
                 Pointer(position=Bytes([0x11, 0x22, 0x33]), anchor=None, destination=Bytes([0x11, 0x44, 0x55])),
                 Bytes([0x44, 0x55]),
             ),
-            (Pointer(destination=Bytes([0x12, 0x34, 0x66]), anchor=Bytes([0x12, 0x34, 0x56])), Bytes([0x00, 0x10])),
+            (Pointer(destination=Bytes([0x12, 0x34, 0x66]), anchor=TEST_POSITION), Bytes([0x00, 0x10])),
         ],
     )
     def test_init_data_is_properly_set_when_destination_is_given(self, pointer: Pointer, data: Bytes):
@@ -33,7 +34,7 @@ class TestPointer:
                 Pointer(position=Bytes([0x11, 0x22, 0x33]), anchor=None, data=Bytes([0x44, 0x55])),
                 Bytes([0x11, 0x44, 0x55]),
             ),
-            (Pointer(data=Bytes([0x00, 0x10]), anchor=Bytes([0x12, 0x34, 0x56])), Bytes([0x12, 0x34, 0x66])),
+            (Pointer(data=Bytes([0x00, 0x10]), anchor=TEST_POSITION), Bytes([0x12, 0x34, 0x66])),
         ],
     )
     def test_init_destination_is_properly_set_when_data_is_given(self, pointer: Pointer, destination: Bytes):
@@ -41,14 +42,14 @@ class TestPointer:
 
     def test_init_value_error_is_raised_when_both_destination_and_data_are_omitted(self):
         with pytest.raises(ValueError):
-            Pointer(position=Bytes([0x12, 0x34, 0x56]))
+            Pointer(position=TEST_POSITION)
 
     @pytest.mark.parametrize(
         ["position", "anchor", "destination"],
         [
             (Bytes([0x00, 0x00, 0x00]), None, Bytes([0x01, 0x00, 0x00])),
             (Bytes([0x11, 0x22, 0x33]), None, Bytes([0x12, 0x00, 0x00])),
-            (Bytes([0x11, 0x22, 0x33]), Bytes([0x12, 0x34, 0x56]), Bytes([0x11, 0x00, 0x00])),
+            (Bytes([0x11, 0x22, 0x33]), TEST_POSITION, Bytes([0x11, 0x00, 0x00])),
         ],
     )
     def test_init_impossible_destination_raise_an_impossible_destination(
@@ -61,21 +62,21 @@ class TestPointer:
         ["line", "position", "anchor", "data", "destination"],
         [
             (" ptr $1413", Bytes([0x11, 0x11, 0x11]), None, Bytes([0x14, 0x13]), Bytes([0x11, 0x14, 0x13])),
-            (" ptr label_1", Bytes([0x12, 0xFF, 0x00]), None, Bytes([0x34, 0x56]), Bytes([0x12, 0x34, 0x56])),
+            (" ptr label_1", Bytes([0x12, 0xFF, 0x00]), None, Bytes([0x34, 0x56]), TEST_POSITION),
             (" ptr label_2", Bytes([0x34, 0x00, 0x03]), None, Bytes([0xFF, 0xFE]), Bytes([0x34, 0xFF, 0xFE])),
             (
                 " rptr $1413",
                 Bytes([0x01, 0x11, 0x11]),
-                Bytes([0x12, 0x34, 0x56]),
+                TEST_POSITION,
                 Bytes([0x14, 0x13]),
                 Bytes([0x12, 0x48, 0x69]),
             ),
             (
                 " rptr label_1",
                 Bytes([0x01, 0xFF, 0x00]),
-                Bytes([0x12, 0x34, 0x56]),
+                TEST_POSITION,
                 Bytes([0x00, 0x00]),
-                Bytes([0x12, 0x34, 0x56]),
+                TEST_POSITION,
             ),
             (
                 " rptr label_2",
@@ -127,9 +128,7 @@ class TestPointer:
             (Bytes([0x00, 0x00, 0x01]), Bytes([0x12, 0x11, 0x11]), "  rptr"),
         ],
     )
-    @pytest.mark.parametrize(
-        ["destination", "has_label"], [(Bytes([0x12, 0x34, 0x56]), True), (Bytes([0x12, 0x34, 0x57]), False)]
-    )
+    @pytest.mark.parametrize(["destination", "has_label"], [(TEST_POSITION, True), (Bytes([0x12, 0x34, 0x57]), False)])
     @pytest.mark.parametrize("debug", [True, False])
     def test_to_line(
         self,
@@ -188,8 +187,8 @@ class TestPointer:
     @pytest.mark.parametrize(
         ["pointer", "expected"],
         [
-            (Pointer(position=Bytes([0x12, 0x00, 0x00]), destination=Bytes([0x12, 0x34, 0x56])), "ptr $3456"),
-            (Pointer(data=Bytes([0x12, 0x34])), "ptr $1234"),
+            (Pointer(position=Bytes([0x12, 0x00, 0x00]), destination=TEST_POSITION), "ptr $3456"),
+            (Pointer(data=TEST_WORD), "ptr $1234"),
         ],
     )
     def test_str(self, pointer: Pointer, expected: str):
@@ -199,11 +198,11 @@ class TestPointer:
         ["pointer", "expected"],
         [
             (
-                Pointer(position=Bytes([0x12, 0x00, 0x01]), destination=Bytes([0x12, 0x34, 0x56])),
+                Pointer(position=Bytes([0x12, 0x00, 0x01]), destination=TEST_POSITION),
                 "Pointer(position=0x120001, data=0x3456, destination=0x123456, anchor=0x120000)",
             ),
             (
-                Pointer(data=Bytes([0x12, 0x34]), anchor=Bytes([0x34, 0x56, 0x78])),
+                Pointer(data=TEST_WORD, anchor=Bytes([0x34, 0x56, 0x78])),
                 "Pointer(position=0x000000, data=0x1234, destination=0x3468AC, anchor=0x345678)",
             ),
         ],
@@ -212,12 +211,12 @@ class TestPointer:
         assert repr(pointer) == expected
 
     def test_len(self):
-        assert len(Pointer(position=Bytes([0x12, 0x34, 0x56]), destination=Bytes([0x12, 0x45, 0x67]))) == 2
+        assert len(Pointer(position=TEST_POSITION, destination=Bytes([0x12, 0x45, 0x67]))) == 2
 
     @pytest.mark.parametrize(
         ["data", "destination", "anchor"],
         [
-            (Bytes([0x12, 0x34]), Bytes([0x12, 0x46, 0x8A]), Bytes([0x12, 0x34, 0x56])),
+            (TEST_WORD, Bytes([0x12, 0x46, 0x8A]), TEST_POSITION),
             (Bytes([0x00, 0x01]), Bytes([0x00, 0x00, 0x02]), Bytes([0x00, 0x00, 0x01])),
         ],
     )
