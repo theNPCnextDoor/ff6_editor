@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+
 class TooManyCandidatesException(Exception):
     pass
 
@@ -19,4 +22,12 @@ class UnrecognizedBlob(Exception):
 
 
 class ReassignmentException(Exception):
+    pass
+
+
+class ImpossibleDestination(Exception):
+    pass
+
+
+class NoLabelException(Exception):
     pass

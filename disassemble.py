@@ -1,7 +1,7 @@
 import tomllib
 
-from src.lib.structures.asm.flags import Flags
-from src.lib.structures.asm.script import Script, ScriptSection, ScriptMode, SubSection
+from src.lib.assembly.artifact.flags import Flags
+from src.lib.assembly.script import Script, ScriptSection, ScriptMode, SubSection
 
 
 def disassemble(configs: dict):
