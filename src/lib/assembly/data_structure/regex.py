@@ -37,6 +37,16 @@ class Regex:
     ANCHOR = rf"^anchor: (\${SNES_ADDRESS}|(?P<label>{VARIABLE}))"
 
 
+class InstructionRegex:
+    OP_VALUE = rf"(\${Regex.DATA}|[.!@]{Regex.VARIABLE})"
+    IMMEDIATE_MODE = rf"#{OP_VALUE}"
+    ABSOLUTE_MODE = rf"{OP_VALUE}(,[SXY])?"
+    DIRECT_MODE = rf"\({OP_VALUE}((,X)?\)|(,S)?\)(,Y)?)"
+    DIRECT_LONG_MODE = rf"\[{OP_VALUE}\](,Y)?"
+    OPERAND = rf"{IMMEDIATE_MODE}|{DIRECT_MODE}|{DIRECT_LONG_MODE}|{ABSOLUTE_MODE}"
+    MOVING_BLOCK_OPERAND = rf"{IMMEDIATE_MODE},{IMMEDIATE_MODE}"
+
+
 class ToLineMixin:
     @abstractmethod
     def to_line(self, show_address: bool = False, labels: list[Label] | None = None) -> str:

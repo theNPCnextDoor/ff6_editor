@@ -4,7 +4,7 @@ from typing import Optional
 import pytest as pytest
 
 from src.lib.assembly.artifact.flags import Flags
-from src.lib.assembly.data_structure.regex import Regex
+from src.lib.assembly.data_structure.regex import Regex, InstructionRegex
 
 
 class TestRegex:
@@ -395,3 +395,178 @@ class TestRegex:
     def test_anchor(self, line: str, is_match: bool):
         match = re.match(Regex.ANCHOR, line)
         assert bool(match) is is_match
+
+
+class TestInstructionRegex:
+    @pytest.mark.parametrize(
+        ["value", "expected"],
+        [
+            ("$ABCDEF", True),
+            (".ABCDEF", False),
+            ("!ABCDEF", False),
+            ("@ABCDEF", False),
+            ("$abcdef", False),
+            (".abcdef", True),
+            ("!abcdef", True),
+            ("@abcdef", True),
+        ],
+    )
+    def test_op_value(self, value: str, expected: bool):
+        match = re.fullmatch(InstructionRegex.OP_VALUE, value)
+        assert bool(match) is expected
+
+    @pytest.mark.parametrize(
+        ["value", "expected"],
+        [
+            ("#$123456", True),
+            ("#.alice", True),
+            ("#$12,S", False),
+            ("#$12,X", False),
+            ("#$12,Y", False),
+            ("(#$12)", False),
+            ("(#$12,X)", False),
+            ("(#$12),Y", False),
+            ("(#$12,S),Y", False),
+            ("[#$12]", False),
+            ("[#$12],Y", False),
+        ],
+    )
+    def test_immediate_mode(self, value: str, expected: bool):
+        match = re.fullmatch(InstructionRegex.IMMEDIATE_MODE, value)
+        assert bool(match) is expected
+
+    @pytest.mark.parametrize(
+        ["value", "expected"],
+        [
+            ("$123456", True),
+            (".alice", True),
+            ("$12,S", True),
+            ("$12,X", True),
+            ("$12,Y", True),
+            ("#$12", False),
+            ("($12)", False),
+            ("($12,X)", False),
+            ("($12),Y", False),
+            ("($12,S),Y", False),
+            ("[$12]", False),
+            ("[$12],Y", False),
+        ],
+    )
+    def test_absolute_mode(self, value: str, expected: bool):
+        match = re.fullmatch(InstructionRegex.ABSOLUTE_MODE, value)
+        assert bool(match) is expected
+
+    @pytest.mark.parametrize(
+        ["value", "expected"],
+        [
+            ("(.alice)", True),
+            ("($123456)", True),
+            ("($12,X)", True),
+            ("($12),Y", True),
+            ("($12,S),Y", True),
+            ("($12", False),
+            ("($12,X", False),
+            ("($12,Y", False),
+            ("($12,S,Y", False),
+            ("($12,S,Y)", False),
+            ("(#$12)", False),
+            ("($12,Y)", False),
+            ("($12),X", False),
+            ("($12),S", False),
+            ("($12,X),X", False),
+            ("($12,X),Y", False),
+            ("($12,X),S", False),
+            ("($12,Y),X", False),
+            ("($12,Y),Y", False),
+            ("($12,Y),S", False),
+            ("($12,S),X", False),
+            ("($12,S),S", False),
+        ],
+    )
+    def test_direct_mode(self, value: str, expected: bool):
+        match = re.fullmatch(InstructionRegex.DIRECT_MODE, value)
+        assert bool(match) is expected
+
+    @pytest.mark.parametrize(
+        ["value", "expected"],
+        [
+            ("[$123456]", True),
+            ("[.alice]", True),
+            ("[$12],Y", True),
+            ("[$12", False),
+            ("[$12,Y", False),
+            ("[#$12]", False),
+            ("[$12],X", False),
+            ("[$12],S", False),
+            ("[$12,X]", False),
+            ("[$12,Y]", False),
+            ("[$12,S]", False),
+        ],
+    )
+    def test_direct_long_mode(self, value: str, expected: bool):
+        match = re.fullmatch(InstructionRegex.DIRECT_LONG_MODE, value)
+        assert bool(match) is expected
+
+    @pytest.mark.parametrize(
+        ["value", "expected"],
+        [
+            ("#$12", True),
+            ("$12", True),
+            ("$12,S", True),
+            ("$12,X", True),
+            ("$12,Y", True),
+            ("($12)", True),
+            ("($12,X)", True),
+            ("($12),Y", True),
+            ("($12,S),Y", True),
+            ("[$12]", True),
+            ("[$12],Y", True),
+            ("#$12,S", False),
+            ("#$12,X", False),
+            ("#$12,Y", False),
+            ("(#$12)", False),
+            ("(#$12,X)", False),
+            ("(#$12),Y", False),
+            ("(#$12,S),Y", False),
+            ("[#$12]", False),
+            ("[#$12],Y", False),
+            ("($12", False),
+            ("($12,X", False),
+            ("($12,Y", False),
+            ("($12,S,Y", False),
+            ("($12,S,Y)", False),
+            ("($12,Y)", False),
+            ("($12),X", False),
+            ("($12),S", False),
+            ("($12,X),X", False),
+            ("($12,X),Y", False),
+            ("($12,X),S", False),
+            ("($12,Y),X", False),
+            ("($12,Y),Y", False),
+            ("($12,Y),S", False),
+            ("($12,S),X", False),
+            ("($12,S),S", False),
+            ("[$12", False),
+            ("[$12,Y", False),
+            ("[$12],X", False),
+            ("[$12],S", False),
+            ("[$12,X]", False),
+            ("[$12,Y]", False),
+            ("[$12,S]", False),
+        ],
+    )
+    def test_operand(self, value: str, expected: bool):
+        match = re.fullmatch(InstructionRegex.OPERAND, value)
+        assert bool(match) is expected
+
+    @pytest.mark.parametrize(
+        ["value", "expected"],
+        [
+            ("#$12,#.alice", True),
+            ("#.alice,#$12", True),
+            ("#$12", False),
+        ],
+    )
+    def test_moving_block_operand(self, value: str, expected: bool):
+        match = re.fullmatch(InstructionRegex.MOVING_BLOCK_OPERAND, value)
+        assert bool(match) is expected
