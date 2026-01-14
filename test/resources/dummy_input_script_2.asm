@@ -1,5 +1,8 @@
 m=8,x=16
 
+let .alice = $12
+let !bob = $1234
+
 @archie=C00005
   TAX ; some comment
   LDA ($12,X)

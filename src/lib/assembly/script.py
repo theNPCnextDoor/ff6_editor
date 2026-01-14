@@ -4,6 +4,7 @@ from enum import Enum, auto
 from pathlib import Path
 from typing import Self, BinaryIO
 
+from src.lib.assembly.artifact.variable import Variable
 from src.lib.misc.exception import MissingSectionAttribute
 from src.lib.assembly.data_structure.blob import Blob
 from src.lib.assembly.data_structure.blob_group import BlobGroup
@@ -65,6 +66,7 @@ class Script:
         self.instructions = list()
         self.labels = list()
         self.pointers = list()
+        self.variables = list()
 
     def debug_str(self) -> str:
         lines = (
@@ -74,6 +76,7 @@ class Script:
             + self.instructions
             + self.labels
             + self.pointers
+            + self.variables
         )
         output = ""
         for line in lines:
@@ -117,6 +120,10 @@ class Script:
     ) -> tuple[int, Flags]:
         if re.match(Regex.ANCHOR, line):
             lines_with_labels.append((line, cursor))
+
+        elif match := re.fullmatch(Regex.VARIABLE_ASSIGNMENT, line):
+            self.variables.append(Variable.from_match(match, self.variables))
+
         elif match := re.match(Regex.DESCRIPTION_LINE, line):
             string = String.from_regex_match(match=match, position=Bytes.from_position(cursor))
             cursor += len(string)
@@ -214,7 +221,9 @@ class Script:
         )
         lines.sort(key=lambda x: DataStructure.sort(x))
         flags = flags or Flags()
-        output = [flags.to_line()]
+        output = [flags.to_line(), ""]
+        for variable in self.variables:
+            output.append(f"{variable.to_line()}")
 
         cursor = int(lines[0].position)
         current_anchor = Bytes.from_int(0)

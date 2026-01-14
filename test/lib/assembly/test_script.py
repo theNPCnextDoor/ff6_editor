@@ -2,6 +2,7 @@ from pathlib import Path
 
 import pytest
 
+from src.lib.assembly.artifact.variable import Variable
 from src.lib.assembly.data_structure.blob import Blob
 from src.lib.assembly.data_structure.blob_group import BlobGroup
 from src.lib.assembly.data_structure.string.string import String, StringTypes
@@ -40,6 +41,8 @@ class ScriptImpl:
         self.script = Script()
 
         self.script.flags = Flags()
+
+        self.script.variables = [Variable("alice", TEST_BYTE), Variable("bob", TEST_WORD)]
 
         self.script.labels = [
             Label(value=Bytes([0x00, 0x00, 0x01]), name="start"),
@@ -336,6 +339,9 @@ class TestScript:
             script = f.read()
         assert script == (
             """m=8,x=8
+
+let .alice = $12
+let !bob = $1234
 
 @start=C00001
   ptr label_c01234
