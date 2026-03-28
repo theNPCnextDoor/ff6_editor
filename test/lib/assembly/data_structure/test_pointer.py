@@ -4,7 +4,7 @@ from typing import Type
 import pytest
 
 from src.lib.assembly.bytes import Bytes
-from src.lib.assembly.artifact.label import Label
+from src.lib.assembly.artifact.variable import Label
 from src.lib.assembly.data_structure.pointer import Pointer
 from src.lib.misc.exception import ImpossibleDestination, NoLabelException
 from src.lib.assembly.data_structure.regex import Regex
@@ -91,7 +91,7 @@ class TestPointer:
         self, line: str, position: Bytes, anchor: Bytes | None, data: Bytes, destination: Bytes, labels: list[Label]
     ):
         match = re.match(Regex.POINTER_LINE, line)
-        pointer = Pointer.from_regex_match(match=match, position=position, labels=labels, anchor=anchor)
+        pointer = Pointer.from_match(match=match, position=position, labels=labels, anchor=anchor)
         assert pointer.position == position
         assert pointer.data == data
         assert pointer.destination == destination
@@ -108,7 +108,7 @@ class TestPointer:
     ):
         match = re.match(Regex.POINTER_LINE, line)
         with pytest.raises(exception):
-            Pointer.from_regex_match(match=match, position=position, labels=labels)
+            Pointer.from_match(match=match, position=position, labels=labels)
 
     @pytest.mark.parametrize(
         ["value", "pointer"],
@@ -142,7 +142,7 @@ class TestPointer:
     ):
         pointer = Pointer(position=Bytes([0x12, 0x00, 0x00]), destination=destination, anchor=anchor)
         if current_anchor:
-            expected = "anchor: $D21111\n" + expected
+            expected = "\n#$D21111\n" + expected
         expected += " label_1" if has_label else f" ${str(pointer.data)}"
         expected += " ; D20000" if debug else ""
         assert pointer.to_line(show_address=debug, labels=labels, current_anchor=current_anchor) == expected

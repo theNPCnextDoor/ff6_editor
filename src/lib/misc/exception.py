@@ -31,3 +31,19 @@ class ImpossibleDestination(Exception):
 
 class NoLabelException(Exception):
     pass
+
+
+class NoVariableException(Exception):
+    pass
+
+
+class LabelConflict(Exception):
+    pass
+
+
+class LineConflict(Exception):
+    pass
+
+
+class UnrecognizedLine(Exception):
+    pass

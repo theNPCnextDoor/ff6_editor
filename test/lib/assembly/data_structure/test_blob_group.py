@@ -53,7 +53,7 @@ class TestBlobGroup:
     def test_from_regex_match(self, line: str, comment: str, group: BlobGroup):
         match = re.fullmatch(Regex.BLOB_GROUP_LINE, f"{line}{comment}")
         assert bool(match)
-        assert BlobGroup.from_regex_match(match=match, position=Bytes([0x00, 0x00, 0x00])) == BlobGroup()
+        assert BlobGroup.from_match(match=match, position=Bytes([0x00, 0x00, 0x00])) == BlobGroup()
 
     @pytest.mark.parametrize(
         ["expected", "group"],

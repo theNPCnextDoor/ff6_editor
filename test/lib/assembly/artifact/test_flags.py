@@ -29,6 +29,6 @@ class TestFlags:
     )
     def test_from_regex_match(self, line: str, m: bool, x: bool):
         match = re.match(Regex.FLAGS_LINE, line)
-        flags = Flags.from_regex_match(match)
+        flags = Flags.from_match(match)
         assert flags.m is m
         assert flags.x is x

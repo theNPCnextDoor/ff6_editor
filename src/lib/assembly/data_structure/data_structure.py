@@ -5,7 +5,7 @@ from src.lib.assembly.bytes import Bytes
 from src.lib.misc.exception import NoLabelException
 
 if TYPE_CHECKING:
-    from src.lib.assembly.artifact.label import Label
+    from src.lib.assembly.artifact.variable import Label
 
 
 class DataStructure:
@@ -24,7 +24,7 @@ class DataStructure:
 
     @classmethod
     def sort(cls, value: Self) -> tuple[Bytes, bool]:
-        from src.lib.assembly.artifact.label import Label
+        from src.lib.assembly.artifact.variable import Label
 
         return value.position, not isinstance(value, Label)
 

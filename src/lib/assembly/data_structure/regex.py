@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING
 from abc import abstractmethod
 
 if TYPE_CHECKING:
-    from src.lib.assembly.artifact.label import Label
+    from src.lib.assembly.artifact.variable import Label
 
 
 class Regex:
@@ -16,35 +16,31 @@ class Regex:
     DELIMITER_2 = rf",\$(?P<d2>{BYTE}){NOT_HEXA}"
     CHUNK = rf"(?P<chunk>(\[\$(?P<n1>{DATA})\](,Y)?)|\(\$(?P<n2>{DATA})(,S)?\),Y|\(\$(?P<n3>{DATA})(,X)?\)|\$(?P<n4>{DATA}),[SXY]|#\$(?P<n5>{DATA})(,#\$(?P<mov2>{BYTE}))?|\$(?P<n6>{DATA}))"
     VARIABLE = r"[a-z][0-9a-z_]+"
-    SNES_ADDRESS = rf"(?P<snes_address>[C-F][0-9A-F]{WORD})"
+    SNES_ADDRESS = rf"(?P<snes_address>[4-9C-F][0-9A-F]{WORD})"
 
     BLOB = rf"\$((?P<n1>({BYTE})+){NOT_HEXA}(?!,)|(?P<n2>({BYTE})+){NOT_HEXA}{DELIMITER_1})"
     MENU_STRING = rf'"((?P<s1>({MENU_CHAR})+)"{DELIMITER_2}|(?P<s2>({MENU_CHAR})+)"(?!,))'
     ANY_BLOB = rf"({BLOB}|{MENU_STRING})"
 
     FLAGS_LINE = r"^m=(8|16|true|false),x=(8|16|true|false)$"
-    LABEL_LINE = rf"^@(?P<label>{VARIABLE})(={SNES_ADDRESS})?"
+    LABEL_LINE = rf"^@(?P<label>{VARIABLE}) *(= *\${SNES_ADDRESS})?"
     BLOB_LINE = rf"^ +{BLOB}"
     MENU_STRING_LINE = rf"^ +{MENU_STRING}"
     DESCRIPTION_LINE = rf"^ +(?P<string_type>txt2) {MENU_STRING}"
-    BLOB_GROUP_LINE = rf"^ *((((\$({BYTE})+)|\"({MENU_CHAR})+\")(,\${BYTE})?) \| )+(((\$({BYTE})+)|\"({MENU_CHAR})+\")(,\${BYTE})?)( ?;.*)?"
-    INSTRUCTION_LINE = rf"^ +(?P<command>[A-Z]{{3}})( {CHUNK})?"
-    BRANCHING_INSTRUCTION_LINE = (
-        rf"^ +(?P<command>(BCC|BCS|BEQ|BMI|BNE|BPL|BRA|BRL|BVC|BVS|JMP|JML|JSR|JSL)) ({CHUNK}|(?P<label>{VARIABLE}))"
-    )
+    BLOB_GROUP_LINE = rf"^ +((((\$({BYTE})+)|\"({MENU_CHAR})+\")(,\${BYTE})?) \| )+(((\$({BYTE})+)|\"({MENU_CHAR})+\")(,\${BYTE})?)( ?;.*)?"
     POINTER_LINE = rf"^ +(?P<is_relative>r)?ptr ((?P<chunk>\$(?P<number>{WORD}))|(?P<label>{VARIABLE}))"
-    VARIABLE_ASSIGNMENT = rf"let (?P<length>[.!@])(?P<name>{VARIABLE}) *= *\$(?P<value>{DATA})"
-    ANCHOR = rf"^anchor: (\${SNES_ADDRESS}|(?P<label>{VARIABLE}))"
+    VARIABLE_ASSIGNMENT = rf"d(?P<length>[bw]) (?P<name>{VARIABLE}) *= *\$(?P<value>{DATA})"
+    ANCHOR = rf"^#(\${SNES_ADDRESS}|(?P<label>{VARIABLE}))"
 
 
 class InstructionRegex:
-    OP_VALUE = rf"(\${Regex.DATA}|[.!@]{Regex.VARIABLE})"
+    OP_VALUE = rf"(\${Regex.DATA}|[.!]?{Regex.VARIABLE})"
     IMMEDIATE_MODE = rf"#{OP_VALUE}"
     ABSOLUTE_MODE = rf"{OP_VALUE}(,[SXY])?"
-    DIRECT_MODE = rf"\({OP_VALUE}((,X)?\)|(,S)?\)(,Y)?)"
+    DIRECT_MODE = rf"\({OP_VALUE}(,X\)|\),Y|,S\),Y|\))"
     DIRECT_LONG_MODE = rf"\[{OP_VALUE}\](,Y)?"
-    OPERAND = rf"{IMMEDIATE_MODE}|{DIRECT_MODE}|{DIRECT_LONG_MODE}|{ABSOLUTE_MODE}"
-    MOVING_BLOCK_OPERAND = rf"{IMMEDIATE_MODE},{IMMEDIATE_MODE}"
+    OPERAND = rf"{IMMEDIATE_MODE}(,{IMMEDIATE_MODE})?|{DIRECT_MODE}|{DIRECT_LONG_MODE}|{ABSOLUTE_MODE}"
+    INSTRUCTION = rf" *(?P<command>[A-Z]{{3}})( (?P<operand>{OPERAND}))?"
 
 
 class ToLineMixin:

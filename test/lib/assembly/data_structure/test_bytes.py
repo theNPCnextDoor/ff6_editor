@@ -4,7 +4,7 @@ from typing import Any
 import pytest
 
 from src.lib.misc.exception import UnderflowError
-from src.lib.assembly.artifact.label import Label
+from src.lib.assembly.artifact.variable import Label
 from src.lib.assembly.data_structure.regex import Regex
 from src.lib.assembly.bytes import Bytes, Endian
 
@@ -28,7 +28,7 @@ class TestBytes:
     )
     def test_adjust(self, value: list[int], length: int, expected: list[int]):
         left = Bytes(value=value)
-        left.adjust(length=length)
+        left._adjust(length=length)
         assert left.value == expected
 
     @pytest.mark.parametrize(
@@ -53,7 +53,7 @@ class TestBytes:
 
     @pytest.mark.parametrize(
         ["line", "expected"],
-        [("anchor: label_1", Bytes([0x12, 0x34, 0x56])), ("anchor: label_2", Bytes([0x34, 0xFF, 0xFE]))],
+        [("#label_1", Bytes([0x12, 0x34, 0x56])), ("#label_2", Bytes([0x34, 0xFF, 0xFE]))],
     )
     def test_from_anchor(self, labels: list[Label], line: str, expected: Bytes):
         match = re.fullmatch(Regex.ANCHOR, line)
@@ -213,7 +213,10 @@ class TestBytes:
         with pytest.raises(AttributeError):
             Bytes([0x00]).bank()
 
-    @pytest.mark.parametrize(["address", "expected"], [("C00000", [0x00, 0x00, 0x00]), ("D23456", [0x12, 0x34, 0x56])])
+    @pytest.mark.parametrize(
+        ["address", "expected"],
+        [("C00000", [0x00, 0x00, 0x00]), ("D23456", [0x12, 0x34, 0x56]), ("7E0123", [0x7E, 0x01, 0x23])],
+    )
     def test_from_snes_address(self, address: str, expected: list[int]):
         assert Bytes.from_snes_address(address=address).value == expected
 
@@ -221,7 +224,10 @@ class TestBytes:
         with pytest.raises(ValueError):
             Bytes.from_snes_address(address="12345")
 
-    @pytest.mark.parametrize(["value", "expected"], [([0x00, 0x00, 0x00], "C00000"), ([0x12, 0x34, 0x56], "D23456")])
+    @pytest.mark.parametrize(
+        ["value", "expected"],
+        [([0x00, 0x00, 0x00], "C00000"), ([0x12, 0x34, 0x56], "D23456"), ([0x7E, 0x01, 0x23], "7E0123")],
+    )
     def test_to_snes_address(self, value: list[int], expected: str):
         assert Bytes(value=value).to_snes_address() == expected
 

@@ -4,7 +4,7 @@ from re import Match
 from typing import Self
 
 from src.lib.assembly.data_structure.blob import Blob
-from src.lib.assembly.artifact.label import Label
+from src.lib.assembly.artifact.variable import Label
 from src.lib.assembly.data_structure.regex import Regex, ToLineMixin
 from src.lib.assembly.bytes import Bytes, Endian
 
@@ -44,7 +44,7 @@ class String(Blob, ToLineMixin):
         self.string_type = string_type or StringTypes.MENU
 
     @classmethod
-    def from_regex_match(cls, match: Match, position: Bytes | None = None) -> Self:
+    def from_match(cls, match: Match, position: Bytes | None = None) -> Self:
         value = match.group("s1") or match.group("s2")
         try:
             string_prefix = match.group("string_type")

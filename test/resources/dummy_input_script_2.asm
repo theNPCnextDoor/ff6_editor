@@ -1,21 +1,21 @@
 m=8,x=16
 
-let .alice = $12
-let !bob = $1234
+db alfa = $12
+dw bravo = $1234
 
-@archie=C00005
+@archie = $C00005
   TAX ; some comment
-  LDA ($12,X)
+  LDA (alfa,X)
   LDX #$FEDC
   REP #$30
-  LDA #$3456
+  LDA #bravo
   LDX #$FEDC
   SEP #$30
   LDA #$BB
   LDX #$CC
-  MVP #$34,#$12
+  MVP #$34,#alfa
 
-  JMP archie
+  JMP !archie
   BRA start ; some other comment
 
   $1234
@@ -26,12 +26,13 @@ let !bob = $1234
 
   txt2 "Bob<LINE><FIRE>",$00
 
-anchor: anchor_1
+#anchor_1
   rptr rptr_1
   rptr rptr_2
-anchor: $D20002
+
+#$D20002
   rptr rptr_2
 
-@anchor_1=D20001
-@rptr_1=D23456
-@rptr_2=D23457
+@anchor_1 = $D20001
+@rptr_1 = $D23456
+@rptr_2 = $D23457

@@ -1,6 +1,6 @@
 import pytest
 
-from src.lib.assembly.artifact.label import Label
+from src.lib.assembly.artifact.variable import Label
 from src.lib.assembly.data_structure.data_structure import DataStructure
 from src.lib.assembly.bytes import Bytes
 

@@ -34,9 +34,9 @@ class Bytes:
         self.endian = endian
         self.value = value
         if length:
-            self.adjust(length=length)
+            self._adjust(length=length)
 
-    def adjust(self, length: int) -> None:
+    def _adjust(self, length: int) -> None:
         """
         Adjusts the length of the value.
         :param length: If longer than the length of the value, 0s will be prepended to the value.
@@ -144,7 +144,7 @@ class Bytes:
         """
         instance = cls(value=other.value)
         if length:
-            instance.adjust(length=length)
+            instance._adjust(length=length)
         return instance
 
     def __int__(self) -> int:
@@ -268,21 +268,24 @@ class Bytes:
     @classmethod
     def from_snes_address(cls, address: str) -> Self:
         """
-        :param address: A string representing a SNES address. Such addresses start at C00000.
+        :param address: A string representing a SNES address. Such addresses covers from 'C00000' to 'FFFFFF' and then
+        from '400000' to 'BFFFFF'.
         :return: A Bytes object.
         :raises ValueError: Raised when the address is not 6 characters.
         """
         if len(address) != 6:
             raise ValueError(f"Address should consist of 6 characters. Address: {address}")
+        instance = cls.from_str(value=address, endian=Endian.BIG)
+        if int(instance) >= 0xC00000:
+            instance -= 0xC00000
 
-        instance = cls.from_str(value=address, endian=Endian.BIG) - 0xC00000
-        instance.adjust(length=3)
+        instance._adjust(length=3)
         return instance
 
     def to_snes_address(self) -> str:
         """
         :return: A SNES address corresponding to the position. The SNES address is an hexadecimal
-        representation of the Bytes object plus 0xC00000.
+        representation of the Bytes object, plus 0xC00000 if below 0x3FFFFF.
         :raises AttributeError: Raised when the length of the Bytes object is not 3, meaning that
         it doesn't correspond to a position.
         """
@@ -291,6 +294,10 @@ class Bytes:
                 f"Can't convert to SNES address has the value of the Bytes object is not 3. Actual value: {self.value}"
             )
 
-        instance = type(self).from_position(0xC00000) + self
+        instance = Bytes.from_other(self)
+
+        if int(self) <= 0x3FFFFF:
+            instance += type(self).from_position(0xC00000)
+
         address = str(instance)
         return address

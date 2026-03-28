@@ -26,7 +26,7 @@ class TestString:
     )
     def test_from_regex_match(self, line: str, expected: String):
         match = re.match(Regex.MENU_STRING_LINE, line)
-        assert String.from_regex_match(match) == expected
+        assert String.from_match(match) == expected
 
     @pytest.mark.parametrize(
         ["data", "delimiter", "string"],

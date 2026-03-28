@@ -1,9 +1,7 @@
 from re import Match
-from typing import Self
+from typing import Self, Any
 
 from src.lib.assembly.artifact.artifact import Artifact
-from src.lib.assembly.artifact.label import Label
-from src.lib.assembly.data_structure.regex import ToLineMixin
 
 
 class RegisterWidth:
@@ -18,7 +16,7 @@ class Flags(Artifact):
         self.x = x
 
     @classmethod
-    def from_regex_match(cls, match: Match) -> Self:
+    def from_match(cls, match: Match) -> Self:
         """
         Will take a string that matches Regex.FLAGS and will return a Flags object. It will consider either
          "8" or "true" for True and "16" or "false" for False.
@@ -37,7 +35,7 @@ class Flags(Artifact):
         x = str(self.x)
         return f"m={m},x={x}"
 
-    def to_line(self, show_address: bool = False, labels: list[Label] | None = None) -> str:
+    def to_line(self, **kwargs: Any) -> str:
         return str(self)
 
     def __eq__(self, other: Self) -> bool:

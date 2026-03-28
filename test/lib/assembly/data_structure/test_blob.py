@@ -36,7 +36,7 @@ class TestBlob:
     )
     def test_from_regex_match(self, line: str, blob: Blob):
         match = re.match(Regex.BLOB_LINE, line)
-        assert Blob.from_regex_match(match) == blob
+        assert Blob.from_match(match) == blob
 
     @pytest.mark.parametrize(
         ["data", "blob"],

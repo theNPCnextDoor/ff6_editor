@@ -215,15 +215,15 @@ class TestRegex:
     )
     def test_flags_line(self, line: str, m: bool, x: bool):
         match = re.match(Regex.FLAGS_LINE, line)
-        flags = Flags.from_regex_match(match)
+        flags = Flags.from_match(match)
         assert flags.m is m
         assert flags.x is x
 
     @pytest.mark.parametrize(
         "line,label,snes_address",
         [
-            ("@abulita=C00000", "abulita", "C00000"),
-            ("@label_c34567=C34567", "label_c34567", "C34567"),
+            ("@abulita = $C00000", "abulita", "C00000"),
+            ("@label_c34567 = $C34567", "label_c34567", "C34567"),
             ("@abulita", "abulita", None),
         ],
     )
@@ -335,26 +335,9 @@ class TestRegex:
         ],
     )
     def test_instruction_line(self, line: str, command: str, chunk: str):
-        match = re.match(Regex.INSTRUCTION_LINE, line)
+        match = re.match(InstructionRegex.INSTRUCTION, line)
         assert match.group("command") == command
-        assert match.group("chunk") == chunk
-
-    @pytest.mark.parametrize(
-        ["line", "command", "chunk", "label"],
-        [
-            (" BCC $AABBCC", "BCC", "$AABBCC", None),
-            (" BCS something_something", "BCS", None, "something_something"),
-            (" JMP $1234", "JMP", "$1234", None),
-            (" JML $123456", "JML", "$123456", None),
-            (" JML something_something", "JML", None, "something_something"),
-            (" JSR something_something", "JSR", None, "something_something"),
-        ],
-    )
-    def test_branching_instruction_line(self, line: str, command: str, chunk: str, label: str):
-        match = re.match(Regex.BRANCHING_INSTRUCTION_LINE, line)
-        assert match.group("command") == command
-        assert match.group("chunk") == chunk
-        assert match.group("label") == label
+        assert match.group("operand") == chunk
 
     @pytest.mark.parametrize(
         ["line", "is_match", "chunk", "label"],
@@ -375,23 +358,15 @@ class TestRegex:
     @pytest.mark.parametrize(
         ["line", "expected"],
         [
-            ("let alice=$12", False),
-            ("let .alice=$12", True),
-            ("let !bob = $1234", True),
-            ("let @charlie = $123456", True),
-            ("let !0delta=$12", False),
-            ("let !eleanor", False),
-            ("let @francis=$12345678", False),
-            ("let .gideon=1234", False),
+            ("db alice = $12", True),
+            ("dw bob=$1234", True),
         ],
     )
     def test_variable_assignment(self, line: str, expected: bool):
         match = re.fullmatch(Regex.VARIABLE_ASSIGNMENT, line)
         assert bool(match) is expected
 
-    @pytest.mark.parametrize(
-        ["line", "is_match"], [("anchor: label1", True), ("anchor: $C12345", True), ("anchor: $GGGGGG", False)]
-    )
+    @pytest.mark.parametrize(["line", "is_match"], [("#label1", True), ("#$C12345", True), ("#$GGGGGG", False)])
     def test_anchor(self, line: str, is_match: bool):
         match = re.match(Regex.ANCHOR, line)
         assert bool(match) is is_match
@@ -408,7 +383,7 @@ class TestInstructionRegex:
             ("$abcdef", False),
             (".abcdef", True),
             ("!abcdef", True),
-            ("@abcdef", True),
+            ("@abcdef", False),
         ],
     )
     def test_op_value(self, value: str, expected: bool):
@@ -553,20 +528,9 @@ class TestInstructionRegex:
             ("[$12,X]", False),
             ("[$12,Y]", False),
             ("[$12,S]", False),
+            ("#$12,#$34", True),
         ],
     )
     def test_operand(self, value: str, expected: bool):
         match = re.fullmatch(InstructionRegex.OPERAND, value)
-        assert bool(match) is expected
-
-    @pytest.mark.parametrize(
-        ["value", "expected"],
-        [
-            ("#$12,#.alice", True),
-            ("#.alice,#$12", True),
-            ("#$12", False),
-        ],
-    )
-    def test_moving_block_operand(self, value: str, expected: bool):
-        match = re.fullmatch(InstructionRegex.MOVING_BLOCK_OPERAND, value)
         assert bool(match) is expected

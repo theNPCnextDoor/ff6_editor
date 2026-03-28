@@ -3,7 +3,7 @@ from typing import Self
 
 from src.lib.assembly.data_structure.regex import ToLineMixin
 from src.lib.assembly.bytes import Bytes
-from src.lib.assembly.artifact.label import Label
+from src.lib.assembly.artifact.variable import Label
 
 from src.lib.assembly.data_structure.data_structure import DataStructure, BankMixin, DestinationMixin
 from src.lib.misc.exception import ImpossibleDestination
@@ -48,7 +48,7 @@ class Pointer(DataStructure, BankMixin, DestinationMixin, ToLineMixin):
             )
 
     @classmethod
-    def from_regex_match(cls, match: Match, position: Bytes, labels: list[Label], anchor: Bytes | None = None) -> Self:
+    def from_match(cls, match: Match, position: Bytes, labels: list[Label], anchor: Bytes | None = None) -> Self:
         """
         :param match: A regex.Match object that matched Regex.POINTER_LINE.
         :param position: The position of the Pointer object.
@@ -107,8 +107,8 @@ class Pointer(DataStructure, BankMixin, DestinationMixin, ToLineMixin):
             anchor_label = self.find_label(destination=self.anchor, labels=labels)
 
         if self.is_relative and current_anchor and current_anchor != self.anchor:
-            output += "anchor: "
-            output += f"@{anchor_label.name}" if anchor_label else f"${self.anchor.to_snes_address()}"
+            output += "\n#"
+            output += f"{anchor_label.name}" if anchor_label else f"${self.anchor.to_snes_address()}"
             output += "\n"
 
         output += f"  {'r' if self.is_relative else ''}ptr "

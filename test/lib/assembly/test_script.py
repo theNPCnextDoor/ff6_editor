@@ -2,27 +2,27 @@ from pathlib import Path
 
 import pytest
 
-from src.lib.assembly.artifact.variable import Variable
+from src.lib.assembly.artifact.variable import SimpleVar
+from src.lib.assembly.artifact.variables import Variables
 from src.lib.assembly.data_structure.blob import Blob
 from src.lib.assembly.data_structure.blob_group import BlobGroup
+from src.lib.assembly.data_structure.instruction.operand import Operand, OperandType
 from src.lib.assembly.data_structure.string.string import String, StringTypes
 from src.lib.assembly.bytes import Bytes, Endian
 from src.lib.assembly.artifact.flags import Flags
-from src.lib.assembly.data_structure.instruction.instruction import Instruction, BranchingInstruction
-from src.lib.assembly.artifact.label import Label
+from src.lib.assembly.data_structure.instruction.instruction import Instruction
+from src.lib.assembly.artifact.variable import Label
 from src.lib.assembly.data_structure.pointer import Pointer
 from src.lib.assembly.script import (
     Script,
     ScriptMode,
     ScriptSection,
     SubSection,
-    UnrecognizedLine,
-    LabelConflict,
-    LineConflict,
 )
+from src.lib.misc.exception import LabelConflict, LineConflict, UnrecognizedLine
 from src.lib.assembly.data_structure.string.charset import MENU_CHARSET, Charset
 from test import RESOURCES_FOLDER
-from test.lib.assembly.conftest import TEST_BYTE, TEST_WORD, TEST_POSITION
+from test.lib.assembly.conftest import TEST_BYTE, TEST_WORD, TEST_POSITION, ALFA, BRAVO
 
 CONFLICTING_FILE_1 = Path(RESOURCES_FOLDER, "conflicting_file_1.asm")
 CONFLICTING_FILE_2 = Path(RESOURCES_FOLDER, "conflicting_file_2.asm")
@@ -42,13 +42,14 @@ class ScriptImpl:
 
         self.script.flags = Flags()
 
-        self.script.variables = [Variable("alice", TEST_BYTE), Variable("bob", TEST_WORD)]
-
-        self.script.labels = [
+        self.script.variables = Variables(
+            ALFA,
+            BRAVO,
             Label(value=Bytes([0x00, 0x00, 0x01]), name="start"),
             Label(value=Bytes([0x00, 0x00, 0x05]), name="archie"),
             Label(value=Bytes([0x12, 0x00, 0x01]), name="anchor_1"),
-        ]
+            Label(value=Bytes([0x00, 0xFE, 0xDC]), name="label_c0fedc"),
+        )
 
         self.script.pointers = [
             Pointer(position=Bytes([0x00, 0x00, 0x01]), destination=Bytes([0x00, 0x12, 0x34])),
@@ -56,21 +57,74 @@ class ScriptImpl:
         ]
 
         self.script.instructions = [
-            Instruction(position=Bytes([0x00, 0x00, 0x05]), opcode=Bytes([0xAA]), data=None),
-            Instruction(position=Bytes([0x00, 0x00, 0x06]), opcode=Bytes([0xA1]), data=TEST_BYTE),
-            Instruction(position=Bytes([0x00, 0x00, 0x08]), opcode=Bytes([0xA2]), data=Bytes([0xFE, 0xDC])),
-            Instruction(position=Bytes([0x00, 0x00, 0x0B]), opcode=Bytes([0xC2]), data=Bytes([0x30])),
-            Instruction(position=Bytes([0x00, 0x00, 0x0D]), opcode=Bytes([0xA9]), data=Bytes([0x34, 0x56])),
-            Instruction(position=Bytes([0x00, 0x00, 0x10]), opcode=Bytes([0xA2]), data=Bytes([0xFE, 0xDC])),
-            Instruction(position=Bytes([0x00, 0x00, 0x13]), opcode=Bytes([0xE2]), data=Bytes([0x30])),
-            Instruction(position=Bytes([0x00, 0x00, 0x15]), opcode=Bytes([0xA9]), data=Bytes([0xBB])),
-            Instruction(position=Bytes([0x00, 0x00, 0x17]), opcode=Bytes([0xA2]), data=Bytes([0xCC])),
-            Instruction(position=Bytes([0x00, 0x00, 0x19]), opcode=Bytes([0x44]), data=Bytes([0x34, 0x12])),
-        ]
-
-        self.script.branching_instructions = [
-            BranchingInstruction(position=Bytes([0x00, 0x00, 0x1C]), opcode=Bytes([0x4C]), data=Bytes([0x00, 0x05])),
-            BranchingInstruction(position=Bytes([0x00, 0x00, 0x1F]), opcode=Bytes([0x80]), data=Bytes([0xE0])),
+            Instruction(position=Bytes([0x00, 0x00, 0x05]), opcode=Bytes([0xAA]), operands=None),
+            Instruction(
+                position=Bytes([0x00, 0x00, 0x06]),
+                opcode=Bytes([0xA1]),
+                operands=[Operand(TEST_BYTE, "(_,X)", variable=ALFA)],
+            ),
+            Instruction(
+                position=Bytes([0x00, 0x00, 0x08]), opcode=Bytes([0xA2]), operands=[Operand(Bytes([0xFE, 0xDC]), "#_")]
+            ),
+            Instruction(
+                position=Bytes([0x00, 0x00, 0x0B]), opcode=Bytes([0xC2]), operands=[Operand(Bytes([0x30]), "#_")]
+            ),
+            Instruction(
+                position=Bytes([0x00, 0x00, 0x0D]),
+                opcode=Bytes([0xA9]),
+                operands=[Operand(Bytes([0x12, 0x34]), "#_", variable=BRAVO)],
+            ),
+            Instruction(
+                position=Bytes([0x00, 0x00, 0x10]),
+                opcode=Bytes([0xA2]),
+                operands=[
+                    Operand(
+                        Bytes([0xFE, 0xDC]), "#_", variable=Label(value=Bytes([0x00, 0xFE, 0xDC]), name="label_c0fedc")
+                    )
+                ],
+            ),
+            Instruction(
+                position=Bytes([0x00, 0x00, 0x13]), opcode=Bytes([0xE2]), operands=[Operand(Bytes([0x30]), "#_")]
+            ),
+            Instruction(
+                position=Bytes([0x00, 0x00, 0x15]),
+                opcode=Bytes([0xA9]),
+                operands=[
+                    Operand(Bytes([0x00]), "#_", variable=Label(value=Bytes([0x00, 0xFE, 0xDC]), name="label_c0fedc"))
+                ],
+            ),
+            Instruction(
+                position=Bytes([0x00, 0x00, 0x17]), opcode=Bytes([0xA2]), operands=[Operand(Bytes([0xCC]), "#_")]
+            ),
+            Instruction(
+                position=Bytes([0x00, 0x00, 0x19]),
+                opcode=Bytes([0x44]),
+                operands=[Operand(Bytes([0x34]), "#_"), Operand(Bytes([0x12]), "#_", variable=ALFA)],
+            ),
+            Instruction(
+                position=Bytes([0x00, 0x00, 0x1C]),
+                opcode=Bytes([0x4C]),
+                operands=[
+                    Operand(
+                        Bytes([0x00, 0x05]),
+                        "_",
+                        OperandType.JUMPING,
+                        variable=Label(value=Bytes([0x00, 0x00, 0x05]), name="archie"),
+                    )
+                ],
+            ),
+            Instruction(
+                position=Bytes([0x00, 0x00, 0x1F]),
+                opcode=Bytes([0x80]),
+                operands=[
+                    Operand(
+                        Bytes([0xE0]),
+                        "_",
+                        OperandType.BRANCHING,
+                        variable=Label(value=Bytes([0x00, 0x00, 0x01]), name="start"),
+                    )
+                ],
+            ),
         ]
 
         self.script.blobs = [
@@ -129,14 +183,16 @@ class ScriptImpl:
 class TestScript:
 
     def test_from_script(self):
-        script = Script.from_script_files(DUMMY_INPUT_SCRIPT_1, DUMMY_INPUT_SCRIPT_2)
+        script = Script.from_text_files(DUMMY_INPUT_SCRIPT_1, DUMMY_INPUT_SCRIPT_2)
 
-        assert len(script.labels) == 5
-        assert script.labels[0] == Label(value=Bytes([0x00, 0x00, 0x01]), name="start")
-        assert script.labels[1] == Label(value=Bytes([0x00, 0x00, 0x05]), name="archie")
-        assert script.labels[2] == Label(value=Bytes([0x12, 0x00, 0x01]), name="anchor_1")
-        assert script.labels[3] == Label(value=TEST_POSITION, name="rptr_1")
-        assert script.labels[4] == Label(value=Bytes([0x12, 0x34, 0x57]), name="rptr_2")
+        labels = script.variables.labels
+
+        assert len(labels) == 5
+        assert labels[0] == Label(value=Bytes([0x00, 0x00, 0x01]), name="start")
+        assert labels[1] == Label(value=Bytes([0x00, 0x00, 0x05]), name="archie")
+        assert labels[2] == Label(value=Bytes([0x12, 0x00, 0x01]), name="anchor_1")
+        assert labels[3] == Label(value=TEST_POSITION, name="rptr_1")
+        assert labels[4] == Label(value=Bytes([0x12, 0x34, 0x57]), name="rptr_2")
 
         assert len(script.pointers) == 5
         assert script.pointers[0] == Pointer(position=Bytes([0x00, 0x00, 0x01]), destination=Bytes([0x00, 0x12, 0x34]))
@@ -151,47 +207,61 @@ class TestScript:
             position=Bytes([0x00, 0x00, 0x3E]), anchor=Bytes([0x12, 0x00, 0x02]), destination=Bytes([0x12, 0x34, 0x57])
         )
 
-        assert len(script.instructions) == 10
+        assert len(script.instructions) == 12
         assert script.instructions[0] == Instruction(
-            position=Bytes([0x00, 0x00, 0x05]), opcode=Bytes([0xAA]), data=None
+            position=Bytes([0x00, 0x00, 0x05]), opcode=Bytes([0xAA]), operands=None
         )
         assert script.instructions[1] == Instruction(
-            position=Bytes([0x00, 0x00, 0x06]), opcode=Bytes([0xA1]), data=TEST_BYTE
+            position=Bytes([0x00, 0x00, 0x06]),
+            opcode=Bytes([0xA1]),
+            operands=[Operand(TEST_BYTE, "(_,X)", variable=ALFA)],
         )
         assert script.instructions[2] == Instruction(
-            position=Bytes([0x00, 0x00, 0x08]), opcode=Bytes([0xA2]), data=Bytes([0xFE, 0xDC])
+            position=Bytes([0x00, 0x00, 0x08]), opcode=Bytes([0xA2]), operands=[Operand(Bytes([0xFE, 0xDC]), "#_")]
         )
 
         assert script.instructions[3] == Instruction(
-            position=Bytes([0x00, 0x00, 0x0B]), opcode=Bytes([0xC2]), data=Bytes([0x30])
+            position=Bytes([0x00, 0x00, 0x0B]), opcode=Bytes([0xC2]), operands=[Operand(Bytes([0x30]), "#_")]
         )
         assert script.instructions[4] == Instruction(
-            position=Bytes([0x00, 0x00, 0x0D]), opcode=Bytes([0xA9]), data=Bytes([0x34, 0x56])
+            position=Bytes([0x00, 0x00, 0x0D]),
+            opcode=Bytes([0xA9]),
+            operands=[Operand(Bytes([0x12, 0x34]), "#_", variable=BRAVO)],
         )
         assert script.instructions[5] == Instruction(
-            position=Bytes([0x00, 0x00, 0x10]), opcode=Bytes([0xA2]), data=Bytes([0xFE, 0xDC])
+            position=Bytes([0x00, 0x00, 0x10]), opcode=Bytes([0xA2]), operands=[Operand(Bytes([0xFE, 0xDC]), "#_")]
         )
 
         assert script.instructions[6] == Instruction(
-            position=Bytes([0x00, 0x00, 0x13]), opcode=Bytes([0xE2]), data=Bytes([0x30])
+            position=Bytes([0x00, 0x00, 0x13]), opcode=Bytes([0xE2]), operands=[Operand(Bytes([0x30]), "#_")]
         )
         assert script.instructions[7] == Instruction(
-            position=Bytes([0x00, 0x00, 0x15]), opcode=Bytes([0xA9]), data=Bytes([0xBB])
+            position=Bytes([0x00, 0x00, 0x15]), opcode=Bytes([0xA9]), operands=[Operand(Bytes([0xBB]), "#_")]
         )
         assert script.instructions[8] == Instruction(
-            position=Bytes([0x00, 0x00, 0x17]), opcode=Bytes([0xA2]), data=Bytes([0xCC])
+            position=Bytes([0x00, 0x00, 0x17]), opcode=Bytes([0xA2]), operands=[Operand(Bytes([0xCC]), "#_")]
         )
 
         assert script.instructions[9] == Instruction(
-            position=Bytes([0x00, 0x00, 0x19]), opcode=Bytes([0x44]), data=TEST_WORD
+            position=Bytes([0x00, 0x00, 0x19]),
+            opcode=Bytes([0x44]),
+            operands=[Operand(Bytes([0x34]), "#_"), Operand(Bytes([0x12]), "#_", variable=ALFA)],
         )
-
-        assert len(script.branching_instructions) == 2
-        assert script.branching_instructions[0] == BranchingInstruction(
-            position=Bytes([0x00, 0x00, 0x1C]), opcode=Bytes([0x4C]), data=Bytes([0x00, 0x05])
+        assert script.instructions[10] == Instruction(
+            position=Bytes([0x00, 0x00, 0x1C]),
+            opcode=Bytes([0x4C]),
+            operands=[
+                Operand(
+                    Bytes([0x00, 0x05]), "_", OperandType.JUMPING, Label(value=Bytes([0x00, 0x00, 0x05]), name="archie")
+                )
+            ],
         )
-        assert script.branching_instructions[1] == BranchingInstruction(
-            position=Bytes([0x00, 0x00, 0x1F]), opcode=Bytes([0x80]), data=Bytes([0xE0])
+        assert script.instructions[11] == Instruction(
+            position=Bytes([0x00, 0x00, 0x1F]),
+            opcode=Bytes([0x80]),
+            operands=[
+                Operand(Bytes([0xE0]), "_", OperandType.BRANCHING, Label(value=Bytes([0x00, 0x00, 0x01]), name="start"))
+            ],
         )
 
         assert len(script.blobs) == 5
@@ -222,17 +292,12 @@ class TestScript:
 
     def test_from_script_file_raises_error_when_line_is_unrecognized(self):
         with pytest.raises(UnrecognizedLine) as e:
-            Script.from_script_files(DUMMY_ERROR_SCRIPT)
+            Script.from_text_files(DUMMY_ERROR_SCRIPT)
         assert str(e.value) == "Line '  txt3 \"Lorem ipsum\"' is not recognized."
-
-    def test_from_script_files_raises_error_when_labels_conflict(self):
-        with pytest.raises(LabelConflict) as e:
-            Script.from_script_files(CONFLICTING_LABELS_SCRIPT)
-        assert str(e.value) == "Labels '@label_00' and '@label_02' point to the same address: 001234"
 
     def test_from_script_files_raises_error_when_lines_conflict(self):
         with pytest.raises(LineConflict) as e:
-            Script.from_script_files(CONFLICTING_LINES_SCRIPT)
+            Script.from_text_files(CONFLICTING_LINES_SCRIPT)
         assert (
             str(e.value)
             == "Lines '  LDA #$1234 ; C01234' and '  LDX #$5678 ; C01235' are conflicting with one another."
@@ -240,7 +305,7 @@ class TestScript:
 
     def test_from_script_files_raises_error_when_lines_conflict_in_multiple_files(self):
         with pytest.raises(LineConflict) as e:
-            Script.from_script_files(CONFLICTING_FILE_1, CONFLICTING_FILE_2)
+            Script.from_text_files(CONFLICTING_FILE_1, CONFLICTING_FILE_2)
         assert str(e.value) == "Lines '  TAX ; C01237' and '  STA $1337 ; C01237' are conflicting with one another."
 
     def test_to_rom(self):
@@ -255,9 +320,9 @@ class TestScript:
             b"\x00"  # Script starts at byte 0x000001, so this is a byte of buffer
             b"\x34\x12\x05\x00"  # Pointers
             b"\xaa\xa1\x12\xa2\xdc\xfe"  # Instructions 0-2
-            b"\xc2\x30\xa9\x56\x34\xa2\xdc\xfe"  # Instructions 3-5
-            b"\xe2\x30\xa9\xbb\xa2\xcc"  # Instructions 6-8
-            b"\x44\x12\x34\x4c\x05\x00\x80\xe0"  # Instructions 9-11
+            b"\xc2\x30\xa9\x34\x12\xa2\xdc\xfe"  # Instructions 3-5
+            b"\xe2\x30\xa9\xc0\xa2\xcc"  # Instructions 6-8
+            b"\x44\x34\x12\x4c\x05\x00\x80\xe0"  # Instructions 9-11
             b"\x34\x12\x78\x56\xff\xcd\xab\x00"  # Blobs 0-2
             b"\x00\x80\xd8\xff\x88"  # Menu String 0
             b"\xaa\x9a\xbb\xff\x9b\x00"  # Blob Group 0
@@ -299,19 +364,19 @@ class TestScript:
         assert script.pointers[2] == Pointer(position=Bytes([0x00, 0x00, 0x04]), destination=Bytes([0x00, 0xAB, 0x89]))
         assert script.pointers[3] == Pointer(position=Bytes([0x00, 0x00, 0x06]), destination=Bytes([0x00, 0xEF, 0xCD]))
 
-        assert len(script.instructions) == 4
+        assert len(script.instructions) == 5
         assert script.instructions[0] == Instruction(position=Bytes([0x00, 0x00, 0x08]), opcode=Bytes([0x00]))
         assert script.instructions[1] == Instruction(position=Bytes([0x00, 0x00, 0x09]), opcode=Bytes([0xAA]))
         assert script.instructions[2] == Instruction(
-            position=Bytes([0x00, 0x00, 0x0A]), opcode=Bytes([0xA9]), data=Bytes([0x34, 0x56])
+            position=Bytes([0x00, 0x00, 0x0A]), opcode=Bytes([0xA9]), operands=[Operand(Bytes([0x34, 0x56]), "#_")]
         )
         assert script.instructions[3] == Instruction(
-            position=Bytes([0x00, 0x00, 0x0D]), opcode=Bytes([0xA2]), data=Bytes([0xFE, 0xDC])
+            position=Bytes([0x00, 0x00, 0x0D]), opcode=Bytes([0xA2]), operands=[Operand(Bytes([0xFE, 0xDC]), "#_")]
         )
-
-        assert len(script.branching_instructions) == 1
-        assert script.branching_instructions[0] == BranchingInstruction(
-            position=Bytes([0x00, 0x00, 0x10]), opcode=Bytes([0x80]), data=Bytes([0xFE])
+        assert script.instructions[4] == Instruction(
+            position=Bytes([0x00, 0x00, 0x10]),
+            opcode=Bytes([0x80]),
+            operands=[Operand(Bytes([0xFE]), "_", OperandType.BRANCHING, Label(Bytes.from_position(0x10)))],
         )
 
         assert len(script.blobs) == 4
@@ -326,38 +391,40 @@ class TestScript:
             position=Bytes([0x00, 0x00, 0x1A]), data=Bytes([0x00, 0x80, 0xD8, 0xFF]), delimiter=Bytes([0x88])
         )
 
-        assert len(script.labels) == 5
-        assert script.labels[0] == Label(value=Bytes([0x00, 0x00, 0x10]))
-        assert script.labels[1] == Label(value=Bytes([0x00, 0x23, 0x01]))
-        assert script.labels[2] == Label(value=Bytes([0x00, 0x67, 0x45]))
-        assert script.labels[3] == Label(value=Bytes([0x00, 0xAB, 0x89]))
-        assert script.labels[4] == Label(value=Bytes([0x00, 0xEF, 0xCD]))
+        labels = script.variables.labels
+
+        assert len(labels) == 5
+        assert labels[0] == Label(value=Bytes([0x00, 0x00, 0x10]))
+        assert labels[1] == Label(value=Bytes([0x00, 0x23, 0x01]))
+        assert labels[2] == Label(value=Bytes([0x00, 0x67, 0x45]))
+        assert labels[3] == Label(value=Bytes([0x00, 0xAB, 0x89]))
+        assert labels[4] == Label(value=Bytes([0x00, 0xEF, 0xCD]))
 
     def test_to_script_file(self):
-        ScriptImpl().script.to_script_file(filename=DUMMY_OUTPUT_SCRIPT, flags=Flags(m=8, x=8))
+        ScriptImpl().script.to_text_file(filename=DUMMY_OUTPUT_SCRIPT, flags=Flags(m=8, x=8))
         with open(DUMMY_OUTPUT_SCRIPT) as f:
             script = f.read()
         assert script == (
             """m=8,x=8
 
-let .alice = $12
-let !bob = $1234
+db alfa = $12
+dw bravo = $1234
 
-@start=C00001
+@start = $C00001
   ptr label_c01234
   ptr archie
 @archie
   TAX
-  LDA ($12,X)
+  LDA (alfa,X)
   LDX #$FEDC
   REP #$30
-  LDA #$3456
-  LDX #$FEDC
+  LDA #bravo
+  LDX #!label_c0fedc
   SEP #$30
-  LDA #$BB
+  LDA #.label_c0fedc
   LDX #$CC
-  MVP #$34,#$12
-  JMP archie
+  MVP #$34,#alfa
+  JMP !archie
   BRA start
   $1234
   $5678,$FF
@@ -365,17 +432,21 @@ let !bob = $1234
   "<0x00>A<KNIFE>_",$88
   $AA | "a" | $BB,$FF | "b",$00
   txt2 "Bob<LINE><FIRE>",$00
-anchor: @anchor_1
+
+#anchor_1
   rptr label_d23456
   rptr label_d23457
-anchor: $D20002
+
+#$D20002
   rptr label_d23457
 
-@label_c01234=C01234
+@label_c01234 = $C01234
 
-@anchor_1=D20001
+@label_c0fedc = $C0FEDC
 
-@label_d23456=D23456
+@anchor_1 = $D20001
 
-@label_d23457=D23457"""
+@label_d23456 = $D23456
+
+@label_d23457 = $D23457"""
         )

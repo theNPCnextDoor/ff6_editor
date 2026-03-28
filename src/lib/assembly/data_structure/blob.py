@@ -18,7 +18,7 @@ class Blob(DataStructure, ToLineMixin):
         self.delimiter = delimiter
 
     @classmethod
-    def from_regex_match(cls, match: Match, position: Bytes | None = None) -> Self:
+    def from_match(cls, match: Match, position: Bytes | None = None) -> Self:
         data = match.group("n1") or match.group("n2")
         delimiter = match.group("d1")
 
