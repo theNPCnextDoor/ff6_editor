@@ -8,7 +8,6 @@ from src.lib.assembly.data_structure.regex import Regex, ToLineMixin
 from src.lib.assembly.data_structure.data_structure import DataStructure
 from src.lib.assembly.data_structure.string.string import String
 from src.lib.assembly.bytes import Bytes
-from src.lib.assembly.data_structure.string.charset import Charset
 from src.lib.misc.exception import UnrecognizedBlob
 
 

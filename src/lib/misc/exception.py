@@ -47,3 +47,7 @@ class LineConflict(Exception):
 
 class UnrecognizedLine(Exception):
     pass
+
+
+class VariableConflict(Exception):
+    pass

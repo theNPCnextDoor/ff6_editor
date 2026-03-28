@@ -2,7 +2,6 @@ from pathlib import Path
 
 import pytest
 
-from src.lib.assembly.artifact.variable import SimpleVar
 from src.lib.assembly.artifact.variables import Variables
 from src.lib.assembly.data_structure.blob import Blob
 from src.lib.assembly.data_structure.blob_group import BlobGroup
@@ -19,7 +18,7 @@ from src.lib.assembly.script import (
     ScriptSection,
     SubSection,
 )
-from src.lib.misc.exception import LabelConflict, LineConflict, UnrecognizedLine
+from src.lib.misc.exception import LineConflict, UnrecognizedLine
 from src.lib.assembly.data_structure.string.charset import MENU_CHARSET, Charset
 from test import RESOURCES_FOLDER
 from test.lib.assembly.conftest import TEST_BYTE, TEST_WORD, TEST_POSITION, ALFA, BRAVO

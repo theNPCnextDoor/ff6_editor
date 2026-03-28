@@ -6,7 +6,7 @@ from typing import Self, TYPE_CHECKING
 from src.lib.misc.exception import UnderflowError
 
 if TYPE_CHECKING:
-    from src.lib.assembly import Label
+    from src.lib.assembly.artifact.variable import Label
 
 
 class Endian(Enum):
@@ -111,8 +111,8 @@ class Bytes:
 
         _list = list()
         for i in range(len(value) // 2):
-            hex = value[i * 2 : i * 2 + 2]
-            _list.append(int(f"0x{hex}", 16))
+            _hex = value[i * 2 : i * 2 + 2]
+            _list.append(int(f"0x{_hex}", 16))
         return cls(value=_list, endian=endian)
 
     @classmethod
@@ -234,10 +234,10 @@ class Bytes:
         :return: A Bytes object.
         :raises OverflowError: Raised when the sum exceeds maximum allowed value by the length of the left object.
         """
-        sum = int(self) + int(other)
-        if sum > 2 ** (8 * len(self.value)) - 1:
+        _sum = int(self) + int(other)
+        if _sum > 2 ** (8 * len(self.value)) - 1:
             raise OverflowError(f"Overflow when adding {self} and {other}.")
-        instance = type(self).from_int(sum)
+        instance = type(self).from_int(_sum)
         instance.endian = self.endian
         return instance
 

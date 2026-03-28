@@ -1,7 +1,8 @@
 import pytest
 
 from src.lib.assembly.artifact.variable import SimpleVar, Variable, Label
-from src.lib.assembly.artifact.variables import Variables, VariableConflict
+from src.lib.assembly.artifact.variables import Variables
+from src.lib.misc.exception import VariableConflict
 from src.lib.assembly.bytes import Bytes
 from test.lib.assembly.conftest import ALFA, CHARLIE, VARIABLES, BRAVO, DELTA, ECHO
 

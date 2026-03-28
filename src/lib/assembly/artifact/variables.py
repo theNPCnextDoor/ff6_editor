@@ -1,9 +1,6 @@
 from src.lib.assembly.artifact.variable import Label, SimpleVar, Variable
 from src.lib.assembly.bytes import Bytes
-
-
-class VariableConflict(Exception):
-    pass
+from src.lib.misc.exception import VariableConflict
 
 
 class Variables:

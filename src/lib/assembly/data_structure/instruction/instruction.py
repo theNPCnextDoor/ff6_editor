@@ -1,15 +1,14 @@
-import re
 from re import Match
 from typing import Self
 
 from src.lib.assembly.artifact.variables import Variables
 from src.lib.assembly.data_structure.instruction.operand import Operand, OperandType
-from src.lib.misc.exception import TooManyCandidatesException, NoCandidateException, ImpossibleDestination
+from src.lib.misc.exception import TooManyCandidatesException, NoCandidateException
 from src.lib.assembly.artifact.flags import Flags, RegisterWidth
 from src.lib.assembly.artifact.variable import Label
 from src.lib.assembly.data_structure.instruction.opcodes import Opcodes
-from src.lib.assembly.data_structure.regex import Regex, ToLineMixin
-from src.lib.assembly.data_structure.data_structure import DataStructure, DataMixin, BankMixin, DestinationMixin
+from src.lib.assembly.data_structure.regex import ToLineMixin
+from src.lib.assembly.data_structure.data_structure import DataStructure, DataMixin
 from src.lib.assembly.bytes import Bytes
 
 

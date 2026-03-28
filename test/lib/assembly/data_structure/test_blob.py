@@ -46,7 +46,7 @@ class TestBlob:
             (b"\xff\xff", Blob(data=Bytes([0xFF, 0xFF]))),
         ],
     )
-    def test_from_bytes(self, data: Bytes, blob: Blob):
+    def test_from_bytes(self, data: bytes, blob: Blob):
         assert Blob.from_bytes(data) == blob
 
     @pytest.mark.parametrize(

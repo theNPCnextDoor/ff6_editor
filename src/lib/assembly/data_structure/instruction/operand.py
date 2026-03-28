@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from enum import Enum, auto
 from typing import Self
 
-from src.lib.assembly.artifact.variable import Label, SimpleVar
+from src.lib.assembly.artifact.variable import Label, Variable
 from src.lib.assembly.artifact.variables import Variables
 from src.lib.assembly.bytes import Bytes
 from src.lib.misc.exception import NoVariableException
@@ -35,7 +35,7 @@ class Operand:
     value: Bytes
     mode: str = "_"
     operand_type: OperandType = OperandType.DEFAULT
-    variable: SimpleVar | None = None
+    variable: Variable | None = None
 
     @classmethod
     def from_string(

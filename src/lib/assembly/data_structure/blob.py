@@ -8,7 +8,7 @@ from src.lib.assembly.bytes import Bytes
 
 if TYPE_CHECKING:
     from re import Match
-    from src.lib.assembly.artifact.label import Label
+    from src.lib.assembly.artifact.variable import Label
 
 
 class Blob(DataStructure, ToLineMixin):

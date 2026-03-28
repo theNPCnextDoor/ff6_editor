@@ -1,4 +1,3 @@
-from dataclasses import dataclass
 from re import Match
 
 from typing import Self, Any

@@ -1,11 +1,11 @@
-from typing import List, Union
+from typing import List, Union, BinaryIO
 
-from src.lib.structures import Bytes, Binary
-from src.utils.ips.hunk import Hunk
+from src.lib.assembly.bytes import Bytes, Endian
+from src.lib.assembly.data_structure.blob import Blob
 
 
 class Ips:
-    def __init__(self, hunks: List[Hunk] = None):
+    def __init__(self, hunks: List[Blob] = None):
         self.hunks = hunks if hunks else []
 
     @classmethod
@@ -26,9 +26,9 @@ class Ips:
 
             if streak:
                 hunks.append(
-                    Hunk(
-                        offset=position,
-                        payload=destination_bytes[position : position + streak],
+                    Blob(
+                        position=Bytes.from_position(position),
+                        data=Bytes.from_bytes(destination_bytes[position : position + streak]),
                     )
                 )
 
@@ -60,7 +60,7 @@ class Ips:
                         Bytes(
                             value=binary_hunks[position + 5 : position + 7],
                             length=2,
-                            endianness="big",
+                            endian=Endian.BIG,
                         )
                     )
                 else:
@@ -68,22 +68,23 @@ class Ips:
                         Bytes(
                             value=binary_hunks[position + 3 : position + 5],
                             length=2,
-                            endianness="big",
+                            endian=Endian.BIG,
                         )
                     )
-                hunk = Hunk(offset=offset, payload=payload)
+                hunk = Blob(position=Bytes.from_position(offset), data=Bytes.from_bytes(payload))
                 position += len(bytes(hunk))
                 hunks.append(hunk)
         return cls(hunks)
 
     def apply(self):
         for hunk in self.hunks:
-            start = int(hunk.offset)
-            end = start + len(hunk)
-            Binary()[start:end] = hunk.payload
+            pass
+            # start = int(hunk.position)
+            # end = start + len(hunk)
+            # Binary()[start:end] = hunk.payload
 
     @classmethod
-    def is_ips_format(cls, patch: Union[bytes, bytearray], length: int):
+    def is_ips_format(cls, patch: BinaryIO, length: int):
         patch.seek(0)
         if patch.read(5) != b"PATCH":
             return False
@@ -103,10 +104,10 @@ class Ips:
     def rom_addresses(self):
         output = []
         for hunk in self.hunks:
-            start = hunk.offset.to_address()
-            if hunk.length == 1:
+            start = hunk.position.to_address()
+            if len(hunk) == 1:
                 output.append(start)
             else:
-                end = Bytes(value=int(hunk.offset.value) + hunk.length - 1).to_address()
+                end = Bytes.from_position(int(hunk.position) + len(hunk) - 1)
                 output.append(f"{start}-{end}")
         return "\n".join(output)

@@ -515,7 +515,7 @@ class TestInstruction:
         assert instruction.is_flag_setter() == is_flag_setter
 
     @pytest.mark.parametrize(
-        ["instruction", "input", "output"],
+        ["instruction", "_input", "output"],
         [
             (Instruction(opcode=Bytes([0xC2]), operands=[Operand(Bytes([0x00]))]), Flags(m=8, x=8), Flags(m=8, x=8)),
             (Instruction(opcode=Bytes([0xC2]), operands=[Operand(Bytes([0x10]))]), Flags(m=8, x=8), Flags(m=8, x=16)),
@@ -549,8 +549,8 @@ class TestInstruction:
             "Reset both flags",
         ],
     )
-    def test_set_flags(self, instruction: Instruction, input: Flags, output: Flags):
-        assert instruction.set_flags(input) == output
+    def test_set_flags(self, instruction: Instruction, _input: Flags, output: Flags):
+        assert instruction.set_flags(_input) == output
 
     @pytest.mark.parametrize(
         ["expected", "instruction"],

@@ -13,9 +13,9 @@ class TestBytes:
     @pytest.mark.parametrize("value", [[], [0x00], [0x12, 0x34, 0x56]])
     @pytest.mark.parametrize("endian", [Endian.BIG, Endian.LITTLE])
     def test_init(self, value: list[int] | None, endian: Endian):
-        input = Bytes(value=value, endian=endian)
-        assert input.value == value
-        assert input.endian == endian
+        _input = Bytes(value=value, endian=endian)
+        assert _input.value == value
+        assert _input.endian == endian
 
     @pytest.mark.parametrize("value", [0x00, "00", b"\x00"])
     def test_init_raise_value_error_when_value_is_not_list(self, value: Any):
@@ -182,7 +182,7 @@ class TestBytes:
 
     @pytest.mark.parametrize(
         ["left", "expected"],
-        [(Bytes([0x00])[0], [0x00]), (Bytes([0x12])[0], [0x12]), (Bytes([0x12, 0x34, 0x56])[1:], [0x34, 0x56])],
+        [(Bytes([0x00])[0:1], [0x00]), (Bytes([0x12])[0:1], [0x12]), (Bytes([0x12, 0x34, 0x56])[1:], [0x34, 0x56])],
     )
     def test_get_item(self, left: Bytes, expected: list[int]):
         assert left.value == expected
