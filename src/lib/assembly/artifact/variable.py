@@ -39,7 +39,10 @@ class SimpleVar(Variable):
     def from_string(cls, length: str, name: str, operand: str) -> Self:
         """
         Creates a Variable out of successful regex match.
-        :param match: A Match object created out of a successful match against Regex.VARIABLE_ASSIGNMENT.
+        :param length: Either 'b', for 'byte' or 'w' for 'word', to represent the length of the variable. A 'byte' is 1
+        byte and a word is 2.
+        :param name: The name of the variable.
+        :param operand: The value of the variable.
         :return: A Variable.
         :raises ReassignmentException: Raised when we are trying to assign a value a second time to an existing value.
         :raises ValueError: Raised when the expected length of the Variable does not match its given value.
