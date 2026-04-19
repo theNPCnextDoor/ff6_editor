@@ -1,11 +1,8 @@
-import re
 from typing import Any
 
 import pytest
 
 from src.lib.misc.exception import UnderflowError
-from src.lib.assembly.artifact.variable import Label
-from src.lib.assembly.data_structure.regex import Regex
 from src.lib.assembly.bytes import Bytes, Endian
 
 
@@ -50,14 +47,6 @@ class TestBytes:
     )
     def test_from_position(self, value: int, expected: list[int]):
         assert Bytes.from_position(value=value).value == expected
-
-    @pytest.mark.parametrize(
-        ["line", "expected"],
-        [("#label_1", Bytes([0x12, 0x34, 0x56])), ("#label_2", Bytes([0x34, 0xFF, 0xFE]))],
-    )
-    def test_from_anchor(self, labels: list[Label], line: str, expected: Bytes):
-        match = re.fullmatch(Regex.ANCHOR, line)
-        assert Bytes.from_anchor_match(value=match, labels=labels) == expected
 
     @pytest.mark.parametrize(
         ["value", "expected"], [("00", [0x00]), ("12", [0x12]), ("0000", [0x00, 0x00]), ("1234", [0x12, 0x34])]

@@ -1,11 +1,7 @@
 from __future__ import annotations
-from typing import Match, Optional, TYPE_CHECKING, Self
+from typing import TYPE_CHECKING, Self
 
 from src.lib.assembly.bytes import Bytes
-from src.lib.misc.exception import NoLabelException
-
-if TYPE_CHECKING:
-    from src.lib.assembly.artifact.variable import Label
 
 
 class DataStructure:
@@ -27,42 +23,3 @@ class DataStructure:
         from src.lib.assembly.artifact.variable import Label
 
         return value.position, not isinstance(value, Label)
-
-
-class DataMixin:
-    @staticmethod
-    def data(match: Match) -> Optional[str]:
-        if not match:
-            return None
-
-        if match.group("mov2"):
-            return "".join([match.group("mov2"), match.group("n5")])
-
-        for i in range(1, 7):
-            if number := match.group(f"n{i}"):
-                return number
-
-        return None
-
-
-class BankMixin:
-    @staticmethod
-    def bank(position: Bytes) -> Bytes:
-        return Bytes.from_position(int(position) & 0xFF0000)
-
-
-class DestinationMixin:
-    @classmethod
-    def find_destination(cls, label_name: str, labels: list[Label]) -> Bytes:
-        candidates = [label for label in labels if label.name == label_name]
-        if len(candidates) == 0:
-            raise NoLabelException(f"Can't find a label with name '{label_name}'.")
-        label = candidates[0]
-        destination = label.position
-        return destination
-
-    @staticmethod
-    def find_label(destination: Bytes, labels: list[Label]) -> Label:
-        for label in labels:
-            if destination == label.position:
-                return label

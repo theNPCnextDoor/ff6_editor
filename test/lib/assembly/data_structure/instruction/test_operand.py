@@ -380,6 +380,26 @@ class TestOperand:
         assert str(operand) == expected
 
     @pytest.mark.parametrize(
+        ["operand", "expected"],
+        [
+            (
+                Operand(value=Bytes([0x12]), mode="_", operand_type=OperandType.DEFAULT),
+                "Operand(value=0x12, mode='_', operand_type=OperandType.DEFAULT)",
+            ),
+            (
+                Operand(value=Bytes([0x12, 0x34, 0x56]), mode="(_,S)", operand_type=OperandType.DEFAULT),
+                "Operand(value=0x123456, mode='(_,S)', operand_type=OperandType.DEFAULT)",
+            ),
+            (
+                Operand(value=Bytes([0x12]), mode="_", operand_type=OperandType.DEFAULT, variable=ALFA),
+                "Operand(value=0x12, mode='_', operand_type=OperandType.DEFAULT, variable=SimpleVar(0x12, 'alfa'))",
+            ),
+        ],
+    )
+    def test_repr(self, operand: Operand, expected: str):
+        assert repr(operand) == expected
+
+    @pytest.mark.parametrize(
         ["parent_position", "length", "destination", "expected"],
         [
             (Bytes.from_position(0x123456), 3, Bytes.from_position(0x12FFFF), True),

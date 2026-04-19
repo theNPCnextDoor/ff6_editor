@@ -1,22 +1,20 @@
 from __future__ import annotations
 
-import re
-
 import pytest
 
-from src.lib.assembly.data_structure.regex import Regex
+from src.lib.assembly.data_structure.instruction.operand import Operand
 from src.lib.assembly.bytes import Bytes
 from src.lib.assembly.data_structure.blob import Blob
-from test.lib.assembly.conftest import TEST_BYTE
+from test.lib.assembly.conftest import TEST_BYTE, BRAVO, ALFA
 
 
 class TestBlob:
     @pytest.mark.parametrize(
         ["blob", "position", "data"],
         [
-            (Blob(data=Bytes([0x12, 0x34, 0x56, 0x78])), Bytes([0x00, 0x00, 0x00]), Bytes([0x12, 0x34, 0x56, 0x78])),
+            (Blob(operand=Bytes([0x12, 0x34, 0x56, 0x78])), Bytes([0x00, 0x00, 0x00]), Bytes([0x12, 0x34, 0x56, 0x78])),
             (
-                Blob(data=Bytes([0x9A, 0xBC, 0xDE, 0xF0]), position=Bytes([0x56, 0x34, 0x12])),
+                Blob(operand=Bytes([0x9A, 0xBC, 0xDE, 0xF0]), position=Bytes([0x56, 0x34, 0x12])),
                 Bytes([0x56, 0x34, 0x12]),
                 Bytes([0x9A, 0xBC, 0xDE, 0xF0]),
             ),
@@ -24,26 +22,27 @@ class TestBlob:
     )
     def test_init(self, blob: Blob, position: Bytes, data: Bytes):
         assert blob.position == position
-        assert blob.data == data
+        assert blob.operand == data
 
     @pytest.mark.parametrize(
-        ["line", "blob"],
+        ["operand", "delimiter", "blob"],
         [
-            ("  $12", Blob(data=TEST_BYTE)),
-            ("  $0123456789ABCDEF", Blob(data=Bytes([0xEF, 0xCD, 0xAB, 0x89, 0x67, 0x45, 0x23, 0x01]))),
-            ("  $FFFF # C0/0000", Blob(data=Bytes([0xFF, 0xFF]))),
+            ("$12", None, Blob(operand=Operand(TEST_BYTE))),
+            ("$0123456789ABCDEF", None, Blob(operand=Operand(Bytes([0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF])))),
         ],
     )
-    def test_from_regex_match(self, line: str, blob: Blob):
-        match = re.match(Regex.BLOB_LINE, line)
-        assert Blob.from_match(match) == blob
+    def test_from_string(self, operand: str, delimiter: str | None, blob: Blob):
+        assert Blob.from_string(operand, delimiter) == blob
 
     @pytest.mark.parametrize(
         ["data", "blob"],
         [
-            (b"\x12", Blob(data=TEST_BYTE)),
-            (b"\x01\x23\x45\x67\x89\xab\xcd\xef", Blob(data=Bytes([0xEF, 0xCD, 0xAB, 0x89, 0x67, 0x45, 0x23, 0x01]))),
-            (b"\xff\xff", Blob(data=Bytes([0xFF, 0xFF]))),
+            (b"\x12", Blob(operand=Operand(TEST_BYTE))),
+            (
+                b"\x01\x23\x45\x67\x89\xab\xcd\xef",
+                Blob(operand=Operand(Bytes([0xEF, 0xCD, 0xAB, 0x89, 0x67, 0x45, 0x23, 0x01]))),
+            ),
+            (b"\xff\xff", Blob(operand=Operand(Bytes([0xFF, 0xFF])))),
         ],
     )
     def test_from_bytes(self, data: bytes, blob: Blob):
@@ -52,17 +51,43 @@ class TestBlob:
     @pytest.mark.parametrize(
         ["blob", "expected"],
         [
-            (Blob(data=Bytes([0x12, 0x34, 0x56, 0x78])), "$12345678"),
+            (Blob(operand=Operand(Bytes([0x12, 0x34, 0x56, 0x78]))), "$12345678"),
+            (
+                Blob(
+                    operand=Operand(Bytes([0x12, 0x34]), variable=BRAVO),
+                    delimiter=Operand(Bytes([0x12]), variable=ALFA),
+                ),
+                "bravo,alfa",
+            ),
         ],
     )
     def test_str(self, blob: Blob, expected: str):
         assert str(blob) == expected
 
     @pytest.mark.parametrize(
+        ["blob", "expected"],
+        [
+            (
+                Blob(operand=Operand(Bytes([0x12, 0x34, 0x56, 0x78]))),
+                "Blob(position=0x000000, as_str='$12345678', as_bytes=b'xV4\\x12', as_hexa=0x12345678)",
+            ),
+            (
+                Blob(
+                    operand=Operand(Bytes([0x12, 0x34]), variable=BRAVO),
+                    delimiter=Operand(Bytes([0x12]), variable=ALFA),
+                ),
+                "Blob(position=0x000000, as_str='bravo,alfa', as_bytes=b'4\\x12\\x12', as_hexa=0x123412, operand_var=SimpleVar(0x1234, 'bravo'), delimiter_var=SimpleVar(0x12, 'alfa'))",
+            ),
+        ],
+    )
+    def test_repr(self, blob: Blob, expected: str):
+        assert repr(blob) == expected
+
+    @pytest.mark.parametrize(
         ["blob", "show_address", "expected"],
         [
-            (Blob(data=Bytes([0x12, 0x34, 0x56, 0x78])), False, "  $12345678"),
-            (Blob(data=Bytes([0x12, 0x34, 0x56, 0x78])), True, "  $12345678 ; C00000"),
+            (Blob(operand=Operand(Bytes([0x12, 0x34, 0x56, 0x78]))), False, "  $12345678"),
+            (Blob(operand=Operand(Bytes([0x12, 0x34, 0x56, 0x78]))), True, "  $12345678 ; C00000"),
         ],
     )
     def test_to_line(self, blob: Blob, show_address: bool, expected: str):
@@ -71,7 +96,7 @@ class TestBlob:
     @pytest.mark.parametrize(
         ["blob", "length"],
         [
-            (Blob(data=Bytes([0x12, 0x34, 0x56, 0x78])), 4),
+            (Blob(operand=Bytes([0x12, 0x34, 0x56, 0x78])), 4),
         ],
     )
     def test_len(self, blob: Blob, length: int):
@@ -80,9 +105,9 @@ class TestBlob:
     @pytest.mark.parametrize(
         ["blob", "output"],
         [
-            (Blob(data=Bytes([0x12, 0x34, 0x56, 0x78])), b"\x78\x56\x34\x12"),
-            (Blob(data=Bytes([0x12, 0x34, 0x56, 0x78]), delimiter=Bytes([0x00])), b"\x78\x56\x34\x12\x00"),
-            (Blob(data=Bytes([0x12, 0x34, 0x56, 0x78]), delimiter=Bytes([0xFF])), b"\x78\x56\x34\x12\xff"),
+            (Blob(operand=Bytes([0x12, 0x34, 0x56, 0x78])), b"\x78\x56\x34\x12"),
+            (Blob(operand=Bytes([0x12, 0x34, 0x56, 0x78]), delimiter=Bytes([0x00])), b"\x78\x56\x34\x12\x00"),
+            (Blob(operand=Bytes([0x12, 0x34, 0x56, 0x78]), delimiter=Bytes([0xFF])), b"\x78\x56\x34\x12\xff"),
         ],
     )
     def test_bytes(self, blob: Blob, output: Bytes):

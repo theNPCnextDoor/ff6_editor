@@ -1,4 +1,3 @@
-from re import Match
 from typing import Self, Any
 
 from src.lib.assembly.artifact.artifact import Artifact
@@ -16,7 +15,7 @@ class Flags(Artifact):
         self.x = x
 
     @classmethod
-    def from_match(cls, match: Match) -> Self:
+    def from_string(cls, m_flag: str, x_flag: str) -> Self:
         """
         Will take a string that matches Regex.FLAGS and will return a Flags object. It will consider either
          "8" or "true" for True and "16" or "false" for False.
@@ -26,8 +25,8 @@ class Flags(Artifact):
          and the indexes than having to convert the bool into number of bits.
         """
         flags = cls()
-        flags.m = 8 if match.group(1) in ("8", "true") else 16
-        flags.x = 8 if match.group(2) in ("8", "true") else 16
+        flags.m = int(m_flag)
+        flags.x = int(x_flag)
         return flags
 
     def __str__(self) -> str:

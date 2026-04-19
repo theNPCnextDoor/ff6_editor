@@ -1,36 +1,21 @@
-from __future__ import annotations
-from typing import TYPE_CHECKING
-from abc import abstractmethod
-
-if TYPE_CHECKING:
-    from src.lib.assembly.artifact.variable import Label
-
-
 class Regex:
+    COMMENTED_LINE = r'[^";]*("[^"]+"[^";]*)?(?P<comment>(;.*)?)'
     NOT_HEXA = r"(?![0-9A-F])"
     BYTE = r"[0-9A-F]{2}"
     WORD = rf"[0-9A-F]{{4}}{NOT_HEXA}"
     DATA = rf"({BYTE}){{1,3}}{NOT_HEXA}"
-    MENU_CHAR = r"[0-9a-zA-Z!?/:“”\'\-.,…;#+\(\)%~=¨↑→↙× _]|<[xA-Z0-9 ]+>"
-    DELIMITER_1 = rf",\$(?P<d1>{BYTE}){NOT_HEXA}"
-    DELIMITER_2 = rf",\$(?P<d2>{BYTE}){NOT_HEXA}"
-    CHUNK = rf"(?P<chunk>(\[\$(?P<n1>{DATA})\](,Y)?)|\(\$(?P<n2>{DATA})(,S)?\),Y|\(\$(?P<n3>{DATA})(,X)?\)|\$(?P<n4>{DATA}),[SXY]|#\$(?P<n5>{DATA})(,#\$(?P<mov2>{BYTE}))?|\$(?P<n6>{DATA}))"
+    CHAR = r"[0-9a-zA-Z!?/:“”\'\-.,…;#+\(\)%~=¨↑→↙× _]|<[xA-Z0-9 ]+>"
     VARIABLE = r"[a-z][0-9a-z_]+"
-    SNES_ADDRESS = rf"(?P<snes_address>[4-9C-F][0-9A-F]{WORD})"
+    SNES_ADDRESS = rf"[4-9A-F][0-9A-F]{WORD}"
 
-    BLOB = rf"\$((?P<n1>({BYTE})+){NOT_HEXA}(?!,)|(?P<n2>({BYTE})+){NOT_HEXA}{DELIMITER_1})"
-    MENU_STRING = rf'"((?P<s1>({MENU_CHAR})+)"{DELIMITER_2}|(?P<s2>({MENU_CHAR})+)"(?!,))'
-    ANY_BLOB = rf"({BLOB}|{MENU_STRING})"
-
-    FLAGS_LINE = r"^m=(8|16|true|false),x=(8|16|true|false)$"
-    LABEL_LINE = rf"^@(?P<label>{VARIABLE}) *(= *\${SNES_ADDRESS})?"
-    BLOB_LINE = rf"^ +{BLOB}"
-    MENU_STRING_LINE = rf"^ +{MENU_STRING}"
-    DESCRIPTION_LINE = rf"^ +(?P<string_type>txt2) {MENU_STRING}"
-    BLOB_GROUP_LINE = rf"^ +((((\$({BYTE})+)|\"({MENU_CHAR})+\")(,\${BYTE})?) \| )+(((\$({BYTE})+)|\"({MENU_CHAR})+\")(,\${BYTE})?)( ?;.*)?"
-    POINTER_LINE = rf"^ +(?P<is_relative>r)?ptr ((?P<chunk>\$(?P<number>{WORD}))|(?P<label>{VARIABLE}))"
-    VARIABLE_ASSIGNMENT = rf"d(?P<length>[bw]) (?P<name>{VARIABLE}) *= *\$(?P<value>{DATA})"
-    ANCHOR = rf"^#(\${SNES_ADDRESS}|(?P<label>{VARIABLE}))"
+    DELIMITER = rf"(\.?{VARIABLE}|\${BYTE}){NOT_HEXA}"
+    BLOB = rf"(?P<operand>([.!]?{VARIABLE}|\$({BYTE})+){NOT_HEXA})(,(?P<delimiter>{DELIMITER}))?"
+    STRING = rf'((?P<string_type>desc) )?"(?P<string>({CHAR})+)"(,(?P<delimiter>{DELIMITER}))?'
+    FLAGS = r"m=(?P<m_flag>(8|16)),x=(?P<x_flag>(8|16))"
+    LABEL = rf"^@(?P<name>{VARIABLE}) *(= *(?P<snes_address>\${SNES_ADDRESS}))?"
+    POINTER = rf"(?P<relative>r)?ptr (?P<operand>(\${WORD})|!{VARIABLE})"
+    VARIABLE_DECLARATION = rf"d(?P<length>[bw]) (?P<name>{VARIABLE}) *= *(?P<operand>\$({BYTE}){{1,2}})"
+    ANCHOR = rf"#(?P<operand>\${SNES_ADDRESS}|{VARIABLE})"
 
 
 class InstructionRegex:
@@ -40,10 +25,4 @@ class InstructionRegex:
     DIRECT_MODE = rf"\({OP_VALUE}(,X\)|\),Y|,S\),Y|\))"
     DIRECT_LONG_MODE = rf"\[{OP_VALUE}\](,Y)?"
     OPERAND = rf"{IMMEDIATE_MODE}(,{IMMEDIATE_MODE})?|{DIRECT_MODE}|{DIRECT_LONG_MODE}|{ABSOLUTE_MODE}"
-    INSTRUCTION = rf" *(?P<command>[A-Z]{{3}})( (?P<operand>{OPERAND}))?"
-
-
-class ToLineMixin:
-    @abstractmethod
-    def to_line(self, show_address: bool = False, labels: list[Label] | None = None) -> str:
-        pass
+    INSTRUCTION = rf"(?P<command>[A-Z]{{3}})( (?P<operand>{OPERAND}))?"

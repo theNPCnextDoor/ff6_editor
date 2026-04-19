@@ -1,4 +1,3 @@
-from re import Match
 from typing import Self
 
 from src.lib.assembly.artifact.variables import Variables
@@ -7,12 +6,11 @@ from src.lib.misc.exception import TooManyCandidatesException, NoCandidateExcept
 from src.lib.assembly.artifact.flags import Flags, RegisterWidth
 from src.lib.assembly.artifact.variable import Label
 from src.lib.assembly.data_structure.instruction.opcodes import Opcodes
-from src.lib.assembly.data_structure.regex import ToLineMixin
-from src.lib.assembly.data_structure.data_structure import DataStructure, DataMixin
+from src.lib.assembly.data_structure.data_structure import DataStructure
 from src.lib.assembly.bytes import Bytes
 
 
-class Instruction(DataStructure, DataMixin, ToLineMixin):
+class Instruction(DataStructure):
     """
     Instructions are commands read by the processor. They contain an opcode and, usually, an operand. In this framework,
     moving block instructions (MVP and MVN) are considered having two operands.
@@ -31,7 +29,9 @@ class Instruction(DataStructure, DataMixin, ToLineMixin):
         self.operands = operands
 
     @classmethod
-    def from_match(cls, match: Match, position: Bytes, flags: Flags, variables: Variables | None = None) -> Self:
+    def from_string(
+        cls, command: str, position: Bytes, flags: Flags, operand: str | None = None, variables: Variables | None = None
+    ) -> Self:
         """
         Converts a string from a regex match into an instruction. 24-bit operands written as an address will be converted
         to their corresponding position in the ROM.
@@ -41,13 +41,10 @@ class Instruction(DataStructure, DataMixin, ToLineMixin):
         :param variables: A list of existing variables.
         :return: An instruction.
         """
-        command = match.group("command")
-        chunk = match.group("operand")
-
         if command.startswith("MV"):
-            chunks = chunk.split(",")
+            chunks = operand.split(",")
         else:
-            chunks = [chunk] if chunk else list()
+            chunks = [operand] if operand else list()
 
         operands = list()
 
@@ -230,7 +227,20 @@ class Instruction(DataStructure, DataMixin, ToLineMixin):
         """
         :return: A string representation of the instruction displayed by the IDE or in error messages.
         """
-        return f"{self.position}: {self} ({self.opcode} {self.operands})"
+        hexa = str(self.opcode)
+        for operand in self.operands:
+            hexa += str(operand.value)
+        output = (
+            f"Instruction(position=0x{self.position}, as_str='{str(self)}', as_bytes={bytes(self)}, as_hexa=0x{hexa}"
+        )
+
+        if self.operands:
+            if self.operands[0].variable:
+                output += f", operand_var_1={repr(self.operands[0].variable)}"
+            if len(self.operands) == 2 and self.operands[1].variable:
+                output += f", operand_var_2={repr(self.operands[1].variable)}"
+        output += ")"
+        return output
 
     @property
     def labels(self) -> list[Label]:

@@ -41,7 +41,7 @@ class Operand:
     def from_string(
         cls,
         value: str,
-        parent_position: Bytes,
+        parent_position: Bytes | None = None,
         operand_type: OperandType = OperandType.DEFAULT,
         variables: Variables | None = None,
     ) -> Self:
@@ -54,6 +54,7 @@ class Operand:
         :param variables: A list of existing variables and labels.
         :return: An operand.
         """
+        parent_position = parent_position or Bytes.from_position(0)
         variables = variables or Variables()
         mode = cls._to_mode(value, operand_type)
         stripped_value = re.sub(r"[$.!#()\[\],SXY]", "", value)
@@ -161,7 +162,6 @@ class Operand:
             return Bytes.from_int((int(destination) - int(parent_position) - 2) % 0x0100)
         if operand_type == OperandType.LONG_BRANCHING:
             return Bytes.from_int(((int(destination) - int(parent_position) - 3) % 0x010000), length=2)
-
         if length == 1:
             return destination[0:1]
 
@@ -217,10 +217,16 @@ class Operand:
         return self.mode.replace("_", f"{self.variable.name}")
 
     def __repr__(self):
-        return f"Operand(value={str(self.value)}, mode='{self.mode}', operand_type={self.operand_type}, variable={repr(self.variable)})"
+        output = f"Operand(value=0x{str(self.value)}, mode='{self.mode}', operand_type={self.operand_type}"
+        if self.variable:
+            output += f", variable={repr(self.variable)}"
+        output += ")"
+        return output
 
     @staticmethod
-    def _is_destination_possible(parent_position: Bytes, length: int, destination: Bytes) -> bool:
+    def _is_destination_possible(
+        parent_position: Bytes, length: int, destination: Bytes, operand_type: OperandType | None = None
+    ) -> bool:
         if length == 3:
             return True
         if length == 2:

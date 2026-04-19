@@ -1,4 +1,6 @@
-from src.lib.assembly.artifact.variable import Label, SimpleVar, Variable
+from typing import Self
+
+from src.lib.assembly.artifact.variable import Label, Variable
 from src.lib.assembly.bytes import Bytes
 from src.lib.misc.exception import VariableConflict
 
@@ -14,6 +16,7 @@ class Variables:
         self._simple_variables = list()
         for variable in variables:
             self.append(variable)
+        self._index = 0
 
     def append(self, variable: Variable) -> None:
         """
@@ -82,18 +85,18 @@ class Variables:
         return self._simple_variables + self._labels
 
     @property
-    def simple_variables(self) -> list[SimpleVar]:
+    def simple_variables(self) -> Self:
         """
         :return: The list of simple variables.
         """
-        return self._simple_variables
+        return type(self)(*self._simple_variables)
 
     @property
-    def labels(self) -> list[Label]:
+    def labels(self) -> Self:
         """
         :return: The list of labels.
         """
-        return self._labels
+        return type(self)(*self._labels)
 
     def __contains__(self, item: Variable) -> bool:
         """
@@ -105,3 +108,23 @@ class Variables:
             if item == var:
                 return True
         return False
+
+    def __eq__(self, other: Self) -> bool:
+        return self.all() == other.all()
+
+    def __iter__(self) -> Self:
+        return self
+
+    def __next__(self):
+        if self._index < len(self.all()):
+            item = self.all()[self._index]
+            self._index += 1
+            return item
+        else:
+            raise StopIteration
+
+    def __len__(self):
+        return len(self.all())
+
+    def __getitem__(self, item):
+        return self.all()[item]

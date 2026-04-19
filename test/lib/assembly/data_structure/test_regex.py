@@ -1,13 +1,45 @@
 import re
-from typing import Optional
 
 import pytest as pytest
 
-from src.lib.assembly.artifact.flags import Flags
 from src.lib.assembly.data_structure.regex import Regex, InstructionRegex
 
 
 class TestRegex:
+    @pytest.mark.parametrize(
+        ["line", "comment"],
+        [
+            ("$1234", ""),
+            ("; The whole line is a comment", "; The whole line is a comment"),
+            ('"This is a string without a semi-colon"', ""),
+            ('"This is a string containing a semi-colon; yet it is not a comment.', ""),
+            ('; This is a comment containing "quotes".', '; This is a comment containing "quotes".'),
+            (
+                '"This is a string with a semi-colon; this is not a comment but there is one after that" ; This is the comment.',
+                "; This is the comment.",
+            ),
+            (
+                '"The string contains a semicolon; but..." ; The comment contains "quotes"',
+                '; The comment contains "quotes"',
+            ),
+            (' desc "There is something before the quote; without comments"', ""),
+            (
+                ' desc "There is something before the quote; and there is a comment" ; This is the "comment"',
+                '; This is the "comment"',
+            ),
+            (' desc "There is something before the quote; plus a delimiter without comments",$00', ""),
+            (
+                ' desc "There is something before the quote; plus a delimiter and comments",$00 ; Hi "comment", this is dad',
+                '; Hi "comment", this is dad',
+            ),
+            (" \"Array with a comment containing '|' characters\" ; A | B | C ; | D", "; A | B | C ; | D"),
+        ],
+    )
+    def test_commented_line(self, line: str, comment: str):
+        match = re.match(Regex.COMMENTED_LINE, line)
+        assert match
+        assert match.group("comment") == comment
+
     @pytest.mark.parametrize(
         "line,is_match",
         [
@@ -29,8 +61,8 @@ class TestRegex:
             ("1G89", False),
         ],
     )
-    def test_two_bytes(self, line: str, is_match: bool):
-        assert bool(re.search(Regex.WORD, line)) == is_match
+    def test_word(self, line: str, is_match: bool):
+        assert bool(re.fullmatch(Regex.WORD, line)) == is_match
 
     @pytest.mark.parametrize(
         "line,is_match", [("00", True), ("AAAA", True), ("9F9F9F", True), ("1G89", False), ("$00", False)]
@@ -53,65 +85,8 @@ class TestRegex:
             ("<ATB 0", False),
         ],
     )
-    def test_menu_char(self, line: str, is_match: bool):
-        assert bool(re.fullmatch(Regex.MENU_CHAR, line)) == is_match
-
-    @pytest.mark.parametrize(["line", "is_match"], [(",$FF", True), (" $FF", False), (",$FG", False)])
-    @pytest.mark.parametrize("regex", [Regex.DELIMITER_1, Regex.DELIMITER_2])
-    def test_delimiter(self, line: str, is_match: bool, regex: str):
-        assert bool(re.fullmatch(regex, line)) == is_match
-
-    @pytest.mark.parametrize(
-        ["line", "is_match", "group"],
-        [
-            ("$FF", True, 6),
-            ("#$FF", True, 5),
-            ("#$FF,#$FF", True, 5),
-            ("#$FF,$FF", False, None),
-            ("#$FF,S", False, None),
-            ("#$FF,X", False, None),
-            ("#$FF,Y", False, None),
-            ("[#$FF]", False, None),
-            ("(#$FF)", False, None),
-            ("$FF,S", True, 4),
-            ("$FF,X", True, 4),
-            ("$FF,Y", True, 4),
-            ("($FF)", True, 3),
-            ("($FF,X)", True, 3),
-            ("($FF,S)", False, None),
-            ("($FF,Y)", False, None),
-            ("($FF),Y", True, 2),
-            ("($FF,S),Y", True, 2),
-            ("($FF,X),Y", False, None),
-            ("($FF,Y),Y", False, None),
-            ("($FF),X", False, None),
-            ("($FF),S", False, None),
-            ("[$FF]", True, 1),
-            ("[$FF],Y", True, 1),
-            ("[$FF],X", False, None),
-            ("[$FF],S", False, None),
-            ("[$FF,S]", False, None),
-            ("[$FF,X]", False, None),
-            ("[$FF,Y]", False, None),
-        ],
-    )
-    def test_chunk(self, line: str, is_match: bool, group: int):
-        match = re.fullmatch(Regex.CHUNK, line)
-        assert bool(match) == is_match
-        if is_match:
-            assert match.group(f"n{group}") == "FF"
-
-    @pytest.mark.parametrize(
-        "line,is_match",
-        [
-            ("C00000", True),
-            ("FFFFFF", True),
-            ("000000", False),
-            ("C00G00", False),
-        ],
-    )
-    def test_snes_address(self, line: str, is_match: bool):
-        assert bool(re.match(Regex.SNES_ADDRESS, line)) == is_match
+    def test_char(self, line: str, is_match: bool):
+        assert bool(re.fullmatch(Regex.CHAR, line)) == is_match
 
     @pytest.mark.parametrize(
         "line,is_match",
@@ -129,242 +104,135 @@ class TestRegex:
         assert bool(re.fullmatch(Regex.VARIABLE, line)) == is_match
 
     @pytest.mark.parametrize(
-        ["line", "is_match"],
+        "line,is_match",
         [
-            ("", False),
-            ("$12", True),
-            ("$0123456789ABCDEF", True),
-            ("$12 # C0/00000", True),
-            ("$123", False),
-            ("$123,$FF", False),
-            ("$12,$FF", True),
-            ("$12,$FF # C0/00000", True),
-            ("$12,$FFF", False),
+            ("C00000", True),
+            ("FFFFFF", True),
+            ("000000", False),
+            ("C00G00", False),
         ],
     )
-    def test_blob(self, line: str, is_match: bool):
-        assert bool(re.match(Regex.BLOB, line)) == is_match
+    def test_snes_address(self, line: str, is_match: bool):
+        assert bool(re.fullmatch(Regex.SNES_ADDRESS, line)) == is_match
 
     @pytest.mark.parametrize(
-        ["line", "is_match"],
+        ["line", "is_match"], [("$FF", True), ("$FG", False), ("alfa", True), (".charlie", True), ("!charlie", False)]
+    )
+    def test_delimiter(self, line: str, is_match: bool):
+        assert bool(re.fullmatch(Regex.DELIMITER, line)) == is_match
+
+    @pytest.mark.parametrize(
+        ["line", "is_match", "operand", "delimiter"],
         [
-            ('""', False),
-            ('"a"', True),
-            ('"abc"', True),
-            ('"<WHITE>"', True),
-            ('"<ATB 0>"', True),
-            ('"abc<BLACK><ATB 4>.   fjj:;+=12345"', True),
-            ('"$"', False),
-            ("abc", False),
-            ('"<>"', False),
-            ('"<ATB 0', False),
-            ('"a" $00', True),
-            ('"a  $00', False),
-            ('"<GREY>",$FF', True),
-            ('"a",$FFF', False),
-            ('"a<LINE>",$FF', True),
-            ('"<0x00>"', True),
-            ('"<0xFF>",$88', True),
+            ("", False, None, None),
+            ("$12", True, "$12", None),
+            ("$0123456789ABCDEF", True, "$0123456789ABCDEF", None),
+            ("$123", False, None, None),
+            ("$123,$FF", False, None, None),
+            ("$12,$FF", True, "$12", "$FF"),
+            ("$12,$FFF", False, None, None),
+            ("bravo", True, "bravo", None),
+            ("bravo,$12", True, "bravo", "$12"),
+            ("$12,alfa", True, "$12", "alfa"),
+            ("bravo,alfa", True, "bravo", "alfa"),
         ],
     )
-    def test_menu_string(self, line: str, is_match: bool):
-        assert bool(re.match(Regex.MENU_STRING, line)) == is_match
+    def test_blob(self, line: str, is_match: bool, operand: str | None, delimiter: str | None):
+        match = re.fullmatch(Regex.BLOB, line)
+        assert bool(match) == is_match
+        if is_match:
+            assert match.group("operand") == operand
+            assert match.group("delimiter") == delimiter
 
     @pytest.mark.parametrize(
-        ["line", "is_match"],
+        ["line", "is_match", "string_type", "string", "delimiter"],
         [
-            ("", False),
-            ("$12", True),
-            ("$0123456789ABCDEF", True),
-            ("$12 # C0/00000", True),
-            ("$123", False),
-            ("$123,$FF", False),
-            ("$12,$FF", True),
-            ("$12,$FF # C0/00000", True),
-            ("$12,$FFF", False),
-            ('""', False),
-            ('"a"', True),
-            ('"abc"', True),
-            ('"<WHITE>"', True),
-            ('"<ATB 0>"', True),
-            ('"abc<BLACK><ATB 4>.   fjj:;+=12345"', True),
-            ('"$"', False),
-            ("abc", False),
-            ('"<>"', False),
-            ('"<ATB 0', False),
-            ('"a" $00', True),
-            ('"a<LINE>" $00', True),
-            ('"a  $00', False),
-            ('"<GREY>",$FF', True),
-            ('"a",$FFF', False),
-            ('"<0x00>"', True),
-            ('"<0xFF>",$88', True),
+            ('""', False, None, None, None),
+            ('"a"', True, None, "a", None),
+            ('"a",$00', True, None, "a", "$00"),
+            ('"a",alfa', True, None, "a", "alfa"),
+            ('"<WHITE>"', True, None, "<WHITE>", None),
+            ('"<ATB 0>"', True, None, "<ATB 0>", None),
+            ('"<0x00>"', True, None, "<0x00>", None),
+            ('"$"', False, None, None, None),
+            ("abc", False, None, None, None),
+            ('"<>"', False, None, None, None),
+            ('"<ATB 0', False, None, None, None),
+            ('"a  $00', False, None, None, None),
+            ('"a",$FFF', False, None, None, None),
+            ('desc "<0xFF>",$88', True, "desc", "<0xFF>", "$88"),
         ],
     )
-    def test_any_blob(self, line: str, is_match: bool):
-        assert bool(re.match(Regex.ANY_BLOB, line)) == is_match
+    def test_string(
+        self, line: str, is_match: bool, string_type: str | None, string: str | None, delimiter: str | None
+    ):
+        match = re.fullmatch(Regex.STRING, line)
+        assert bool(match) == is_match
+        if is_match:
+            assert match.group("string_type") == string_type
+            assert match.group("string") == string
+            assert match.group("delimiter") == delimiter
 
     @pytest.mark.parametrize(
-        "line,m,x",
-        [
-            ("m=8,x=16", 8, 16),
-            ("m=16,x=8", 16, 8),
-            ("m=true,x=false", 8, 16),
-            ("m=false,x=true", 16, 8),
-        ],
+        ["line", "is_match", "m_flag", "x_flag"],
+        [("m=8,x=16", True, "8", "16"), ("m=16,x=8", True, "16", "8"), ("m=True,x=False", False, None, None)],
     )
-    def test_flags_line(self, line: str, m: bool, x: bool):
-        match = re.match(Regex.FLAGS_LINE, line)
-        flags = Flags.from_match(match)
-        assert flags.m is m
-        assert flags.x is x
+    def test_flags(self, line: str, is_match: bool, m_flag: bool, x_flag: bool):
+        match = re.match(Regex.FLAGS, line)
+        assert bool(match) == is_match
+        if is_match:
+            assert match.group("m_flag") == m_flag
+            assert match.group("x_flag") == x_flag
 
     @pytest.mark.parametrize(
-        "line,label,snes_address",
+        ["line", "name", "snes_address"],
         [
-            ("@abulita = $C00000", "abulita", "C00000"),
-            ("@label_c34567 = $C34567", "label_c34567", "C34567"),
+            ("@abulita = $C00000", "abulita", "$C00000"),
+            ("@label_c34567 = $C34567", "label_c34567", "$C34567"),
             ("@abulita", "abulita", None),
         ],
     )
-    def test_label_line(self, line: str, label: str, snes_address: Optional[str]):
-        match = re.match(Regex.LABEL_LINE, line)
-        assert match.group("label") == label
+    def test_label(self, line: str, name: str, snes_address: str | None):
+        match = re.fullmatch(Regex.LABEL, line)
+        assert match.group("name") == name
         assert match.group("snes_address") == snes_address
 
     @pytest.mark.parametrize(
-        ["line", "is_match"],
+        ["line", "is_match", "relative", "operand"],
         [
-            ("  ", False),
-            ("  $12", True),
-            ("  $0123456789ABCDEF", True),
-            ("  $12 # C0/00000", True),
-            ("  $123", False),
-            ("  $123,$FF", False),
-            ("  $12,$FF", True),
-            ("  $12,$FF # C0/00000", True),
-            ("  $12,$FFF", False),
+            ("ptr $1234", True, None, "$1234"),
+            ("rptr $1234", True, "r", "$1234"),
+            ("ptr $123456", False, None, None),
+            ("ptr !pastagate", True, None, "!pastagate"),
+            ("rptr !pastagate", True, "r", "!pastagate"),
+            ("ptr pastagate", False, None, False),
+            ("ptr .pastagate", False, None, None),
         ],
     )
-    def test_blob_line(self, line: str, is_match: bool):
-        match = re.match(Regex.BLOB_LINE, line)
-        assert bool(match) == is_match
-
-    @pytest.mark.parametrize(
-        ["line", "is_match"],
-        [
-            ('  ""', False),
-            ('  "a"', True),
-            ('  "abc"', True),
-            ('  "<WHITE>"', True),
-            ('  "<ATB 0>"', True),
-            ('  "abc<BLACK><ATB 4>.   fjj:;+=12345"', True),
-            ('  "$"', False),
-            ("  abc", False),
-            ('  "<>"', False),
-            ('  "<ATB 0', False),
-            ('  "a" $00', True),
-            ('  "a  $00', False),
-            ('  "<GREY>",$FF', True),
-            ('  "a",$FFF', False),
-            ('  "<0x00>"', True),
-            ('  "<0xFF>",$88', True),
-        ],
-    )
-    def test_menu_string_line(self, line: str, is_match: bool):
-        assert bool(re.match(Regex.MENU_STRING_LINE, line)) == is_match
-
-    @pytest.mark.parametrize(
-        ["line", "is_match"],
-        [
-            ('  ""', False),
-            ('  txt2 ""', False),
-            ('  txt2 "abc"', True),
-            ('  txt2 "<WHITE>"', True),
-            ('  txt2 "<ATB 0>"', True),
-            ('  txt2 "abc<BLACK><ATB 4>.   fjj:;+=12345"', True),
-            ('  txt2 "$"', False),
-            ("  txt2 abc", False),
-            ('  txt2 "<>"', False),
-            ('  txt2 "<ATB 0', False),
-            ('  txt2 "a" $00', True),
-            ('  txt2 "a  $00', False),
-            ('  txt2 "<GREY>",$FF', True),
-            ('  txt2 "a",$FFF', False),
-            ('  txt2 "<0x00>"', True),
-            ('  txt2 "<0xFF>",$88', True),
-            (r'  txt2 "Bob<LINE><FIRE>",$00', True),
-        ],
-    )
-    def test_description_line(self, line: str, is_match: bool):
-        assert bool(re.match(Regex.DESCRIPTION_LINE, line)) == is_match
-
-    @pytest.mark.parametrize(
-        ["line", "is_match"],
-        [
-            ('  "a" | $00', True),
-            ('  "a" | $00,$FF', True),
-            ('  "a",$88 | $00', True),
-            ('  "" | $00', False),
-            ('  "a" | ', False),
-            ('  "a" | "b",$44 | $44 | $44,$44', True),
-            ('  $44 | $44,$44 | "a" | "a",$55', True),
-            ('  $44 | $44,$44 | "a", | "a",$55', False),
-            ('  $CD78 | "Status",$00', True),
-        ],
-    )
-    def test_blob_group_line(self, line: str, is_match: bool):
-        assert bool(re.fullmatch(Regex.BLOB_GROUP_LINE, line)) == is_match
-
-    @pytest.mark.parametrize(
-        ["line", "command", "chunk"],
-        [
-            (" AAA", "AAA", None),
-            (" AAA $12", "AAA", "$12"),
-            (" AAA #$12", "AAA", "#$12"),
-            (" AAA #$12,#$34", "AAA", "#$12,#$34"),
-            (" AAA $12,S", "AAA", "$12,S"),
-            (" AAA $12,X", "AAA", "$12,X"),
-            (" AAA $12,Y", "AAA", "$12,Y"),
-            (" AAA ($12)", "AAA", "($12)"),
-            (" AAA ($12),Y", "AAA", "($12),Y"),
-            (" AAA ($12,S),Y", "AAA", "($12,S),Y"),
-            (" AAA ($12,X)", "AAA", "($12,X)"),
-            (" AAA [$12]", "AAA", "[$12]"),
-            (" AAA [$12],Y", "AAA", "[$12],Y"),
-        ],
-    )
-    def test_instruction_line(self, line: str, command: str, chunk: str):
-        match = re.match(InstructionRegex.INSTRUCTION, line)
-        assert match.group("command") == command
-        assert match.group("operand") == chunk
-
-    @pytest.mark.parametrize(
-        ["line", "is_match", "chunk", "label"],
-        [
-            (" ptr $1234", True, "$1234", None),
-            (" ptr $123456", False, None, None),
-            (" ptr pastagate", True, None, "pastagate"),
-            (" rptr pastagate", True, None, "pastagate"),
-        ],
-    )
-    def test_pointer_line(self, line: str, is_match: bool, chunk: str, label: str):
-        match = re.match(Regex.POINTER_LINE, line)
+    def test_pointer(self, line: str, is_match: bool, relative: str | None, operand: str | None):
+        match = re.fullmatch(Regex.POINTER, line)
         assert bool(match) is is_match
         if is_match:
-            assert match.group("chunk") == chunk
-            assert match.group("label") == label
+            assert match.group("relative") == relative
+            assert match.group("operand") == operand
 
     @pytest.mark.parametrize(
-        ["line", "expected"],
+        ["line", "is_match", "length", "name", "operand"],
         [
-            ("db alice = $12", True),
-            ("dw bob=$1234", True),
+            ("db alfa = $12", True, "b", "alfa", "$12"),
+            ("dw bravo=$1234", True, "w", "bravo", "$1234"),
+            ("dw bravo=$123456", False, None, None, None),
         ],
     )
-    def test_variable_assignment(self, line: str, expected: bool):
-        match = re.fullmatch(Regex.VARIABLE_ASSIGNMENT, line)
-        assert bool(match) is expected
+    def test_variable_declaration(
+        self, line: str, is_match: bool, length: str | None, name: str | None, operand: str | None
+    ):
+        match = re.fullmatch(Regex.VARIABLE_DECLARATION, line)
+        assert bool(match) == is_match
+        if is_match:
+            assert match.group("length") == length
+            assert match.group("name") == name
+            assert match.group("operand") == operand
 
     @pytest.mark.parametrize(["line", "is_match"], [("#label1", True), ("#$C12345", True), ("#$GGGGGG", False)])
     def test_anchor(self, line: str, is_match: bool):
@@ -534,3 +402,26 @@ class TestInstructionRegex:
     def test_operand(self, value: str, expected: bool):
         match = re.fullmatch(InstructionRegex.OPERAND, value)
         assert bool(match) is expected
+
+    @pytest.mark.parametrize(
+        ["line", "command", "operand"],
+        [
+            ("AAA", "AAA", None),
+            ("AAA $12", "AAA", "$12"),
+            ("AAA #$12", "AAA", "#$12"),
+            ("AAA #$12,#$34", "AAA", "#$12,#$34"),
+            ("AAA $12,S", "AAA", "$12,S"),
+            ("AAA $12,X", "AAA", "$12,X"),
+            ("AAA $12,Y", "AAA", "$12,Y"),
+            ("AAA ($12)", "AAA", "($12)"),
+            ("AAA ($12),Y", "AAA", "($12),Y"),
+            ("AAA ($12,S),Y", "AAA", "($12,S),Y"),
+            ("AAA ($12,X)", "AAA", "($12,X)"),
+            ("AAA [$12]", "AAA", "[$12]"),
+            ("AAA [$12],Y", "AAA", "[$12],Y"),
+        ],
+    )
+    def test_instruction(self, line: str, command: str, operand: str):
+        match = re.match(InstructionRegex.INSTRUCTION, line)
+        assert match.group("command") == command
+        assert match.group("operand") == operand

@@ -1,6 +1,3 @@
-from __future__ import annotations
-
-
 class TooManyCandidatesException(Exception):
     pass
 
@@ -50,4 +47,8 @@ class UnrecognizedLine(Exception):
 
 
 class VariableConflict(Exception):
+    pass
+
+
+class ForbiddenVarName(Exception):
     pass

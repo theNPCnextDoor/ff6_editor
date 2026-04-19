@@ -1,12 +1,12 @@
-from re import Match
-
 from typing import Self, Any
 
 from src.lib.assembly.artifact.artifact import Artifact
 from src.lib.assembly.bytes import Bytes
+from src.lib.misc.exception import ForbiddenVarName
 
 
 VAR_LENGTH = {"b": 1, "w": 2}
+FORBIDDEN_NAMES = ["db", "desc", "dw", "m", "ptr", "rptr", "x"]
 
 
 class Variable(Artifact):
@@ -18,12 +18,16 @@ class Variable(Artifact):
         return self.name
 
     def __repr__(self):
-        return f"{self.__class__.__name__}(0x{str(self.value)}, {self.name})"
+        return f"{self.__class__.__name__}(0x{str(self.value)}, '{self.name}')"
 
     def __eq__(self, other: Self):
         if other is None:
             return False
         return self.value == other.value and self.name == other.name
+
+    @staticmethod
+    def is_name_forbidden(name: str) -> bool:
+        return name in FORBIDDEN_NAMES
 
 
 class SimpleVar(Variable):
@@ -32,7 +36,7 @@ class SimpleVar(Variable):
     """
 
     @classmethod
-    def from_match(cls, match: Match) -> Self:
+    def from_string(cls, length: str, name: str, operand: str) -> Self:
         """
         Creates a Variable out of successful regex match.
         :param match: A Match object created out of a successful match against Regex.VARIABLE_ASSIGNMENT.
@@ -40,13 +44,15 @@ class SimpleVar(Variable):
         :raises ReassignmentException: Raised when we are trying to assign a value a second time to an existing value.
         :raises ValueError: Raised when the expected length of the Variable does not match its given value.
         """
-        name = match.group("name")
+        if cls.is_name_forbidden(name):
+            raise ForbiddenVarName(f"Variable name '{name}' is forbidden. All forbidden names: {FORBIDDEN_NAMES}")
 
-        value = Bytes.from_str(match.group("value"))
-        length = VAR_LENGTH[match.group("length")]
-        if length != len(value):
-            raise ValueError(f"Length of value {match.group('value')} does not match expected length: {length}.")
-        return cls(value, name)
+        _operand = Bytes.from_str(operand.replace("$", ""))
+        _length = VAR_LENGTH[length]
+
+        if _length != len(_operand):
+            raise ValueError(f"Length of value '{operand}' does not match expected length: {_length}.")
+        return cls(_operand, name)
 
     def to_line(self) -> str:
         """
@@ -68,9 +74,11 @@ class Label(SimpleVar):
         return self.value
 
     @classmethod
-    def from_match(cls, match: Match, position: Bytes | None = None) -> Self:
-        name = match.group(1)
-        position = Bytes.from_snes_address(match.group("snes_address")) if match.group("snes_address") else position
+    def from_string(cls, name: str, snes_address: str | None = None, position: Bytes | None = None) -> Self:
+        if cls.is_name_forbidden(name):
+            raise ForbiddenVarName(f"Variable name '{name}' is forbidden. All forbidden names: {FORBIDDEN_NAMES}")
+
+        position = Bytes.from_snes_address(snes_address.replace("$", "")) if snes_address else position
 
         return cls(
             value=position,

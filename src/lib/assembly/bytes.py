@@ -1,12 +1,11 @@
 from __future__ import annotations
 from enum import Enum, auto
-from re import Match
 from typing import Self, TYPE_CHECKING
 
 from src.lib.misc.exception import UnderflowError
 
 if TYPE_CHECKING:
-    from src.lib.assembly.artifact.variable import Label
+    from src.lib.assembly.artifact.variables import Variables
 
 
 class Endian(Enum):
@@ -78,25 +77,6 @@ class Bytes:
         return cls.from_int(value=value, length=3)
 
     @classmethod
-    def from_anchor_match(cls, value: Match, labels: list[Label]) -> Self:
-        """
-        Converts a string that matched Regex.ANCHOR into a Bytes object.
-        :param value: The Match object.
-        :param labels: The list of labels in which to find the anchor position.
-        :return: Either the destination of the Label or a Bytes object made out of the SNES address.
-        :raises ValueError: Raised when a label is provided but can't be find in the list of labels.
-        """
-        name, snes_address = value.group("label"), value.group("snes_address")
-
-        if name:
-            for label in labels:
-                if name == label.name:
-                    return label.position
-            raise ValueError(f"Can't find anchor label '{name}'.")
-
-        return cls.from_snes_address(snes_address)
-
-    @classmethod
     def from_str(cls, value: str, endian: Endian = Endian.LITTLE) -> Self:
         """
         Converts a hexadecimal representation of bytes into a Bytes object. The representation is always considered to
@@ -126,6 +106,7 @@ class Bytes:
         if len(value) == 0:
             raise ValueError("Value must be a non-empty bytes object.")
         _list = list()
+
         for _byte in value:
             if endian == Endian.BIG:
                 _list.append(int(_byte))
@@ -201,6 +182,9 @@ class Bytes:
         :return: Whether the value of both objects are equal.
         :raises ValueError: Raised when the other object is not a Bytes object.
         """
+        if other is None:
+            return False
+
         if not isinstance(other, type(self)):
             raise ValueError(f"Can't only compare two Bytes together. {other=}")
 
@@ -225,7 +209,7 @@ class Bytes:
         """
         new_value = self.value[item]
         new_value = new_value if isinstance(new_value, list) else [new_value]
-        return type(self)(value=new_value)
+        return type(self)(value=new_value, endian=self.endian)
 
     def __add__(self, other: Self | int) -> Self:
         """

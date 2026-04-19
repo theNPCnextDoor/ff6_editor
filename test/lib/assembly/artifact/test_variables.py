@@ -12,8 +12,8 @@ class TestVariables:
         variables = Variables()
         variables.append(ALFA)
         variables.append(CHARLIE)
-        assert variables.simple_variables == [ALFA]
-        assert variables.labels == [CHARLIE]
+        assert variables.simple_variables == Variables(ALFA)
+        assert variables.labels == Variables(CHARLIE)
 
     def test_append_raises_variable_conflict_because_of_existing_position(self):
         variables = Variables(CHARLIE)
@@ -40,13 +40,13 @@ class TestVariables:
     def test_sort(self):
         variables = Variables(*VARIABLES[::-1])
 
-        assert variables.simple_variables == [DELTA, BRAVO, ALFA]
-        assert variables.labels == [ECHO, CHARLIE]
+        assert variables.simple_variables == Variables(DELTA, BRAVO, ALFA)
+        assert variables.labels == Variables(ECHO, CHARLIE)
 
         variables.sort()
 
-        assert variables.simple_variables == [ALFA, BRAVO, DELTA]
-        assert variables.labels == [CHARLIE, ECHO]
+        assert variables.simple_variables == Variables(ALFA, BRAVO, DELTA)
+        assert variables.labels == Variables(CHARLIE, ECHO)
 
     @pytest.mark.parametrize(
         ["variable", "expected"], [(ALFA, True), (CHARLIE, True), (SimpleVar(Bytes.from_int(0), "non_existing"), False)]

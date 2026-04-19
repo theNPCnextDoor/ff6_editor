@@ -6,9 +6,10 @@ from typing import Self, BinaryIO, Any
 
 from src.lib.assembly.artifact.variable import Label, SimpleVar
 from src.lib.assembly.artifact.variables import Variables
+from src.lib.assembly.data_structure.instruction.operand import Operand
 from src.lib.misc.exception import MissingSectionAttribute, NoVariableException, LineConflict, UnrecognizedLine
 from src.lib.assembly.data_structure.blob import Blob
-from src.lib.assembly.data_structure.blob_group import BlobGroup
+from src.lib.assembly.data_structure.array import Array
 from src.lib.assembly.data_structure.pointer import Pointer
 from src.lib.assembly.data_structure.instruction.instruction import Instruction
 from src.lib.assembly.artifact.flags import Flags
@@ -28,7 +29,7 @@ class ScriptMode(Enum):
     BLOBS = auto()
     MENU_STRINGS = auto()
     DESCRIPTION_STRINGS = auto()
-    BLOB_GROUPS = auto()
+    ARRAYS = auto()
 
 
 class ScriptSection:
@@ -91,7 +92,7 @@ class Script:
 
     def __init__(self):
         self.blobs = list()
-        self.blob_groups = list()
+        self.arrays = list()
         self.instructions = list()
         self.pointers = list()
         self.variables = Variables()
@@ -109,13 +110,27 @@ class Script:
         script._detect_conflicts()
         return script
 
+    @staticmethod
+    def _clean_line(line: str) -> str:
+        parts = line.split("|")
+        last_part = parts[-1]
+
+        if ";" not in last_part:
+            return line.strip()
+
+        match = re.match(r'[^";]*("[^"]+"[^";]*)?(?P<comment>;\.*)?', last_part)
+        if match and match.group("comment"):
+            line = line[: match.start("comment")]
+
+        return line.strip()
+
     def _detect_conflicts(self):
         """
         Checks if any data structure position conflicts with another.
         :return: None.
         :raises LineConflict: Raised when a line overlaps with the next one, when sorted by position.
         """
-        lines = self.blobs + self.blob_groups + self.instructions + self.pointers
+        lines = self.blobs + self.arrays + self.instructions + self.pointers
         lines.sort()
 
         for i in range(len(lines) - 1):
@@ -134,7 +149,7 @@ class Script:
         :return: None.
         """
         self._extract_labels()
-        lines = self.variables.labels + self.blobs + self.blob_groups + self.instructions + self.pointers
+        lines = self.variables.labels.all() + self.blobs + self.arrays + self.instructions + self.pointers
         lines.sort(key=lambda x: DataStructure.sort(x))
         flags = flags or Flags()
         output = [flags.to_line(), ""]
@@ -142,7 +157,7 @@ class Script:
             output.append(f"{simple_variable.to_line()}")
 
         cursor = int(lines[0].position)
-        current_anchor = Bytes.from_int(0)
+        current_anchor = Operand(Bytes.from_int(0))
 
         if not isinstance(lines[0], Label):
             start_label = Label(name="start", value=lines[0].position)
@@ -187,7 +202,7 @@ class Script:
         with open(input_path, "rb") as input_rom, open(output_path, "wb") as output_rom:
             rom = input_rom.read()
             output_rom.write(rom)
-            for line in self.blobs + self.blob_groups + self.instructions + self.pointers:
+            for line in self.blobs + self.arrays + self.instructions + self.pointers:
                 output_rom.seek(int(line.position))
                 output_rom.write(bytes(line))
 
@@ -214,8 +229,8 @@ class Script:
                 elif section.mode in (ScriptMode.BLOBS, ScriptMode.MENU_STRINGS, ScriptMode.DESCRIPTION_STRINGS):
                     cls._disassemble_blobs(cursor, f, script, section)
 
-                elif section.mode == ScriptMode.BLOB_GROUPS:
-                    cls._disassemble_blob_groups(cursor, f, script, section)
+                elif section.mode == ScriptMode.ARRAYS:
+                    cls._disassemble_arrays(cursor, f, script, section)
 
         cls._sort_lists(script)
 
@@ -229,7 +244,6 @@ class Script:
         """
         with open(filename, encoding="utf-8") as f:
             lines = f.readlines()
-        lines = [stripped_line for line in lines if (stripped_line := line.rstrip())]
 
         cursor = 0
         flags = Flags()
@@ -241,25 +255,33 @@ class Script:
 
         for line, cursor, flags in lines_with_labels:
             if match := re.match(InstructionRegex.INSTRUCTION, line):
-                instruction = Instruction.from_match(
-                    match=match, position=Bytes.from_position(cursor), variables=self.variables, flags=flags
+                instruction = Instruction.from_string(
+                    command=match.group("command"),
+                    operand=match.group("operand"),
+                    position=Bytes.from_position(cursor),
+                    variables=self.variables,
+                    flags=flags,
                 )
                 self.instructions.append(instruction)
-            elif match := re.match(Regex.ANCHOR, line):
-                anchor = Bytes.from_anchor_match(value=match, labels=self.variables.labels)
+            elif match := re.fullmatch(Regex.ANCHOR, line):
+                anchor = Operand.from_string(value=match.group("operand"), variables=self.variables)
 
-            elif match := re.match(Regex.POINTER_LINE, line):
-                pointer = Pointer.from_match(
-                    match=match, position=Bytes.from_position(cursor), labels=self.variables.labels, anchor=anchor
+            elif match := re.fullmatch(Regex.POINTER, line):
+                anchor = anchor if bool(match.group("relative") == "r") else None
+                pointer = Pointer.from_string(
+                    operand=match.group("operand"),
+                    position=Bytes.from_position(cursor),
+                    labels=self.variables.labels,
+                    anchor=anchor,
                 )
                 self.pointers.append(pointer)
 
-        for name in ["blobs", "blob_groups", "instructions", "pointers"]:
+        for name in ["blobs", "arrays", "instructions", "pointers"]:
             _list = getattr(self, name)
             _list.sort()
 
     def _interpret_line(
-        self, cursor: int, flags: Flags, line: str, lines_with_labels: list[tuple[str, int, Flags]]
+        self, cursor: int, flags: Flags, raw_line: str, lines_with_labels: list[tuple[str, int, Flags]]
     ) -> tuple[int, Flags]:
         """
         Parse a line in a text file.
@@ -269,48 +291,68 @@ class Script:
         :param lines_with_labels: A list of lines with additional info to be parsed later.
         :return: A tuple of the new cursor position and flags state.
         """
-        if re.match(Regex.ANCHOR, line):
+        line = self._clean_line(raw_line)
+        if not line:
+            return cursor, flags
+
+        if re.fullmatch(Regex.ANCHOR, line):
             lines_with_labels.append((line, cursor, flags))
 
-        elif match := re.fullmatch(Regex.VARIABLE_ASSIGNMENT, line):
-            self.variables.append(SimpleVar.from_match(match))
+        elif match := re.fullmatch(Regex.VARIABLE_DECLARATION, line):
+            self.variables.append(
+                SimpleVar.from_string(
+                    length=match.group("length"), name=match.group("name"), operand=match.group("operand")
+                )
+            )
 
-        elif match := re.match(Regex.DESCRIPTION_LINE, line):
-            string = String.from_match(match=match, position=Bytes.from_position(cursor))
-            cursor += len(string)
-            self.blobs.append(string)
+        elif "|" in line:
+            array = Array.from_string(line=line, position=Bytes.from_position(cursor))
+            cursor += len(array)
+            self.arrays.append(array)
 
-        elif match := re.fullmatch(Regex.BLOB_GROUP_LINE, line):
-            blob_group = BlobGroup.from_match(match=match, position=Bytes.from_position(cursor))
-            cursor += len(blob_group)
-            self.blob_groups.append(blob_group)
-
-        elif match := re.search(Regex.BLOB_LINE, line):
-            blob = Blob.from_match(match=match, position=Bytes.from_position(cursor))
-            cursor += len(blob)
-            self.blobs.append(blob)
-
-        elif match := re.search(Regex.MENU_STRING_LINE, line):
-            string = String.from_match(match=match, position=Bytes.from_position(cursor))
-            cursor += len(string)
-            self.blobs.append(string)
-
-        elif match := re.search(Regex.FLAGS_LINE, line):
-            flags = Flags.from_match(match=match)
-
-        elif match := re.search(Regex.LABEL_LINE, line):
-            label = Label.from_match(match=match, position=Bytes.from_position(cursor))
-            cursor = int(label.value)
-            self.variables.append(label)
-
-        elif re.search(Regex.POINTER_LINE, line):
+        elif re.fullmatch(Regex.POINTER, line):
             lines_with_labels.append((line, cursor, flags))
             cursor += 2
 
+        elif match := re.fullmatch(Regex.BLOB, line):
+            blob = Blob.from_string(
+                operand=match.group("operand"),
+                delimiter=match.group("delimiter"),
+                position=Bytes.from_position(cursor),
+                variables=self.variables,
+            )
+            cursor += len(blob)
+            self.blobs.append(blob)
+
+        elif match := re.fullmatch(Regex.STRING, line):
+            string = String.from_string(
+                string=match.group("string"),
+                string_type=match.group("string_type"),
+                delimiter=match.group("delimiter"),
+                position=Bytes.from_position(cursor),
+                variables=self.variables,
+            )
+            cursor += len(string)
+            self.blobs.append(string)
+
+        elif match := re.fullmatch(Regex.FLAGS, line):
+            flags = Flags.from_string(match.group("m_flag"), match.group("x_flag"))
+
+        elif match := re.fullmatch(Regex.LABEL, line):
+            label = Label.from_string(
+                name=match.group("name"), snes_address=match.group("snes_address"), position=Bytes.from_position(cursor)
+            )
+            cursor = int(label.value)
+            self.variables.append(label)
+
         elif match := re.match(InstructionRegex.INSTRUCTION, line):
             try:
-                instruction = Instruction.from_match(
-                    match=match, position=Bytes.from_position(cursor), flags=flags, variables=self.variables
+                instruction = Instruction.from_string(
+                    command=match.group("command"),
+                    operand=match.group("operand"),
+                    position=Bytes.from_position(cursor),
+                    flags=flags,
+                    variables=self.variables,
                 )
             except NoVariableException:
                 lines_with_labels.append((line, cursor, flags))
@@ -328,12 +370,12 @@ class Script:
                         self.variables.append(operand.variable)
 
         elif not line.strip().startswith(";"):
-            raise UnrecognizedLine(f"Line '{line}' is not recognized.")
+            raise UnrecognizedLine(f"Line '{raw_line}' is not recognized.")
 
         return cursor, flags
 
     @classmethod
-    def _disassemble_blob_groups(cls, cursor: int, f: BinaryIO, script: Self, section: ScriptSection) -> None:
+    def _disassemble_arrays(cls, cursor: int, f: BinaryIO, script: Self, section: ScriptSection) -> None:
         """
         Disassembles a blob group section.
         :param cursor: The current position being read in the ROM.
@@ -347,23 +389,23 @@ class Script:
             raise MissingSectionAttribute("Attribute 'sub_sections' is missing." f"Attributes: {section.attributes}")
         f.seek(cursor)
         while cursor < section.end:
-            blob_group = BlobGroup(position=Bytes.from_position(cursor))
+            array = Array(position=Bytes.from_position(cursor))
 
             for sub_section in section.attributes["sub_sections"]:
                 data = cls._extract_blob_bytes(f=f, length=sub_section.length, delimiter=sub_section.delimiter)
                 delimiter = sub_section.delimiter
                 if sub_section.mode == ScriptMode.BLOBS:
-                    blob = Blob(data=Bytes.from_bytes(data), position=Bytes.from_position(cursor), delimiter=delimiter)
+                    blob = Blob.from_bytes(data=data, position=Bytes.from_position(cursor), delimiter=delimiter)
                 elif sub_section.mode == ScriptMode.MENU_STRINGS:
-                    blob = String(
-                        data=Bytes.from_bytes(data),
+                    blob = String.from_bytes(
+                        data=data,
                         position=Bytes.from_position(cursor),
                         delimiter=delimiter,
                         string_type=StringTypes.MENU,
                     )
                 elif sub_section.mode == ScriptMode.DESCRIPTION_STRINGS:
-                    blob = String(
-                        data=Bytes.from_bytes(data),
+                    blob = String.from_bytes(
+                        data=data,
                         position=Bytes.from_position(cursor),
                         delimiter=delimiter,
                         string_type=StringTypes.DESCRIPTION,
@@ -371,8 +413,8 @@ class Script:
                 else:
                     raise ValueError(f"Mode '{sub_section.mode}' unrecognized.")
                 cursor += len(blob)
-                blob_group.blobs.append(blob)
-            script.blob_groups.append(blob_group)
+                array.blobs.append(blob)
+            script.arrays.append(array)
 
     @classmethod
     def _disassemble_blobs(cls, cursor: int, f: BinaryIO, script: Self, section: ScriptSection) -> None:
@@ -393,6 +435,8 @@ class Script:
 
         f.seek(cursor)
         delimiter = section.attributes.get("delimiter", None)
+        if delimiter is not None:
+            pass
         while cursor < section.end:
             data = cls._extract_blob_bytes(
                 f=f, length=section.attributes.get("length", None), delimiter=section.attributes.get("delimiter", None)
@@ -432,8 +476,8 @@ class Script:
         anchor = None
 
         if position := section.attributes.get("anchor", 0):
-            anchor = Bytes.from_position(position)
-            script.variables.append(Label(value=anchor))
+            anchor = Operand(Bytes.from_position(position))
+            script.variables.append(Label(value=anchor.value))
 
         while cursor < section.end:
             pointer_bytes = f.read(2)
@@ -479,7 +523,7 @@ class Script:
         """
         self.variables.sort()
         self.blobs.sort()
-        self.blob_groups.sort()
+        self.arrays.sort()
         self.instructions.sort()
         self.pointers.sort()
 

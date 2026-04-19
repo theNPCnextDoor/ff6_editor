@@ -2,6 +2,7 @@ from __future__ import annotations
 import pytest
 
 from src.lib.assembly.artifact.variable import Label, SimpleVar
+from src.lib.assembly.artifact.variables import Variables
 from src.lib.assembly.bytes import Bytes
 
 
@@ -22,8 +23,8 @@ VARIABLES = [ALFA, BRAVO, CHARLIE, DELTA, ECHO]
 
 
 @pytest.fixture
-def labels() -> list[Label]:
-    return [
+def labels() -> Variables:
+    return Variables(
         Label(name="label_1", value=TEST_POSITION),
         Label(name="label_2", value=Bytes([0x34, 0xFF, 0xFE])),
-    ]
+    )

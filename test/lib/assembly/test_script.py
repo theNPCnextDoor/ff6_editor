@@ -4,13 +4,13 @@ import pytest
 
 from src.lib.assembly.artifact.variables import Variables
 from src.lib.assembly.data_structure.blob import Blob
-from src.lib.assembly.data_structure.blob_group import BlobGroup
+from src.lib.assembly.data_structure.array import Array
 from src.lib.assembly.data_structure.instruction.operand import Operand, OperandType
 from src.lib.assembly.data_structure.string.string import String, StringTypes
 from src.lib.assembly.bytes import Bytes, Endian
 from src.lib.assembly.artifact.flags import Flags
 from src.lib.assembly.data_structure.instruction.instruction import Instruction
-from src.lib.assembly.artifact.variable import Label
+from src.lib.assembly.artifact.variable import Label, SimpleVar
 from src.lib.assembly.data_structure.pointer import Pointer
 from src.lib.assembly.script import (
     Script,
@@ -22,6 +22,7 @@ from src.lib.misc.exception import LineConflict, UnrecognizedLine
 from src.lib.assembly.data_structure.string.charset import MENU_CHARSET, Charset
 from test import RESOURCES_FOLDER
 from test.lib.assembly.conftest import TEST_BYTE, TEST_WORD, TEST_POSITION, ALFA, BRAVO
+
 
 CONFLICTING_FILE_1 = Path(RESOURCES_FOLDER, "conflicting_file_1.asm")
 CONFLICTING_FILE_2 = Path(RESOURCES_FOLDER, "conflicting_file_2.asm")
@@ -44,15 +45,23 @@ class ScriptImpl:
         self.script.variables = Variables(
             ALFA,
             BRAVO,
-            Label(value=Bytes([0x00, 0x00, 0x01]), name="start"),
-            Label(value=Bytes([0x00, 0x00, 0x05]), name="archie"),
+            SimpleVar(Bytes.from_int(0), "delta"),
+            Label(value=Bytes.from_position(0x000001), name="start"),
+            Label(value=Bytes.from_position(0x000005), name="archie"),
+            Label(Bytes.from_position(0x001234)),
             Label(value=Bytes([0x12, 0x00, 0x01]), name="anchor_1"),
-            Label(value=Bytes([0x00, 0xFE, 0xDC]), name="label_c0fedc"),
+            Label(value=Bytes([0x00, 0xFE, 0xDC])),
         )
 
         self.script.pointers = [
-            Pointer(position=Bytes([0x00, 0x00, 0x01]), destination=Bytes([0x00, 0x12, 0x34])),
-            Pointer(position=Bytes([0x00, 0x00, 0x03]), destination=Bytes([0x00, 0x00, 0x05])),
+            Pointer(
+                position=Bytes([0x00, 0x00, 0x01]),
+                operand=Operand(Bytes([0x12, 0x34]), variable=self.script.variables[5]),
+            ),
+            Pointer(
+                position=Bytes([0x00, 0x00, 0x03]),
+                operand=Operand(Bytes([0x00, 0x05]), variable=self.script.variables[4]),
+            ),
         ]
 
         self.script.instructions = [
@@ -127,29 +136,45 @@ class ScriptImpl:
         ]
 
         self.script.blobs = [
-            Blob(position=Bytes([0x00, 0x00, 0x21]), data=TEST_WORD),
-            Blob(position=Bytes([0x00, 0x00, 0x23]), data=Bytes([0x56, 0x78]), delimiter=Bytes([0xFF])),
-            Blob(position=Bytes([0x00, 0x00, 0x26]), data=Bytes([0xAB, 0xCD]), delimiter=Bytes([0x00])),
+            Blob(position=Bytes([0x00, 0x00, 0x21]), operand=Operand(TEST_WORD)),
+            Blob(
+                position=Bytes([0x00, 0x00, 0x23]),
+                operand=Operand(Bytes([0x56, 0x78])),
+                delimiter=Operand(Bytes([0xFF])),
+            ),
+            Blob(
+                position=Bytes([0x00, 0x00, 0x26]),
+                operand=Operand(Bytes([0xAB, 0xCD])),
+                delimiter=Operand(Bytes([0x00]), variable=self.script.variables[2]),
+            ),
             String(
                 position=Bytes([0x00, 0x00, 0x29]),
-                data=Bytes([0x00, 0x80, 0xD8, 0xFF], endian=Endian.BIG),
-                delimiter=Bytes([0x88]),
+                operand=Operand(Bytes([0x00, 0x80, 0xD8, 0xFF], endian=Endian.BIG)),
+                delimiter=Operand(Bytes([0x88])),
             ),
             String(
                 position=Bytes([0x00, 0x00, 0x34]),
-                data=Bytes([0x81, 0xA8, 0x9B, 0x01, 0xDC], endian=Endian.BIG),
-                delimiter=Bytes([0x00]),
+                operand=Operand(Bytes([0x81, 0xA8, 0x9B, 0x01, 0xDC], endian=Endian.BIG)),
+                delimiter=Operand(Bytes([0x00])),
                 string_type=StringTypes.DESCRIPTION,
             ),
         ]
 
-        self.script.blob_groups = [
-            BlobGroup(
+        self.script.arrays = [
+            Array(
                 blobs=[
-                    Blob(position=Bytes([0x00, 0x00, 0x2E]), data=Bytes([0xAA])),
-                    String(position=Bytes([0x00, 0x00, 0x2F]), data=Bytes([0x9A])),
-                    Blob(position=Bytes([0x00, 0x00, 0x30]), data=Bytes([0xBB]), delimiter=Bytes([0xFF])),
-                    String(position=Bytes([0x00, 0x00, 0x32]), data=Bytes([0x9B]), delimiter=Bytes([0x00])),
+                    Blob(position=Bytes([0x00, 0x00, 0x2E]), operand=Operand(Bytes([0xAA]))),
+                    String(position=Bytes([0x00, 0x00, 0x2F]), operand=Operand(Bytes([0x9A]))),
+                    Blob(
+                        position=Bytes([0x00, 0x00, 0x30]),
+                        operand=Operand(Bytes([0xBB])),
+                        delimiter=Operand(Bytes([0xFF])),
+                    ),
+                    String(
+                        position=Bytes([0x00, 0x00, 0x32]),
+                        operand=Operand(Bytes([0x9B])),
+                        delimiter=Operand(Bytes([0x00])),
+                    ),
                 ],
                 position=Bytes([0x00, 0x00, 0x2E]),
             )
@@ -159,22 +184,22 @@ class ScriptImpl:
         self.script.pointers.append(
             Pointer(
                 position=Bytes([0x00, 0x00, 0x3A]),
-                destination=TEST_POSITION,
-                anchor=Bytes([0x12, 0x00, 0x01]),
+                operand=Operand(Bytes([0x34, 0x55]), variable=Label(Bytes.from_position(0x123456))),
+                anchor=Operand(Bytes([0x12, 0x00, 0x01])),
             )
         )
         self.script.pointers.append(
             Pointer(
                 position=Bytes([0x00, 0x00, 0x3C]),
-                destination=Bytes([0x12, 0x34, 0x57]),
-                anchor=Bytes([0x12, 0x00, 0x01]),
+                operand=Operand(Bytes([0x34, 0x56]), variable=Label(Bytes.from_position(0x123457))),
+                anchor=Operand(Bytes([0x12, 0x00, 0x01])),
             )
         )
         self.script.pointers.append(
             Pointer(
                 position=Bytes([0x00, 0x00, 0x3E]),
-                destination=Bytes([0x12, 0x34, 0x57]),
-                anchor=Bytes([0x12, 0x00, 0x02]),
+                operand=Operand(Bytes([0x34, 0x55]), variable=Label(Bytes.from_position(0x123457))),
+                anchor=Operand(Bytes([0x12, 0x00, 0x02])),
             )
         )
 
@@ -194,16 +219,22 @@ class TestScript:
         assert labels[4] == Label(value=Bytes([0x12, 0x34, 0x57]), name="rptr_2")
 
         assert len(script.pointers) == 5
-        assert script.pointers[0] == Pointer(position=Bytes([0x00, 0x00, 0x01]), destination=Bytes([0x00, 0x12, 0x34]))
-        assert script.pointers[1] == Pointer(position=Bytes([0x00, 0x00, 0x03]), destination=Bytes([0x00, 0x00, 0x05]))
+        assert script.pointers[0] == Pointer(position=Bytes([0x00, 0x00, 0x01]), operand=Operand(Bytes([0x12, 0x34])))
+        assert script.pointers[1] == Pointer(position=Bytes([0x00, 0x00, 0x03]), operand=Operand(Bytes([0x00, 0x05])))
         assert script.pointers[2] == Pointer(
-            position=Bytes([0x00, 0x00, 0x3A]), anchor=Bytes([0x12, 0x00, 0x01]), destination=TEST_POSITION
+            position=Bytes([0x00, 0x00, 0x3A]),
+            anchor=Operand(Bytes([0x12, 0x00, 0x01]), variable=labels[2]),
+            operand=Operand(Bytes([0x34, 0x55]), variable=labels[3]),
         )
         assert script.pointers[3] == Pointer(
-            position=Bytes([0x00, 0x00, 0x3C]), anchor=Bytes([0x12, 0x00, 0x01]), destination=Bytes([0x12, 0x34, 0x57])
+            position=Bytes([0x00, 0x00, 0x3C]),
+            anchor=Operand(Bytes([0x12, 0x00, 0x01]), variable=labels[2]),
+            operand=Operand(Bytes([0x34, 0x56]), variable=labels[4]),
         )
         assert script.pointers[4] == Pointer(
-            position=Bytes([0x00, 0x00, 0x3E]), anchor=Bytes([0x12, 0x00, 0x02]), destination=Bytes([0x12, 0x34, 0x57])
+            position=Bytes([0x00, 0x00, 0x3E]),
+            anchor=Operand(Bytes([0x12, 0x00, 0x02])),
+            operand=Operand(Bytes([0x34, 0x55]), variable=labels[4]),
         )
 
         assert len(script.instructions) == 12
@@ -264,29 +295,33 @@ class TestScript:
         )
 
         assert len(script.blobs) == 5
-        assert script.blobs[0] == Blob(position=Bytes([0x00, 0x00, 0x21]), data=TEST_WORD)
+        assert script.blobs[0] == Blob(position=Bytes([0x00, 0x00, 0x21]), operand=Operand(TEST_WORD, variable=BRAVO))
         assert script.blobs[1] == Blob(
-            position=Bytes([0x00, 0x00, 0x23]), data=Bytes([0x56, 0x78]), delimiter=Bytes([0xFF])
+            position=Bytes([0x00, 0x00, 0x23]), operand=Operand(Bytes([0x56, 0x78])), delimiter=Operand(Bytes([0xFF]))
         )
         assert script.blobs[2] == Blob(
-            position=Bytes([0x00, 0x00, 0x26]), data=Bytes([0xAB, 0xCD]), delimiter=Bytes([0x00])
+            position=Bytes([0x00, 0x00, 0x26]),
+            operand=Operand(Bytes([0xAB, 0xCD])),
+            delimiter=Operand(Bytes([0x00]), variable=SimpleVar(Bytes.from_int(0), "delta")),
         )
         assert script.blobs[3] == String(
-            position=Bytes([0x00, 0x00, 0x29]), data=Bytes([0x00, 0x80, 0xD8, 0xFE]), delimiter=Bytes([0x88])
+            position=Bytes([0x00, 0x00, 0x29]),
+            operand=Operand(Bytes([0x00, 0x80, 0xD8, 0xFE])),
+            delimiter=Operand(Bytes([0x88])),
         )
         assert script.blobs[4] == String(
             position=Bytes([0x00, 0x00, 0x34]),
-            data=Bytes([0x81, 0xA8, 0x9B, 0x01, 0xDC]),
-            delimiter=Bytes([0x00]),
+            operand=Operand(Bytes([0x81, 0xA8, 0x9B, 0x01, 0xDC])),
+            delimiter=Operand(Bytes([0x00])),
             string_type=StringTypes.DESCRIPTION,
         )
 
-        assert len(script.blob_groups) == 1
-        assert len(script.blob_groups[0].blobs) == 4
-        assert script.blob_groups[0].blobs[0] == Blob(position=Bytes([0x00, 0x00, 0x2E]), data=Bytes([0xAA]))
-        assert script.blob_groups[0].blobs[1] == String(position=Bytes([0x00, 0x00, 0x2F]), data=Bytes([0x9A]))
-        assert script.blob_groups[0].blobs[2] == Blob(
-            position=Bytes([0x00, 0x00, 0x30]), data=Bytes([0xBB]), delimiter=Bytes([0xFF])
+        assert len(script.arrays) == 1
+        assert len(script.arrays[0].blobs) == 4
+        assert script.arrays[0].blobs[0] == Blob(position=Bytes([0x00, 0x00, 0x2E]), operand=Operand(Bytes([0xAA])))
+        assert script.arrays[0].blobs[1] == String(position=Bytes([0x00, 0x00, 0x2F]), operand=Operand(Bytes([0x9A])))
+        assert script.arrays[0].blobs[2] == Blob(
+            position=Bytes([0x00, 0x00, 0x30]), operand=Operand(Bytes([0xBB])), delimiter=Operand(Bytes([0xFF]))
         )
 
     def test_from_script_file_raises_error_when_line_is_unrecognized(self):
@@ -315,19 +350,30 @@ class TestScript:
         with open(DUMMY_OUTPUT_ROM, "rb") as f:
             output = f.read()
 
-        assert output == (
-            b"\x00"  # Script starts at byte 0x000001, so this is a byte of buffer
-            b"\x34\x12\x05\x00"  # Pointers
-            b"\xaa\xa1\x12\xa2\xdc\xfe"  # Instructions 0-2
-            b"\xc2\x30\xa9\x34\x12\xa2\xdc\xfe"  # Instructions 3-5
-            b"\xe2\x30\xa9\xc0\xa2\xcc"  # Instructions 6-8
-            b"\x44\x34\x12\x4c\x05\x00\x80\xe0"  # Instructions 9-11
-            b"\x34\x12\x78\x56\xff\xcd\xab\x00"  # Blobs 0-2
-            b"\x00\x80\xd8\xff\x88"  # Menu String 0
-            b"\xaa\x9a\xbb\xff\x9b\x00"  # Blob Group 0
-            b"\x81\xa8\x9b\x01\xdc\x00"  # Description 0
-            b"\x55\x34\x56\x34\x55\x34"  # Relative pointers 0-2
-        )
+        assert output[0x00:0x01] == b"\x00"  # Padding
+        assert output[0x01:0x03] == b"\x34\x12"  # ptr !label_c01234
+        assert output[0x03:0x05] == b"\x05\x00"  # ptr !archie
+        assert output[0x05:0x06] == b"\xaa"  # TAX
+        assert output[0x06:0x08] == b"\xa1\x12"  # LDA (alfa,X)
+        assert output[0x08:0x0B] == b"\xa2\xdc\xfe"  # LDX #$FEDC
+        assert output[0x0B:0x0D] == b"\xc2\x30"  # REP #$30
+        assert output[0x0D:0x10] == b"\xa9\x34\x12"  # LDA #bravo
+        assert output[0x10:0x13] == b"\xa2\xdc\xfe"  # LDX #!label_c0fedc
+        assert output[0x13:0x15] == b"\xe2\x30"  # SEP #$30
+        assert output[0x15:0x17] == b"\xa9\xc0"  # LDA #.label_c0fedc
+        assert output[0x17:0x19] == b"\xa2\xcc"  # LDX #$CC
+        assert output[0x19:0x1C] == b"\x44\x34\x12"  # MVP #$34,#alfa
+        assert output[0x1C:0x1F] == b"\x4c\x05\x00"  # JMP !archie
+        assert output[0x1F:0x21] == b"\x80\xe0"  # BRA start
+        assert output[0x21:0x23] == b"\x34\x12"  # bravo
+        assert output[0x23:0x26] == b"\x78\x56\xff"  # $5678,$FF
+        assert output[0x26:0x29] == b"\xcd\xab\x00"  # $ABCD,delta
+        assert output[0x29:0x2E] == b"\x00\x80\xd8\xff\x88"  # "<0x00>A<KNIFE>_",$88
+        assert output[0x2E:0x34] == b"\xaa\x9a\xbb\xff\x9b\x00"  # $AA | "a" | $BB,$FF | "b",$00
+        assert output[0x34:0x3A] == b"\x81\xa8\x9b\x01\xdc\x00"  # desc "Bob<LINE><FIRE>",$00
+        assert output[0x3A:0x3C] == b"\x55\x34"  # rptr !label_d23456
+        assert output[0x3C:0x3E] == b"\x56\x34"  # rptr !label_d23457
+        assert output[0x3E:0x40] == b"\x55\x34"  # rptr !label_d23457
 
     def test_from_rom(self):
         sections = [
@@ -346,7 +392,7 @@ class TestScript:
             ScriptSection(
                 start=0x00001F,
                 end=0x000025,
-                mode=ScriptMode.BLOB_GROUPS,
+                mode=ScriptMode.ARRAYS,
                 sub_sections=[
                     SubSection(mode=ScriptMode.BLOBS, length=1),
                     SubSection(mode=ScriptMode.MENU_STRINGS, length=1),
@@ -358,10 +404,10 @@ class TestScript:
         script = Script.from_rom(filename=DUMMY_INPUT_ROM, sections=sections)
 
         assert len(script.pointers) == 4
-        assert script.pointers[0] == Pointer(position=Bytes([0x00, 0x00, 0x00]), destination=Bytes([0x00, 0x23, 0x01]))
-        assert script.pointers[1] == Pointer(position=Bytes([0x00, 0x00, 0x02]), destination=Bytes([0x00, 0x67, 0x45]))
-        assert script.pointers[2] == Pointer(position=Bytes([0x00, 0x00, 0x04]), destination=Bytes([0x00, 0xAB, 0x89]))
-        assert script.pointers[3] == Pointer(position=Bytes([0x00, 0x00, 0x06]), destination=Bytes([0x00, 0xEF, 0xCD]))
+        assert script.pointers[0] == Pointer(position=Bytes([0x00, 0x00, 0x00]), operand=Operand(Bytes([0x23, 0x01])))
+        assert script.pointers[1] == Pointer(position=Bytes([0x00, 0x00, 0x02]), operand=Operand(Bytes([0x67, 0x45])))
+        assert script.pointers[2] == Pointer(position=Bytes([0x00, 0x00, 0x04]), operand=Operand(Bytes([0xAB, 0x89])))
+        assert script.pointers[3] == Pointer(position=Bytes([0x00, 0x00, 0x06]), operand=Operand(Bytes([0xEF, 0xCD])))
 
         assert len(script.instructions) == 5
         assert script.instructions[0] == Instruction(position=Bytes([0x00, 0x00, 0x08]), opcode=Bytes([0x00]))
@@ -379,15 +425,17 @@ class TestScript:
         )
 
         assert len(script.blobs) == 4
-        assert script.blobs[0] == Blob(position=Bytes([0x00, 0x00, 0x12]), data=TEST_WORD)
+        assert script.blobs[0] == Blob(position=Bytes([0x00, 0x00, 0x12]), operand=Operand(Bytes([0x34, 0x12])))
         assert script.blobs[1] == Blob(
-            position=Bytes([0x00, 0x00, 0x14]), data=Bytes([0x56, 0x78]), delimiter=Bytes([0xFF])
+            position=Bytes([0x00, 0x00, 0x14]), operand=Operand(Bytes([0x78, 0x56])), delimiter=Operand(Bytes([0xFF]))
         )
         assert script.blobs[2] == Blob(
-            position=Bytes([0x00, 0x00, 0x17]), data=Bytes([0xCD, 0xAB]), delimiter=Bytes([0x00])
+            position=Bytes([0x00, 0x00, 0x17]), operand=Operand(Bytes([0xCD, 0xAB])), delimiter=Operand(Bytes([0x00]))
         )
         assert script.blobs[3] == Blob(
-            position=Bytes([0x00, 0x00, 0x1A]), data=Bytes([0x00, 0x80, 0xD8, 0xFF]), delimiter=Bytes([0x88])
+            position=Bytes([0x00, 0x00, 0x1A]),
+            operand=Operand(Bytes([0x00, 0x80, 0xD8, 0xFF])),
+            delimiter=Operand(Bytes([0x88])),
         )
 
         labels = script.variables.labels
@@ -408,10 +456,11 @@ class TestScript:
 
 db alfa = $12
 dw bravo = $1234
+db delta = $00
 
 @start = $C00001
-  ptr label_c01234
-  ptr archie
+  ptr !label_c01234
+  ptr !archie
 @archie
   TAX
   LDA (alfa,X)
@@ -427,17 +476,17 @@ dw bravo = $1234
   BRA start
   $1234
   $5678,$FF
-  $ABCD,$00
+  $ABCD,delta
   "<0x00>A<KNIFE>_",$88
   $AA | "a" | $BB,$FF | "b",$00
-  txt2 "Bob<LINE><FIRE>",$00
+  desc "Bob<LINE><FIRE>",$00
 
 #anchor_1
-  rptr label_d23456
-  rptr label_d23457
+  rptr !label_d23456
+  rptr !label_d23457
 
 #$D20002
-  rptr label_d23457
+  rptr !label_d23457
 
 @label_c01234 = $C01234
 

@@ -1,194 +1,199 @@
-import re
-from typing import Type
-
 import pytest
 
+from src.lib.assembly.artifact.variables import Variables
 from src.lib.assembly.bytes import Bytes
 from src.lib.assembly.artifact.variable import Label
+from src.lib.assembly.data_structure.instruction.operand import Operand, OperandType
 from src.lib.assembly.data_structure.pointer import Pointer
-from src.lib.misc.exception import ImpossibleDestination, NoLabelException
-from src.lib.assembly.data_structure.regex import Regex
-from test.lib.assembly.conftest import TEST_POSITION, TEST_WORD
+from src.lib.misc.exception import ImpossibleDestination, NoVariableException
+from test.lib.assembly.conftest import TEST_POSITION, TEST_WORD, CHARLIE
 
 
 class TestPointer:
     @pytest.mark.parametrize(
-        ["pointer", "data"],
+        ["operand", "position", "anchor", "pointer"],
         [
-            (Pointer(destination=Bytes([0x00, 0x34, 0x12]), anchor=None), Bytes([0x34, 0x12])),
             (
-                Pointer(position=Bytes([0x11, 0x22, 0x33]), anchor=None, destination=Bytes([0x11, 0x44, 0x55])),
-                Bytes([0x44, 0x55]),
+                "$1413",
+                Bytes.from_position(0x111111),
+                None,
+                Pointer(
+                    position=Bytes.from_position(0x111111),
+                    operand=Operand(Bytes([0x14, 0x13]), "_", OperandType.DEFAULT),
+                ),
             ),
-            (Pointer(destination=Bytes([0x12, 0x34, 0x66]), anchor=TEST_POSITION), Bytes([0x00, 0x10])),
-        ],
-    )
-    def test_init_data_is_properly_set_when_destination_is_given(self, pointer: Pointer, data: Bytes):
-        assert pointer.data == data
-
-    @pytest.mark.parametrize(
-        ["pointer", "destination"],
-        [
-            (Pointer(data=Bytes([0x34, 0x12]), anchor=None), Bytes([0x00, 0x34, 0x12])),
             (
-                Pointer(position=Bytes([0x11, 0x22, 0x33]), anchor=None, data=Bytes([0x44, 0x55])),
-                Bytes([0x11, 0x44, 0x55]),
+                "!label_1",
+                Bytes.from_position(0x12FF00),
+                None,
+                Pointer(
+                    position=Bytes.from_position(0x12FF00),
+                    operand=Operand(
+                        Bytes([0x34, 0x56]), "_", OperandType.DEFAULT, Label(Bytes.from_position(0x123456), "label_1")
+                    ),
+                ),
             ),
-            (Pointer(data=Bytes([0x00, 0x10]), anchor=TEST_POSITION), Bytes([0x12, 0x34, 0x66])),
+            (
+                "!label_1",
+                Bytes.from_position(0x000001),
+                Operand(Bytes.from_position(0x121111)),
+                Pointer(
+                    position=Bytes.from_position(0x000001),
+                    operand=Operand(
+                        Bytes([0x23, 0x45]), "_", OperandType.DEFAULT, Label(Bytes.from_position(0x123456), "label_1")
+                    ),
+                    anchor=Operand(Bytes.from_position(0x121111)),
+                ),
+            ),
+            (
+                "$1413",
+                Bytes.from_position(0x000001),
+                Operand(Bytes.from_position(0x121111)),
+                Pointer(
+                    position=Bytes.from_position(0x000001),
+                    operand=Operand(Bytes([0x14, 0x13]), "_", OperandType.DEFAULT, None),
+                    anchor=Operand(Bytes.from_position(0x121111)),
+                ),
+            ),
         ],
     )
-    def test_init_destination_is_properly_set_when_data_is_given(self, pointer: Pointer, destination: Bytes):
-        assert pointer.destination == destination
-
-    def test_init_value_error_is_raised_when_both_destination_and_data_are_omitted(self):
-        with pytest.raises(ValueError):
-            Pointer(position=TEST_POSITION)
-
-    @pytest.mark.parametrize(
-        ["position", "anchor", "destination"],
-        [
-            (Bytes([0x00, 0x00, 0x00]), None, Bytes([0x01, 0x00, 0x00])),
-            (Bytes([0x11, 0x22, 0x33]), None, Bytes([0x12, 0x00, 0x00])),
-            (Bytes([0x11, 0x22, 0x33]), TEST_POSITION, Bytes([0x11, 0x00, 0x00])),
-        ],
-    )
-    def test_init_impossible_destination_raise_an_impossible_destination(
-        self, position: Bytes, anchor: Bytes | None, destination: Bytes
+    def test_from_string(
+        self, operand: str, position: Bytes, anchor: Operand | None, pointer: Pointer, labels: Variables
     ):
-        with pytest.raises(ImpossibleDestination):
-            Pointer(position=position, destination=destination, anchor=anchor)
+        assert Pointer.from_string(operand, position, anchor, labels) == pointer
 
     @pytest.mark.parametrize(
-        ["line", "position", "anchor", "data", "destination"],
+        ["operand", "position", "anchor", "exception"],
         [
-            (" ptr $1413", Bytes([0x11, 0x11, 0x11]), None, Bytes([0x14, 0x13]), Bytes([0x11, 0x14, 0x13])),
-            (" ptr label_1", Bytes([0x12, 0xFF, 0x00]), None, Bytes([0x34, 0x56]), TEST_POSITION),
-            (" ptr label_2", Bytes([0x34, 0x00, 0x03]), None, Bytes([0xFF, 0xFE]), Bytes([0x34, 0xFF, 0xFE])),
-            (
-                " rptr $1413",
-                Bytes([0x01, 0x11, 0x11]),
-                TEST_POSITION,
-                Bytes([0x14, 0x13]),
-                Bytes([0x12, 0x48, 0x69]),
-            ),
-            (
-                " rptr label_1",
-                Bytes([0x01, 0xFF, 0x00]),
-                TEST_POSITION,
-                Bytes([0x00, 0x00]),
-                TEST_POSITION,
-            ),
-            (
-                " rptr label_2",
-                Bytes([0x01, 0x00, 0x03]),
-                Bytes([0x34, 0x00, 0x01]),
-                Bytes([0xFF, 0xFD]),
-                Bytes([0x34, 0xFF, 0xFE]),
-            ),
+            ("label_3", Bytes.from_position(0x12FF00), None, NoVariableException),
+            ("label_1", Bytes.from_position(0x000000), None, ImpossibleDestination),
         ],
     )
-    def test_from_regex_match(
-        self, line: str, position: Bytes, anchor: Bytes | None, data: Bytes, destination: Bytes, labels: list[Label]
+    def test_from_string_raise_exception(
+        self, operand: str, position: Bytes, anchor: Bytes | None, exception: Exception, labels: Variables
     ):
-        match = re.match(Regex.POINTER_LINE, line)
-        pointer = Pointer.from_match(match=match, position=position, labels=labels, anchor=anchor)
-        assert pointer.position == position
-        assert pointer.data == data
-        assert pointer.destination == destination
-
-    @pytest.mark.parametrize(
-        ["line", "position", "exception"],
-        [
-            (" ptr label_3", Bytes([0x12, 0xFF, 0x00]), NoLabelException),
-            (" ptr label_2", Bytes([0x11, 0x00, 0x03]), ImpossibleDestination),
-        ],
-    )
-    def test_from_regex_match_raise_exception(
-        self, line: str, position: Bytes, exception: Type[Exception], labels: list[Label]
-    ):
-        match = re.match(Regex.POINTER_LINE, line)
         with pytest.raises(exception):
-            Pointer.from_match(match=match, position=position, labels=labels)
+            Pointer.from_string(operand, position, anchor, labels)
 
     @pytest.mark.parametrize(
-        ["value", "pointer"],
+        ["value", "position", "anchor", "expected", "destination"],
         [
-            (b"\x00\x01", Pointer(destination=Bytes([0x00, 0x01, 0x00]))),
-            (b"\x12\x34", Pointer(destination=Bytes([0x00, 0x34, 0x12]))),
+            (
+                b"\x00\x01",
+                Bytes.from_position(0),
+                None,
+                Pointer(position=Bytes.from_position(0), operand=Operand(Bytes([0x01, 0x00]))),
+                Bytes.from_position(0x000100),
+            ),
+            (
+                b"\x12\x34",
+                Bytes.from_position(0x123456),
+                None,
+                Pointer(position=Bytes.from_position(0x123456), operand=Operand(Bytes([0x34, 0x12]))),
+                Bytes.from_position(0x123412),
+            ),
+            (
+                b"\x26\x38",
+                Bytes.from_position(0x123456),
+                Operand(Bytes.from_position(0x300123)),
+                Pointer(
+                    position=Bytes.from_position(0x123456),
+                    operand=Operand(Bytes([0x38, 0x26])),
+                    anchor=Operand(Bytes.from_position(0x300123)),
+                ),
+                Bytes.from_position(0x303949),
+            ),
         ],
     )
-    def test_from_bytes(self, value: bytes, pointer: Pointer):
-        assert Pointer.from_bytes(value=value) == pointer
+    def test_from_bytes(
+        self, value: bytes, position: Bytes, anchor: Bytes | None, expected: Pointer, destination: Bytes
+    ):
+        pointer = Pointer.from_bytes(value=value, position=position, anchor=anchor)
+        assert pointer == expected
+        assert pointer.destination == destination
 
     @pytest.mark.parametrize(
-        ["current_anchor", "anchor", "expected"],
+        ["pointer", "show_address", "current_anchor", "line"],
         [
-            (None, None, "  ptr"),
-            (None, Bytes([0x12, 0x11, 0x11]), "  rptr"),
-            (Bytes([0x00, 0x00, 0x01]), Bytes([0x12, 0x11, 0x11]), "  rptr"),
+            (
+                Pointer(position=Bytes.from_position(0), operand=Operand(Bytes([0x11, 0x22]))),
+                False,
+                Bytes.from_position(0x270123),
+                "  ptr $1122",
+            ),
+            (
+                Pointer(position=Bytes.from_position(0x120123), operand=Operand(Bytes([0x34, 0x56]), variable=CHARLIE)),
+                False,
+                Bytes.from_position(0x270123),
+                "  ptr !charlie",
+            ),
+            (
+                Pointer(
+                    position=Bytes.from_position(0),
+                    operand=Operand(Bytes([0x01, 0x02])),
+                    anchor=Operand(Bytes.from_position(0x001010)),
+                ),
+                False,
+                Operand(Bytes.from_position(0x001010)),
+                "  rptr $0102",
+            ),
+            (
+                Pointer(
+                    position=Bytes.from_position(0),
+                    operand=Operand(Bytes([0x01, 0x02])),
+                    anchor=Operand(Bytes.from_position(0x001010)),
+                ),
+                False,
+                Operand(Bytes.from_position(0x2789AB)),
+                "\n#$C01010\n  rptr $0102",
+            ),
+            (
+                Pointer(
+                    position=Bytes.from_position(0),
+                    operand=Operand(Bytes([0x01, 0x02])),
+                    anchor=Operand(Bytes.from_position(0x123456)),
+                ),
+                False,
+                Operand(Bytes.from_position(0x2789AB)),
+                "\n#label_1\n  rptr $0102",
+            ),
+            (
+                Pointer(
+                    position=Bytes.from_position(0),
+                    operand=Operand(Bytes([0x00, 0x00]), variable=CHARLIE),
+                    anchor=Operand(Bytes.from_position(0x123456)),
+                ),
+                False,
+                Operand(Bytes.from_position(0x2789AB)),
+                "\n#label_1\n  rptr !charlie",
+            ),
         ],
     )
-    @pytest.mark.parametrize(["destination", "has_label"], [(TEST_POSITION, True), (Bytes([0x12, 0x34, 0x57]), False)])
-    @pytest.mark.parametrize("debug", [True, False])
     def test_to_line(
         self,
-        labels: list[Label],
-        current_anchor: Bytes | None,
-        anchor: Bytes | None,
-        destination: Bytes,
-        has_label: bool,
-        expected: str,
-        debug: bool,
+        pointer: Pointer,
+        show_address: bool,
+        current_anchor: Bytes,
+        line: str,
+        labels: Variables,
     ):
-        pointer = Pointer(position=Bytes([0x12, 0x00, 0x00]), destination=destination, anchor=anchor)
-        if current_anchor:
-            expected = "\n#$D21111\n" + expected
-        expected += " label_1" if has_label else f" ${str(pointer.data)}"
-        expected += " ; D20000" if debug else ""
-        assert pointer.to_line(show_address=debug, labels=labels, current_anchor=current_anchor) == expected
+        assert pointer.to_line(show_address=show_address, labels=labels, current_anchor=current_anchor) == line
 
     @pytest.mark.parametrize(
         ["pointer", "expected_bytes"],
         [
-            (Pointer(position=Bytes([0x00, 0x00, 0x00]), destination=Bytes([0x00, 0x11, 0x22])), b"\x22\x11"),
-            (Pointer(position=Bytes([0x33, 0x33, 0x33]), destination=Bytes([0x33, 0x44, 0x55])), b"\x55\x44"),
+            (Pointer(position=Bytes([0x00, 0x00, 0x00]), operand=Operand(Bytes([0x11, 0x22]))), b"\x22\x11"),
+            (Pointer(position=Bytes([0x33, 0x33, 0x33]), operand=Operand(Bytes([0x44, 0x55]))), b"\x55\x44"),
         ],
     )
     def test_bytes(self, pointer: Pointer, expected_bytes: bytes):
         assert bytes(pointer) == expected_bytes
 
     @pytest.mark.parametrize(
-        ["left", "right", "expected"],
-        [
-            (
-                Pointer(position=Bytes([0x00, 0x12, 0x34]), destination=Bytes([0x00, 0x56, 0x78])),
-                Pointer(position=Bytes([0x00, 0x12, 0x34]), destination=Bytes([0x00, 0x56, 0x78])),
-                True,
-            ),
-            (
-                Pointer(
-                    position=Bytes([0x00, 0x12, 0x34]),
-                    anchor=Bytes([0x00, 0x00, 0x01]),
-                    destination=Bytes([0x00, 0x56, 0x78]),
-                ),
-                Pointer(position=Bytes([0x00, 0x12, 0x34]), destination=Bytes([0x00, 0x56, 0x78])),
-                True,
-            ),
-            (
-                Pointer(position=Bytes([0x00, 0x12, 0x34]), destination=Bytes([0x00, 0x56, 0x78])),
-                Pointer(position=Bytes([0x00, 0x12, 0x35]), destination=Bytes([0x00, 0x56, 0x78])),
-                False,
-            ),
-        ],
-    )
-    def test_eq(self, left: Pointer, right: Pointer, expected: bool):
-        assert (left == right) is expected
-
-    @pytest.mark.parametrize(
         ["pointer", "expected"],
         [
-            (Pointer(position=Bytes([0x12, 0x00, 0x00]), destination=TEST_POSITION), "ptr $3456"),
-            (Pointer(data=TEST_WORD), "ptr $1234"),
+            (Pointer(position=Bytes([0x12, 0x00, 0x00]), operand=Operand(Bytes([0x34, 0x56]))), "ptr $3456"),
+            (Pointer(operand=Operand(TEST_WORD)), "ptr $1234"),
         ],
     )
     def test_str(self, pointer: Pointer, expected: str):
@@ -198,12 +203,16 @@ class TestPointer:
         ["pointer", "expected"],
         [
             (
-                Pointer(position=Bytes([0x12, 0x00, 0x01]), destination=TEST_POSITION),
-                "Pointer(position=0x120001, data=0x3456, destination=0x123456, anchor=0x120000)",
+                Pointer(position=Bytes([0x12, 0x00, 0x01]), operand=Operand(Bytes([0x34, 0x56]))),
+                "Pointer(position=0x120001, as_str='ptr $3456', as_bytes=b'V4', as_hexa=0x3456, destination=0x123456)",
             ),
             (
-                Pointer(data=TEST_WORD, anchor=Bytes([0x34, 0x56, 0x78])),
-                "Pointer(position=0x000000, data=0x1234, destination=0x3468AC, anchor=0x345678)",
+                Pointer(
+                    position=Bytes.from_position(0),
+                    operand=Operand(TEST_WORD),
+                    anchor=Operand(Bytes([0x34, 0x56, 0x78])),
+                ),
+                "Pointer(position=0x000000, as_str='ptr $1234', as_bytes=b'4\\x12', as_hexa=0x1234, destination=0x3468AC, anchor=0x345678)",
             ),
         ],
     )
@@ -211,15 +220,4 @@ class TestPointer:
         assert repr(pointer) == expected
 
     def test_len(self):
-        assert len(Pointer(position=TEST_POSITION, destination=Bytes([0x12, 0x45, 0x67]))) == 2
-
-    @pytest.mark.parametrize(
-        ["data", "destination", "anchor"],
-        [
-            (TEST_WORD, Bytes([0x12, 0x46, 0x8A]), TEST_POSITION),
-            (Bytes([0x00, 0x01]), Bytes([0x00, 0x00, 0x02]), Bytes([0x00, 0x00, 0x01])),
-        ],
-    )
-    def test_data_to_destination(self, data: Bytes, destination: Bytes, anchor: Bytes):
-        pointer = Pointer(data=data, anchor=anchor)
-        assert pointer._data_to_destination(data=data) == destination
+        assert len(Pointer(position=TEST_POSITION, operand=Operand(Bytes([0x45, 0x67])))) == 2

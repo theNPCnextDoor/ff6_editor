@@ -1,5 +1,3 @@
-import re
-
 import pytest
 
 from src.lib.assembly.artifact.flags import Flags
@@ -7,7 +5,6 @@ from src.lib.assembly.artifact.variables import Variables
 from src.lib.assembly.data_structure.instruction.instruction import Instruction
 from src.lib.assembly.data_structure.instruction.operand import Operand, OperandType
 from src.lib.assembly.artifact.variable import Label
-from src.lib.assembly.data_structure.regex import InstructionRegex
 from src.lib.assembly.bytes import Bytes
 from src.lib.misc.exception import NoCandidateException
 from test.lib.assembly.conftest import (
@@ -25,15 +22,16 @@ from test.lib.assembly.conftest import (
 
 class TestInstruction:
     @pytest.mark.parametrize(
-        ["line", "flags", "opcode", "operands"],
+        ["command", "operand", "flags", "opcode", "operands"],
         [
-            (" BRK", Flags(), Bytes([0x00]), list()),
-            (" COP #$FF", Flags(), Bytes([0x02]), [Operand(Bytes([0xFF]), "#_")]),
-            (" COP #alfa", Flags(), Bytes([0x02]), [Operand(TEST_BYTE, "#_", OperandType.DEFAULT, ALFA)]),
-            (" COP #.charlie", Flags(), Bytes([0x02]), [Operand(Bytes([0x12]), "#_", OperandType.DEFAULT, CHARLIE)]),
-            (" MVP #$ED,#$CB", Flags(), Bytes([0x44]), [Operand(Bytes([0xED]), "#_"), Operand(Bytes([0xCB]), "#_")]),
+            ("BRK", None, Flags(), Bytes([0x00]), list()),
+            ("COP", "#$FF", Flags(), Bytes([0x02]), [Operand(Bytes([0xFF]), "#_")]),
+            ("COP", "#alfa", Flags(), Bytes([0x02]), [Operand(TEST_BYTE, "#_", OperandType.DEFAULT, ALFA)]),
+            ("COP", "#.charlie", Flags(), Bytes([0x02]), [Operand(Bytes([0x12]), "#_", OperandType.DEFAULT, CHARLIE)]),
+            ("MVP", "#$ED,#$CB", Flags(), Bytes([0x44]), [Operand(Bytes([0xED]), "#_"), Operand(Bytes([0xCB]), "#_")]),
             (
-                " MVP #.charlie,#delta",
+                "MVP",
+                "#.charlie,#delta",
                 Flags(),
                 Bytes([0x44]),
                 [
@@ -41,37 +39,47 @@ class TestInstruction:
                     Operand(Bytes([0xFF]), "#_", OperandType.DEFAULT, DELTA),
                 ],
             ),
-            (" ORA $8877,Y", Flags(), Bytes([0x19]), [Operand(Bytes([0x88, 0x77]), "_,Y")]),
-            (" ORA bravo,Y", Flags(), Bytes([0x19]), [Operand(TEST_WORD, "_,Y", OperandType.DEFAULT, BRAVO)]),
+            ("ORA", "$8877,Y", Flags(), Bytes([0x19]), [Operand(Bytes([0x88, 0x77]), "_,Y")]),
+            ("ORA", "bravo,Y", Flags(), Bytes([0x19]), [Operand(TEST_WORD, "_,Y", OperandType.DEFAULT, BRAVO)]),
             (
-                " ORA !charlie,Y",
+                "ORA",
+                "!charlie,Y",
                 Flags(),
                 Bytes([0x19]),
                 [Operand(Bytes([0x34, 0x56]), "_,Y", OperandType.DEFAULT, CHARLIE)],
             ),
-            (" BRA $05", Flags(), Bytes([0x80]), [Operand(Bytes([0x05]), "_", OperandType.BRANCHING)]),
-            (" BRA charlie", Flags(), Bytes([0x80]), [Operand(Bytes([0xFE]), "_", OperandType.BRANCHING, CHARLIE)]),
-            (" BRL $0005", Flags(), Bytes([0x82]), [Operand(Bytes([0x00, 0x05]), "_", OperandType.LONG_BRANCHING)]),
+            ("BRA", "$05", Flags(), Bytes([0x80]), [Operand(Bytes([0x05]), "_", OperandType.BRANCHING)]),
+            ("BRA", "charlie", Flags(), Bytes([0x80]), [Operand(Bytes([0xFE]), "_", OperandType.BRANCHING, CHARLIE)]),
+            ("BRL", "$0005", Flags(), Bytes([0x82]), [Operand(Bytes([0x00, 0x05]), "_", OperandType.LONG_BRANCHING)]),
             (
-                " BRL charlie",
+                "BRL",
+                "charlie",
                 Flags(),
                 Bytes([0x82]),
                 [Operand(Bytes([0xFF, 0xFD]), "_", OperandType.LONG_BRANCHING, CHARLIE)],
             ),
-            (" JMP $1234", Flags(), Bytes([0x4C]), [Operand(TEST_WORD, "_", OperandType.JUMPING)]),
+            ("JMP", "$1234", Flags(), Bytes([0x4C]), [Operand(TEST_WORD, "_", OperandType.JUMPING)]),
             (
-                " JMP !charlie",
+                "JMP",
+                "!charlie",
                 Flags(),
                 Bytes([0x4C]),
                 [Operand(Bytes([0x34, 0x56]), "_", OperandType.JUMPING, CHARLIE)],
             ),
             (
-                " JML $D23456",
+                "JML",
+                "$D23456",
                 Flags(),
                 Bytes([0x5C]),
                 [Operand(Bytes([0x12, 0x34, 0x56]), "_", OperandType.LONG_JUMPING)],
             ),
-            (" JML charlie", Flags(), Bytes([0x5C]), [Operand(TEST_POSITION, "_", OperandType.LONG_JUMPING, CHARLIE)]),
+            (
+                "JML",
+                "charlie",
+                Flags(),
+                Bytes([0x5C]),
+                [Operand(TEST_POSITION, "_", OperandType.LONG_JUMPING, CHARLIE)],
+            ),
         ],
         ids=[
             "No operand",
@@ -93,11 +101,8 @@ class TestInstruction:
             "OperandType is long jumping and operand has a label",
         ],
     )
-    def test_from_regex_match(self, line: str, flags: Flags, opcode: Bytes, operands: list[Operand]):
-        match = re.match(InstructionRegex.INSTRUCTION, line)
-        instruction = Instruction.from_match(
-            match=match, position=TEST_POSITION, flags=flags, variables=Variables(*VARIABLES)
-        )
+    def test_from_string(self, command: str, operand: str | None, flags: Flags, opcode: Bytes, operands: list[Operand]):
+        instruction = Instruction.from_string(command, TEST_POSITION, flags, operand, Variables(*VARIABLES))
         assert instruction.position == TEST_POSITION
         assert instruction.opcode == opcode
         assert instruction.operands == operands
@@ -655,6 +660,42 @@ class TestInstruction:
     )
     def test_str(self, instruction: Instruction, expected: str):
         assert str(instruction) == expected
+
+    @pytest.mark.parametrize(
+        ["expected", "instruction"],
+        [
+            (
+                "Instruction(position=0x000000, as_str='BRK', as_bytes=b'\\x00', as_hexa=0x00)",
+                Instruction(opcode=Bytes([0x00])),
+            ),
+            (
+                "Instruction(position=0x000000, as_str='COP #$FF', as_bytes=b'\\x02\\xff', as_hexa=0x02FF)",
+                Instruction(opcode=Bytes([0x02]), operands=[Operand(Bytes([0xFF]), "#_")]),
+            ),
+            (
+                "Instruction(position=0x000000, as_str='COP #alfa', as_bytes=b'\\x02\\x12', as_hexa=0x0212, operand_var_1=SimpleVar(0x12, 'alfa'))",
+                Instruction(opcode=Bytes([0x02]), operands=[Operand(TEST_BYTE, "#_", OperandType.DEFAULT, ALFA)]),
+            ),
+            (
+                "Instruction(position=0x000000, as_str='MVP #.charlie,#delta', as_bytes=b'D\\xd2\\xff', as_hexa=0x4412FF, operand_var_1=Label(0x123456, 'charlie'), operand_var_2=SimpleVar(0xFF, 'delta'))",
+                Instruction(
+                    opcode=Bytes([0x44]),
+                    operands=[
+                        Operand(TEST_BYTE, "#_", OperandType.DEFAULT, CHARLIE),
+                        Operand(Bytes([0xFF]), "#_", OperandType.DEFAULT, DELTA),
+                    ],
+                ),
+            ),
+        ],
+        ids=[
+            "No operand",
+            "Operand has 1 byte and no variable",
+            "Operand has 1 byte and a variable",
+            "Moving block instruction and both operands have a variable",
+        ],
+    )
+    def test_repr(self, instruction: Instruction, expected: str):
+        assert repr(instruction) == expected
 
     @pytest.mark.parametrize(
         ["instruction", "show_address", "expected"],

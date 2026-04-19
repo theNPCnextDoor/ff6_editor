@@ -1,10 +1,8 @@
-import re
-
 import pytest
 
 from src.lib.assembly.bytes import Bytes
-from src.lib.assembly.data_structure.regex import Regex
 from src.lib.assembly.artifact.variable import SimpleVar, Label, Variable
+from src.lib.misc.exception import ForbiddenVarName
 from test.lib.assembly.conftest import ALFA, BRAVO, CHARLIE, ECHO
 
 
@@ -15,7 +13,7 @@ class TestVariable:
 
     @pytest.mark.parametrize(
         ["variable", "expected"],
-        [(ALFA, "SimpleVar(0x12, alfa)"), (CHARLIE, "Label(0x123456, charlie)"), (ECHO, "Label(0x7E0123, echo)")],
+        [(ALFA, "SimpleVar(0x12, 'alfa')"), (CHARLIE, "Label(0x123456, 'charlie')"), (ECHO, "Label(0x7E0123, 'echo')")],
     )
     def test_repr(self, variable: Variable, expected: str):
         assert repr(variable) == expected
@@ -35,29 +33,35 @@ class TestVariable:
 
 class TestSimpleVariable:
     @pytest.mark.parametrize(
-        ["line", "variable"],
+        ["length", "name", "operand", "variable"],
         [
-            ("db alfa = $12", ALFA),
-            ("dw bravo = $1234", BRAVO),
+            ("b", "alfa", "$12", ALFA),
+            ("w", "bravo", "$1234", BRAVO),
         ],
     )
-    def test_from_match(self, line: str, variable: SimpleVar):
-        match = re.fullmatch(Regex.VARIABLE_ASSIGNMENT, line)
-        assert SimpleVar.from_match(match) == variable
+    def test_from_string(self, length: str, name: str, operand: str, variable: SimpleVar):
+        assert SimpleVar.from_string(length, name, operand) == variable
 
     @pytest.mark.parametrize(
-        "line",
+        "name",
+        ["db", "x"],
+    )
+    def test_from_string_but_name_is_forbidden(self, name: str):
+        with pytest.raises(ForbiddenVarName):
+            SimpleVar.from_string("b", name, "$12")
+
+    @pytest.mark.parametrize(
+        ["length", "name", "operand"],
         [
-            "dw alice = $12",
-            "db bob = $1234",
-            "db charlie = $123456",
-            "dw charlie = $123456",
+            ("b", "bravo", "$1234"),
+            ("w", "alfa", "$12"),
+            ("b", "charlie", "$123456"),
+            ("w", "charlie", "$123456"),
         ],
     )
-    def test_from_match_but_length_doesnt_correspond_to_expectation(self, line: str):
-        match = re.fullmatch(Regex.VARIABLE_ASSIGNMENT, line)
+    def test_from_match_but_length_doesnt_correspond_to_expectation(self, length: str, name: str, operand: str):
         with pytest.raises(ValueError):
-            SimpleVar.from_match(match)
+            SimpleVar.from_string(length, name, operand)
 
     @pytest.mark.parametrize(
         ["variable", "line"],
@@ -80,17 +84,24 @@ class TestLabel:
         assert label.name == expected
 
     @pytest.mark.parametrize(
-        ["line", "position", "expected"],
+        ["name", "snes_address", "position", "label"],
         [
-            ("@golf", Bytes.from_position(0x123456), Label(Bytes.from_position(0x123456), "golf")),
-            ("@hotel = $C3FFFF", Bytes.from_position(0), Label(Bytes.from_position(0x03FFFF), "hotel")),
-            ("@india = $7E4455", Bytes.from_position(0), Label(Bytes.from_position(0x7E4455), "india")),
-            ("@juliett", Bytes.from_position(0x7E3690), Label(Bytes.from_position(0x7E3690), "juliett")),
+            ("golf", None, Bytes.from_position(0x123456), Label(Bytes.from_position(0x123456), "golf")),
+            ("hotel", "$C3FFFF", None, Label(Bytes.from_position(0x03FFFF), "hotel")),
+            ("india", "$7E4455", None, Label(Bytes.from_position(0x7E4455), "india")),
+            ("juliett", None, Bytes.from_position(0x7E3690), Label(Bytes.from_position(0x7E3690), "juliett")),
         ],
     )
-    def test_from_match(self, line: str, position: Bytes, expected: Label):
-        match = re.match(Regex.LABEL_LINE, line)
-        assert Label.from_match(match=match, position=position) == expected
+    def test_from_string(self, name: str, snes_address: str | None, position: Bytes | None, label: Label):
+        assert Label.from_string(name, snes_address, position) == label
+
+    @pytest.mark.parametrize(
+        "name",
+        ["db", "x"],
+    )
+    def test_from_string_but_name_is_forbidden(self, name: str):
+        with pytest.raises(ForbiddenVarName):
+            Label.from_string(name, "$D23456")
 
     @pytest.mark.parametrize(
         ["label", "show_address", "line"],

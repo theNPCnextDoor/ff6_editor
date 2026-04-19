@@ -1,7 +1,8 @@
-from typing import List, Union, BinaryIO
+from typing import List, BinaryIO
 
 from src.lib.assembly.bytes import Bytes, Endian
 from src.lib.assembly.data_structure.blob import Blob
+from src.lib.assembly.data_structure.instruction.operand import Operand
 
 
 class Ips:
@@ -28,7 +29,7 @@ class Ips:
                 hunks.append(
                     Blob(
                         position=Bytes.from_position(position),
-                        data=Bytes.from_bytes(destination_bytes[position : position + streak]),
+                        operand=Operand(Bytes.from_bytes(destination_bytes[position : position + streak])),
                     )
                 )
 
@@ -71,7 +72,7 @@ class Ips:
                             endian=Endian.BIG,
                         )
                     )
-                hunk = Blob(position=Bytes.from_position(offset), data=Bytes.from_bytes(payload))
+                hunk = Blob(position=Bytes.from_position(offset), operand=Operand(Bytes.from_bytes(payload)))
                 position += len(bytes(hunk))
                 hunks.append(hunk)
         return cls(hunks)
