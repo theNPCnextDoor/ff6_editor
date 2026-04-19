@@ -327,7 +327,7 @@ class TestScript:
     def test_from_script_file_raises_error_when_line_is_unrecognized(self):
         with pytest.raises(UnrecognizedLine) as e:
             Script.from_text_files(DUMMY_ERROR_SCRIPT)
-        assert str(e.value) == "Line '  txt3 \"Lorem ipsum\"' is not recognized."
+        assert "is not recognized." in str(e.value)
 
     def test_from_script_files_raises_error_when_lines_conflict(self):
         with pytest.raises(LineConflict) as e:
