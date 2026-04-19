@@ -252,7 +252,7 @@ class Script:
         anchor = None
 
         for line in lines:
-            cursor, flags = self._interpret_line(cursor, flags, line, lines_with_labels)
+            cursor, flags = self._interpret_line(cursor, flags, line, lines_with_labels, filename)
 
         for line, cursor, flags in lines_with_labels:
             if match := re.match(InstructionRegex.INSTRUCTION, line):
@@ -282,7 +282,12 @@ class Script:
             _list.sort()
 
     def _interpret_line(
-        self, cursor: int, flags: Flags, raw_line: str, lines_with_labels: list[tuple[str, int, Flags]]
+        self,
+        cursor: int,
+        flags: Flags,
+        raw_line: str,
+        lines_with_labels: list[tuple[str, int, Flags]],
+        filename: str | Path,
     ) -> tuple[int, Flags]:
         """
         Parse a line in a text file.
@@ -307,7 +312,7 @@ class Script:
             )
 
         elif "|" in line:
-            array = Array.from_string(line=line, position=Bytes.from_position(cursor))
+            array = Array.from_string(line=line, position=Bytes.from_position(cursor), variables=self.variables)
             cursor += len(array)
             self.arrays.append(array)
 
@@ -371,7 +376,7 @@ class Script:
                         self.variables.append(operand.variable)
 
         elif not line.strip().startswith(";"):
-            raise UnrecognizedLine(f"Line '{raw_line}' is not recognized.")
+            raise UnrecognizedLine(f"Line '{raw_line}' in file '{filename}' is not recognized.")
 
         return cursor, flags
 
@@ -511,7 +516,11 @@ class Script:
 
             if instruction.is_flag_setter():
                 flags = instruction.set_flags(flags)
-            elif instruction.has_destination():
+            elif (
+                instruction.has_destination()
+                and (variable := instruction.operands[0].variable)
+                and variable not in script.variables
+            ):
                 script.variables.append(instruction.operands[0].variable)
 
             script.instructions.append(instruction)
