@@ -1,0 +1,48 @@
+import pytest
+
+from src.lib.assembly.data_structure.string.charset import MENU_CHARSET, Charset, DESCRIPTION_CHARSET
+
+
+class TestCharset:
+
+    @pytest.mark.parametrize(
+        ["value", "char"],
+        [(0x00, "<0x00>"), (0x80, "A"), (0xCF, "<DOTTED PIPE>"), (0xEB, "<0xEB>"), (0xFE, " "), (0xFF, "_")],
+    )
+    def test_get_char(self, value: int, char: str):
+        assert Charset(charset=MENU_CHARSET).get_char(value=value) == char
+
+    @pytest.mark.parametrize(
+        ["value", "number"],
+        [("<0x00>", 0x00), ("A", 0x80), ("<DOTTED PIPE>", 0xCF), ("<0xEB>", 0xEB), (" ", 0xFE), ("_", 0xFF)],
+    )
+    def test_get_int(self, value: str, number: int):
+        assert Charset(charset=MENU_CHARSET).get_int(value=value) == number
+
+    @pytest.mark.parametrize(
+        ["value", "number"],
+        [
+            ("<0x00>", b"\x00"),
+            ("A", b"\x80"),
+            ("<DOTTED PIPE>", b"\xcf"),
+            ("<0xEB>", b"\xeb"),
+            (" ", b"\xfe"),
+            ("_", b"\xff"),
+        ],
+    )
+    def test_get_bytes(self, value: str, number: bytes):
+        assert Charset(charset=MENU_CHARSET).get_bytes(value=value) == number
+
+    @pytest.mark.parametrize(
+        ["value", "number"],
+        [
+            ("<0x00>", b"\x00"),
+            ("A", b"\x80"),
+            ("<LINE>", b"\x01"),
+            ("<HOLY>", b"\xd6"),
+            ("<0xEB>", b"\xeb"),
+            (" ", b"\xff"),
+        ],
+    )
+    def test_get_bytes_description_charset(self, value: str, number: bytes):
+        assert Charset(charset=DESCRIPTION_CHARSET).get_bytes(value=value) == number

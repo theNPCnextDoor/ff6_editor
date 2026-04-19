@@ -1,7 +1,7 @@
 import tomllib
 
-from src.lib.structures.asm.flags import Flags
-from src.lib.structures.asm.script import Script, ScriptSection, ScriptMode, SubSection
+from src.lib.assembly.artifact.flags import Flags
+from src.lib.assembly.script import Script, ScriptSection, ScriptMode, SubSection
 
 
 def disassemble(configs: dict):
@@ -36,7 +36,7 @@ def disassemble(configs: dict):
             flags = section.attributes["flags"]
 
     script = Script.from_rom(filename=configs["source"], sections=sections)
-    script.to_script_file(filename=configs["destination"], flags=flags, debug=configs.get("debug", False))
+    script.to_text_file(filename=configs["destination"], flags=flags, debug=configs.get("debug", False))
 
 
 if __name__ == "__main__":

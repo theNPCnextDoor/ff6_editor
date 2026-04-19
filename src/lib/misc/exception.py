@@ -16,3 +16,39 @@ class UnderflowError(Exception):
 
 class UnrecognizedBlob(Exception):
     pass
+
+
+class ReassignmentException(Exception):
+    pass
+
+
+class ImpossibleDestination(Exception):
+    pass
+
+
+class NoLabelException(Exception):
+    pass
+
+
+class NoVariableException(Exception):
+    pass
+
+
+class LabelConflict(Exception):
+    pass
+
+
+class LineConflict(Exception):
+    pass
+
+
+class UnrecognizedLine(Exception):
+    pass
+
+
+class VariableConflict(Exception):
+    pass
+
+
+class ForbiddenVarName(Exception):
+    pass

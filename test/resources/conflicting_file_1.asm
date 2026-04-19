@@ -1,4 +1,4 @@
-@label01=C01237
+@label01 = $C01237
   TAX
   TYA
   TXY

@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field
 from typing import List
 
-from src.utils import Ips
+from src.utils.ips.ips import Ips
 from src.utils.release_notes.contributor import Contributor
 from src.utils.release_notes.version import Version
 
