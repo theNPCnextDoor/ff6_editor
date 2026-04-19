@@ -35,7 +35,8 @@ class Instruction(DataStructure):
         """
         Converts a string from a regex match into an instruction. 24-bit operands written as an address will be converted
         to their corresponding position in the ROM.
-        :param match: Regex match of InstructionRegex.INSTRUCTION.
+        :param command: The command of the instruction, represented by 3 capital letters.
+        :param operand: The data of the instruction, which may spans between 0 and 3 bytes inclusively.
         :param position: The address of the instruction in the ROM.
         :param flags: 'm' and 'x' flags, which provides the width of the accumulator and the X and Y registers.
         :param variables: A list of existing variables.

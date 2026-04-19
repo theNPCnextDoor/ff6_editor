@@ -1,11 +1,8 @@
 from __future__ import annotations
 from enum import Enum, auto
-from typing import Self, TYPE_CHECKING
+from typing import Self
 
 from src.lib.misc.exception import UnderflowError
-
-if TYPE_CHECKING:
-    from src.lib.assembly.artifact.variables import Variables
 
 
 class Endian(Enum):
@@ -227,7 +224,7 @@ class Bytes:
 
     def __sub__(self, other: Self | int) -> Self:
         """
-        Substracts the integer representation of the objects and create a new Bytes object out of the difference.
+        Subtracts the integer representation of the objects and create a new Bytes object out of the difference.
         :param other: A Bytes object or an integer.
         :return: A Bytes object.
         :raises UnderflowError: Raised when the difference is below 0.
@@ -268,7 +265,7 @@ class Bytes:
 
     def to_snes_address(self) -> str:
         """
-        :return: A SNES address corresponding to the position. The SNES address is an hexadecimal
+        :return: A SNES address corresponding to the position. The SNES address is a hexadecimal
         representation of the Bytes object, plus 0xC00000 if below 0x3FFFFF.
         :raises AttributeError: Raised when the length of the Bytes object is not 3, meaning that
         it doesn't correspond to a position.

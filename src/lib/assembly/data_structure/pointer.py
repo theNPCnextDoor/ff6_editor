@@ -23,7 +23,6 @@ class Pointer(DataStructure):
     ):
         """
         :param position: The position of the pointer.
-        :param destination: The destination of the pointer.
         :param operand: The actual data of the pointer.
         :param anchor: The address from which the game derives the destination. If None, will use the beginning of
          the position's bank.
@@ -51,7 +50,7 @@ class Pointer(DataStructure):
         cls, operand: str, position: Bytes, anchor: Operand | None = None, labels: Variables | None = None
     ) -> Self:
         """
-        :param match: A regex.Match object that matched Regex.POINTER_LINE.
+        :param operand: The destination of the pointer as a word (2-bytes object).
         :param position: The position of the Pointer object.
         :param labels: A list of labels used to determine the destination.
         :param anchor: The address from which the game derives the destination.

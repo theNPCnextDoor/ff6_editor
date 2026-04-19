@@ -149,7 +149,8 @@ class Script:
         :return: None.
         """
         self._extract_labels()
-        lines = self.variables.labels.all() + self.blobs + self.arrays + self.instructions + self.pointers
+        labels: list[Label] = self.variables.labels.all()
+        lines = labels + self.blobs + self.arrays + self.instructions + self.pointers
         lines.sort(key=lambda x: DataStructure.sort(x))
         flags = flags or Flags()
         output = [flags.to_line(), ""]
@@ -287,7 +288,7 @@ class Script:
         Parse a line in a text file.
         :param cursor: The current position of the line being parsed.
         :param flags: A Flags object to determine the state of the 'm' and the 'x' flags.
-        :param line: The line being parsed.
+        :param raw_line: The line being parsed.
         :param lines_with_labels: A list of lines with additional info to be parsed later.
         :return: A tuple of the new cursor position and flags state.
         """

@@ -19,7 +19,8 @@ class Flags(Artifact):
         """
         Will take a string that matches Regex.FLAGS and will return a Flags object. It will consider either
          "8" or "true" for True and "16" or "false" for False.
-        :param match: The regex Match.
+        :param m_flag: Width of the accumulator. Either '8' or '16'.
+        :param x_flag: Width of the X and Y registers. Either '8' or '16'.
         :return: A Flags object.
         :note: The reason that 8 and 16 are used is that it is more readable to see the width in bits of the accumulator
          and the indexes than having to convert the bool into number of bits.

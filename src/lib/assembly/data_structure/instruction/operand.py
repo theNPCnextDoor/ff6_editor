@@ -25,9 +25,10 @@ class OperandType(Enum):
 @dataclass(order=True)
 class Operand:
     """
-    The operand is the part of an instruction containing the data.
+    The operand is the part of a data structure containing the data.
     :param value: A Bytes object containing the data.
-    :param mode: The mode is used by the processor in order to understand how to interpret the data of the instruction.
+    :param mode: Only used in instructions. The mode is used by the processor in order to understand how to interpret
+    the data of the instruction.
     :param operand_type: The OperandType. It is used to understand how to convert the value into the destination of the
     label, when there is one.
     """
@@ -224,9 +225,7 @@ class Operand:
         return output
 
     @staticmethod
-    def _is_destination_possible(
-        parent_position: Bytes, length: int, destination: Bytes, operand_type: OperandType | None = None
-    ) -> bool:
+    def _is_destination_possible(parent_position: Bytes, length: int, destination: Bytes) -> bool:
         if length == 3:
             return True
         if length == 2:

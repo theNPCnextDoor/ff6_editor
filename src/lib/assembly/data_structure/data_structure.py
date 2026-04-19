@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import TYPE_CHECKING, Self
+from typing import Self
 
 from src.lib.assembly.bytes import Bytes
 
