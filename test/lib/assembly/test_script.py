@@ -452,7 +452,7 @@ class TestScript:
         with open(DUMMY_OUTPUT_SCRIPT) as f:
             script = f.read()
         assert script == (
-            """m=8,x=8
+            """m = 8, x = 8
 
 db alfa = $12
 dw bravo = $1234

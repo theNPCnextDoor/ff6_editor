@@ -33,7 +33,7 @@ class Flags(Artifact):
     def __str__(self) -> str:
         m = str(self.m)
         x = str(self.x)
-        return f"m={m},x={x}"
+        return f"m = {m}, x = {x}"
 
     def to_line(self, **kwargs: Any) -> str:
         return str(self)

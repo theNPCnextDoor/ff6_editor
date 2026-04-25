@@ -1,4 +1,4 @@
-m=8,x=16
+m = 8, x = 16
 
 db alfa = $12
 dw bravo = $1234

@@ -11,7 +11,7 @@ class Regex:
     DELIMITER = rf"(\.?{VARIABLE}|\${BYTE}){NOT_HEXA}"
     BLOB = rf"(?P<operand>([.!]?{VARIABLE}|\$({BYTE})+){NOT_HEXA})(,(?P<delimiter>{DELIMITER}))?"
     STRING = rf'((?P<string_type>desc) )?"(?P<string>({CHAR})+)"(,(?P<delimiter>{DELIMITER}))?'
-    FLAGS = r"m=(?P<m_flag>(8|16)),x=(?P<x_flag>(8|16))"
+    FLAGS = r"m *= *(?P<m_flag>(8|16)), *x *= *(?P<x_flag>(8|16))"
     LABEL = rf"^@(?P<name>{VARIABLE}) *(= *(?P<snes_address>\${SNES_ADDRESS}))?"
     POINTER = rf"(?P<relative>r)?ptr (?P<operand>(\${WORD})|!{VARIABLE})"
     VARIABLE_DECLARATION = rf"d(?P<length>[bw]) (?P<name>{VARIABLE}) *= *(?P<operand>\$({BYTE}){{1,2}})"
