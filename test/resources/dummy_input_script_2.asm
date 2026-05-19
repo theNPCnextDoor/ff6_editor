@@ -12,7 +12,7 @@ db delta = $00
   LDA #bravo
   LDX #$FEDC
   SEP #$30
-  LDA #$BB
+  LDA #.label_c0fedc
   LDX #$CC
   MVP #$34,#alfa
 
@@ -22,7 +22,7 @@ db delta = $00
   bravo
   $5678,$FF
   $ABCD,delta
-  "<0x00>A<KNIFE> ",$88
+  "<0x00>A<KNIFE>_",$88
   $AA | "a" | $BB,$FF | "b",$00
 
   desc "Bob<LINE><FIRE>",$00
@@ -34,6 +34,7 @@ db delta = $00
 #$D20002
   rptr !rptr_2
 
+@label_c0fedc = $C0FEDC
 @anchor_1 = $D20001
 @rptr_1 = $D23456
 @rptr_2 = $D23457

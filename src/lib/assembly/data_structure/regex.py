@@ -8,14 +8,21 @@ class Regex:
     VARIABLE = r"[a-z][0-9a-z_]+"
     SNES_ADDRESS = rf"[4-9A-F][0-9A-F]{WORD}"
 
-    DELIMITER = rf"(\.?{VARIABLE}|\${BYTE}){NOT_HEXA}"
-    BLOB = rf"(?P<operand>([.!]?{VARIABLE}|\$({BYTE})+){NOT_HEXA})(,(?P<delimiter>{DELIMITER}))?"
-    STRING = rf'((?P<string_type>desc) )?"(?P<string>({CHAR})+)"(,(?P<delimiter>{DELIMITER}))?'
+
+class ArtifactRegex:
     FLAGS = r"m *= *(?P<m_flag>(8|16)), *x *= *(?P<x_flag>(8|16))"
-    LABEL = rf"^@(?P<name>{VARIABLE}) *(= *(?P<snes_address>\${SNES_ADDRESS}))?"
-    POINTER = rf"(?P<relative>r)?ptr (?P<operand>(\${WORD})|!{VARIABLE})"
-    VARIABLE_DECLARATION = rf"d(?P<length>[bw]) (?P<name>{VARIABLE}) *= *(?P<operand>\$({BYTE}){{1,2}})"
-    ANCHOR = rf"#(?P<operand>\${SNES_ADDRESS}|{VARIABLE})"
+    LABEL = rf"^@(?P<name>{Regex.VARIABLE}) *(= *(?P<snes_address>\${Regex.SNES_ADDRESS}))?"
+    VARIABLE_DECLARATION = rf"d(?P<length>[bw]) (?P<name>{Regex.VARIABLE}) *= *(?P<operand>\$({Regex.BYTE}){{1,2}})"
+    ANCHOR = rf"#(?P<value>\${Regex.SNES_ADDRESS}|{Regex.VARIABLE})"
+
+
+class DataStructureRegex:
+    DELIMITER = rf"(\.?{Regex.VARIABLE}|\${Regex.BYTE}){Regex.NOT_HEXA}"
+    BLOB = rf"(?P<operand>([.!]?{Regex.VARIABLE}|\$({Regex.BYTE})+){Regex.NOT_HEXA})(,(?P<delimiter>{DELIMITER}))?"
+    STRING = rf'((?P<string_type>desc) )?"(?P<string>({Regex.CHAR})+)"(,(?P<delimiter>{DELIMITER}))?'
+    ARRAY_PART = rf'((([.!]?{Regex.VARIABLE}|\$({Regex.BYTE})+){Regex.NOT_HEXA})(,{DELIMITER})?|(desc )?"({Regex.CHAR})+"(,{DELIMITER})?)'
+    ARRAY = rf"({ARRAY_PART} *\| *)+{ARRAY_PART}"
+    POINTER = rf"(?P<relative>r)?ptr (?P<operand>(\${Regex.WORD})|!{Regex.VARIABLE})"
 
 
 class InstructionRegex:

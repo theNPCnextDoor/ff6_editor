@@ -29,8 +29,8 @@ class TestString:
             ),
         ],
     )
-    def test_from_string(self, string_type: str | None, string: str, delimiter: str | None, expected: String):
-        assert String.from_string(string, string_type, delimiter) == expected
+    def test_from_line(self, string_type: str | None, string: str, delimiter: str | None, expected: String):
+        assert String.from_line(string, string_type, delimiter) == expected
 
     @pytest.mark.parametrize(
         ["data", "delimiter", "string"],
@@ -104,3 +104,7 @@ class TestString:
     )
     def test_to_line(self, string: String, show_address: bool, expected: str):
         assert string.to_line(show_address=show_address) == expected
+
+    @pytest.mark.parametrize("delimiter", [None, "$00", "alfa"])
+    def test_find_length(self, delimiter: str | None):
+        assert String.find_length("abc<0x11> _", delimiter) == 6 + int(bool(delimiter))
