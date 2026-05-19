@@ -39,12 +39,10 @@ class Variables:
         :return: None.
         :raises VariableConflict: Raised when a conflict is detected.
         """
-        if isinstance(variable, Label):
-            for label in self._labels:
-                if self.find_by_position(variable.value):
-                    raise VariableConflict(
-                        f"Position conflict. Label '{label.name}', with position {repr(variable.value)} already exists."
-                    )
+        if isinstance(variable, Label) and (label := self.find_by_position(variable.value)):
+            raise VariableConflict(
+                f"Position conflict. Label '{label.name}', with position {repr(variable.value)} already exists."
+            )
         if self.find_by_name(variable.name):
             raise VariableConflict(f"Name conflict. Variable '{variable.name}' already exists.")
 
@@ -87,16 +85,9 @@ class Variables:
     @property
     def simple_variables(self) -> Self:
         """
-        :return: The list of simple variables.
+        :return: A Variables object only containing this Variable object's SimpleVars.
         """
         return type(self)(*self._simple_variables)
-
-    @property
-    def labels(self) -> Self:
-        """
-        :return: The list of labels.
-        """
-        return type(self)(*self._labels)
 
     def __contains__(self, item: Variable) -> bool:
         """

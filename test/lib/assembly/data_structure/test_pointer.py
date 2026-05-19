@@ -1,3 +1,5 @@
+from typing import Type
+
 import pytest
 
 from src.lib.assembly.artifact.variables import Variables
@@ -6,7 +8,7 @@ from src.lib.assembly.artifact.variable import Label
 from src.lib.assembly.data_structure.instruction.operand import Operand, OperandType
 from src.lib.assembly.data_structure.pointer import Pointer
 from src.lib.misc.exception import ImpossibleDestination, NoVariableException
-from test.lib.assembly.conftest import TEST_POSITION, TEST_WORD, CHARLIE
+from test.lib.assembly.conftest import TEST_POSITION, TEST_WORD, CHARLIE, pos
 
 
 class TestPointer:
@@ -15,89 +17,85 @@ class TestPointer:
         [
             (
                 "$1413",
-                Bytes.from_position(0x111111),
+                pos(0x111111),
                 None,
                 Pointer(
-                    position=Bytes.from_position(0x111111),
+                    position=pos(0x111111),
                     operand=Operand(Bytes([0x14, 0x13]), "_", OperandType.DEFAULT),
                 ),
             ),
             (
                 "!label_1",
-                Bytes.from_position(0x12FF00),
+                pos(0x12FF00),
                 None,
                 Pointer(
-                    position=Bytes.from_position(0x12FF00),
-                    operand=Operand(
-                        Bytes([0x34, 0x56]), "_", OperandType.DEFAULT, Label(Bytes.from_position(0x123456), "label_1")
-                    ),
+                    position=pos(0x12FF00),
+                    operand=Operand(Bytes([0x34, 0x56]), "_", OperandType.DEFAULT, Label(pos(0x123456), "label_1")),
                 ),
             ),
             (
                 "!label_1",
-                Bytes.from_position(0x000001),
-                Operand(Bytes.from_position(0x121111)),
+                pos(0x000001),
+                Operand(pos(0x121111)),
                 Pointer(
-                    position=Bytes.from_position(0x000001),
-                    operand=Operand(
-                        Bytes([0x23, 0x45]), "_", OperandType.DEFAULT, Label(Bytes.from_position(0x123456), "label_1")
-                    ),
-                    anchor=Operand(Bytes.from_position(0x121111)),
+                    position=pos(0x000001),
+                    operand=Operand(Bytes([0x23, 0x45]), "_", OperandType.DEFAULT, Label(pos(0x123456), "label_1")),
+                    anchor=Operand(pos(0x121111)),
                 ),
             ),
             (
                 "$1413",
-                Bytes.from_position(0x000001),
-                Operand(Bytes.from_position(0x121111)),
+                pos(0x000001),
+                Operand(pos(0x121111)),
                 Pointer(
-                    position=Bytes.from_position(0x000001),
+                    position=pos(0x000001),
                     operand=Operand(Bytes([0x14, 0x13]), "_", OperandType.DEFAULT, None),
-                    anchor=Operand(Bytes.from_position(0x121111)),
+                    anchor=Operand(pos(0x121111)),
                 ),
             ),
         ],
     )
-    def test_from_string(
+    def test_from_line(
         self, operand: str, position: Bytes, anchor: Operand | None, pointer: Pointer, labels: Variables
     ):
-        assert Pointer.from_string(operand, position, anchor, labels) == pointer
+        assert Pointer.from_line(operand, position, anchor, labels) == pointer
 
     @pytest.mark.parametrize(
         ["operand", "position", "anchor", "exception"],
         [
-            ("label_3", Bytes.from_position(0x12FF00), None, NoVariableException),
-            ("label_1", Bytes.from_position(0x000000), None, ImpossibleDestination),
+            ("label_3", pos(0x12FF00), None, NoVariableException),
+            ("label_1", pos(0x000000), None, ImpossibleDestination),
         ],
     )
-    def test_from_string_raise_exception(
-        self, operand: str, position: Bytes, anchor: Bytes | None, exception: Exception, labels: Variables
+    def test_from_line_raise_exception(
+        self, operand: str, position: Bytes, anchor: Bytes | None, exception: Type[Exception], labels: Variables
     ):
         with pytest.raises(exception):
-            Pointer.from_string(operand, position, anchor, labels)
+            Pointer.from_line(operand, position, anchor, labels)
 
     @pytest.mark.parametrize(
         ["value", "position", "anchor", "expected", "destination"],
         [
             (
                 b"\x00\x01",
-                Bytes.from_position(0),
+                pos(0),
                 None,
-                Pointer(position=Bytes.from_position(0), operand=Operand(Bytes([0x01, 0x00]))),
-                Bytes.from_position(0x000100),
+                Pointer(position=pos(0), operand=Operand(Bytes([0x01, 0x00]))),
+                pos(0x000100),
             ),
             (
                 b"\x12\x34",
-                Bytes.from_position(0x123456),
+                pos(0x123456),
                 None,
-                Pointer(position=Bytes.from_position(0x123456), operand=Operand(Bytes([0x34, 0x12]))),
-                Bytes.from_position(0x123412),
+                Pointer(position=pos(0x123456), operand=Operand(Bytes([0x34, 0x12]))),
+                pos(0x123412),
             ),
             (
                 b"\x26\x38",
-                Bytes.from_position(0x123456),
-                Operand(Bytes.from_position(0x300123)),
+                pos(0x123456),
+                Operand(pos(0x300123)),
                 Pointer(
-                    position=Bytes.from_position(0x123456),
+                    position=pos(0x123456),
                     operand=Operand(Bytes([0x38, 0x26])),
                     anchor=Operand(Bytes.from_position(0x300123)),
                 ),
@@ -221,3 +219,6 @@ class TestPointer:
 
     def test_len(self):
         assert len(Pointer(position=TEST_POSITION, operand=Operand(Bytes([0x45, 0x67])))) == 2
+
+    def test_find_length(self):
+        assert Pointer.find_length() == 2

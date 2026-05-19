@@ -30,13 +30,9 @@ def disassemble(configs: dict):
         sections.append(section)
 
     sections.sort()
-    flags = Flags()
-    for section in sections:
-        if section.attributes.get("flags", None):
-            flags = section.attributes["flags"]
 
     script = Script.from_rom(filename=configs["source"], sections=sections)
-    script.to_text_file(filename=configs["destination"], flags=flags, debug=configs.get("debug", False))
+    script.to_text_file(filename=configs["destination"], debug=configs.get("debug", False))
 
 
 if __name__ == "__main__":

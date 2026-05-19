@@ -2,7 +2,7 @@ import re
 
 import pytest as pytest
 
-from src.lib.assembly.data_structure.regex import Regex, InstructionRegex
+from src.lib.assembly.data_structure.regex import Regex, InstructionRegex, DataStructureRegex, ArtifactRegex
 
 
 class TestRegex:
@@ -115,11 +115,81 @@ class TestRegex:
     def test_snes_address(self, line: str, is_match: bool):
         assert bool(re.fullmatch(Regex.SNES_ADDRESS, line)) == is_match
 
+
+class TestArtifactRegex:
+    @pytest.mark.parametrize(
+        ["line", "is_match", "m_flag", "x_flag"],
+        [("m=8,x=16", True, "8", "16"), ("m=16,x=8", True, "16", "8"), ("m=True,x=False", False, None, None)],
+    )
+    def test_flags(self, line: str, is_match: bool, m_flag: bool, x_flag: bool):
+        match = re.match(ArtifactRegex.FLAGS, line)
+        assert bool(match) == is_match
+        if is_match:
+            assert match.group("m_flag") == m_flag
+            assert match.group("x_flag") == x_flag
+
+    @pytest.mark.parametrize(
+        ["line", "name", "snes_address"],
+        [
+            ("@abulita = $C00000", "abulita", "$C00000"),
+            ("@label_c34567 = $C34567", "label_c34567", "$C34567"),
+            ("@abulita", "abulita", None),
+        ],
+    )
+    def test_label(self, line: str, name: str, snes_address: str | None):
+        match = re.fullmatch(ArtifactRegex.LABEL, line)
+        assert match.group("name") == name
+        assert match.group("snes_address") == snes_address
+
+    @pytest.mark.parametrize(
+        ["line", "is_match", "length", "name", "operand"],
+        [
+            ("db alfa = $12", True, "b", "alfa", "$12"),
+            ("dw bravo=$1234", True, "w", "bravo", "$1234"),
+            ("dw bravo=$123456", False, None, None, None),
+        ],
+    )
+    def test_variable_declaration(
+        self, line: str, is_match: bool, length: str | None, name: str | None, operand: str | None
+    ):
+        match = re.fullmatch(ArtifactRegex.VARIABLE_DECLARATION, line)
+        assert bool(match) == is_match
+        if is_match:
+            assert match.group("length") == length
+            assert match.group("name") == name
+            assert match.group("operand") == operand
+
+    @pytest.mark.parametrize(["line", "is_match"], [("#label1", True), ("#$C12345", True), ("#$GGGGGG", False)])
+    def test_anchor(self, line: str, is_match: bool):
+        match = re.match(ArtifactRegex.ANCHOR, line)
+        assert bool(match) is is_match
+
+
+class TestDataStructureRegex:
+    @pytest.mark.parametrize(
+        ["line", "is_match", "relative", "operand"],
+        [
+            ("ptr $1234", True, None, "$1234"),
+            ("rptr $1234", True, "r", "$1234"),
+            ("ptr $123456", False, None, None),
+            ("ptr !pastagate", True, None, "!pastagate"),
+            ("rptr !pastagate", True, "r", "!pastagate"),
+            ("ptr pastagate", False, None, False),
+            ("ptr .pastagate", False, None, None),
+        ],
+    )
+    def test_pointer(self, line: str, is_match: bool, relative: str | None, operand: str | None):
+        match = re.fullmatch(DataStructureRegex.POINTER, line)
+        assert bool(match) is is_match
+        if is_match:
+            assert match.group("relative") == relative
+            assert match.group("operand") == operand
+
     @pytest.mark.parametrize(
         ["line", "is_match"], [("$FF", True), ("$FG", False), ("alfa", True), (".charlie", True), ("!charlie", False)]
     )
     def test_delimiter(self, line: str, is_match: bool):
-        assert bool(re.fullmatch(Regex.DELIMITER, line)) == is_match
+        assert bool(re.fullmatch(DataStructureRegex.DELIMITER, line)) == is_match
 
     @pytest.mark.parametrize(
         ["line", "is_match", "operand", "delimiter"],
@@ -138,7 +208,7 @@ class TestRegex:
         ],
     )
     def test_blob(self, line: str, is_match: bool, operand: str | None, delimiter: str | None):
-        match = re.fullmatch(Regex.BLOB, line)
+        match = re.fullmatch(DataStructureRegex.BLOB, line)
         assert bool(match) == is_match
         if is_match:
             assert match.group("operand") == operand
@@ -166,78 +236,18 @@ class TestRegex:
     def test_string(
         self, line: str, is_match: bool, string_type: str | None, string: str | None, delimiter: str | None
     ):
-        match = re.fullmatch(Regex.STRING, line)
+        match = re.fullmatch(DataStructureRegex.STRING, line)
         assert bool(match) == is_match
         if is_match:
             assert match.group("string_type") == string_type
             assert match.group("string") == string
             assert match.group("delimiter") == delimiter
 
-    @pytest.mark.parametrize(
-        ["line", "is_match", "m_flag", "x_flag"],
-        [("m=8,x=16", True, "8", "16"), ("m=16,x=8", True, "16", "8"), ("m=True,x=False", False, None, None)],
-    )
-    def test_flags(self, line: str, is_match: bool, m_flag: bool, x_flag: bool):
-        match = re.match(Regex.FLAGS, line)
-        assert bool(match) == is_match
-        if is_match:
-            assert match.group("m_flag") == m_flag
-            assert match.group("x_flag") == x_flag
-
-    @pytest.mark.parametrize(
-        ["line", "name", "snes_address"],
-        [
-            ("@abulita = $C00000", "abulita", "$C00000"),
-            ("@label_c34567 = $C34567", "label_c34567", "$C34567"),
-            ("@abulita", "abulita", None),
-        ],
-    )
-    def test_label(self, line: str, name: str, snes_address: str | None):
-        match = re.fullmatch(Regex.LABEL, line)
-        assert match.group("name") == name
-        assert match.group("snes_address") == snes_address
-
-    @pytest.mark.parametrize(
-        ["line", "is_match", "relative", "operand"],
-        [
-            ("ptr $1234", True, None, "$1234"),
-            ("rptr $1234", True, "r", "$1234"),
-            ("ptr $123456", False, None, None),
-            ("ptr !pastagate", True, None, "!pastagate"),
-            ("rptr !pastagate", True, "r", "!pastagate"),
-            ("ptr pastagate", False, None, False),
-            ("ptr .pastagate", False, None, None),
-        ],
-    )
-    def test_pointer(self, line: str, is_match: bool, relative: str | None, operand: str | None):
-        match = re.fullmatch(Regex.POINTER, line)
-        assert bool(match) is is_match
-        if is_match:
-            assert match.group("relative") == relative
-            assert match.group("operand") == operand
-
-    @pytest.mark.parametrize(
-        ["line", "is_match", "length", "name", "operand"],
-        [
-            ("db alfa = $12", True, "b", "alfa", "$12"),
-            ("dw bravo=$1234", True, "w", "bravo", "$1234"),
-            ("dw bravo=$123456", False, None, None, None),
-        ],
-    )
-    def test_variable_declaration(
-        self, line: str, is_match: bool, length: str | None, name: str | None, operand: str | None
-    ):
-        match = re.fullmatch(Regex.VARIABLE_DECLARATION, line)
-        assert bool(match) == is_match
-        if is_match:
-            assert match.group("length") == length
-            assert match.group("name") == name
-            assert match.group("operand") == operand
-
-    @pytest.mark.parametrize(["line", "is_match"], [("#label1", True), ("#$C12345", True), ("#$GGGGGG", False)])
-    def test_anchor(self, line: str, is_match: bool):
-        match = re.match(Regex.ANCHOR, line)
-        assert bool(match) is is_match
+    def test_array(self):
+        assert re.fullmatch(
+            DataStructureRegex.ARRAY,
+            '$00 | $00,$00 | alfa | bravo,alfa | .charlie | !charlie,$00 | "alice" | "bob",$00 | "charlie",alfa',
+        )
 
 
 class TestInstructionRegex:

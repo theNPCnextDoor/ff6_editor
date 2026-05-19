@@ -52,3 +52,7 @@ class VariableConflict(Exception):
 
 class ForbiddenVarName(Exception):
     pass
+
+
+class DelimiterLengthError(Exception):
+    pass

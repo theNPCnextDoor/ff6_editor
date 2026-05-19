@@ -39,7 +39,7 @@ class Operand:
     variable: Variable | None = None
 
     @classmethod
-    def from_string(
+    def from_line(
         cls,
         value: str,
         parent_position: Bytes | None = None,
@@ -153,17 +153,19 @@ class Operand:
     ) -> Bytes:
         """
         Converts the destination of the operand into its value.
-        :param parent_position:
-        :param operand_type:
-        :param length:
-        :param destination:
-        :return:
+        :param parent_position: The position of the DataStructure containing the Operand.
+        :param operand_type: The type of operand in order to determine the calculation.
+        :param length: The length of the operand.
+        :param destination: The target position of the operand.
+        :return: The value of the operand.
         """
         if operand_type == OperandType.BRANCHING:
             return Bytes.from_int((int(destination) - int(parent_position) - 2) % 0x0100)
         if operand_type == OperandType.LONG_BRANCHING:
             return Bytes.from_int(((int(destination) - int(parent_position) - 3) % 0x010000), length=2)
         if length == 1:
+            if 0 <= int(destination) <= 0x3FFFFF:
+                return destination[0:1] + Bytes.from_int(0xC0)
             return destination[0:1]
 
         if length == 2:
@@ -172,6 +174,11 @@ class Operand:
         return destination
 
     def value_to_destination(self, parent_position: Bytes) -> Bytes:
+        """
+        Converts the value of the Operand into its destination.
+        :param parent_position: The position of the DataStructure containing the Operand.
+        :return: The destination of the Operand.
+        """
         if self.operand_type == OperandType.BRANCHING:
             return Bytes.from_position((int(self.value) + 0x80) % 0x0100 + int(parent_position) - 0x7E)
         if self.operand_type == OperandType.LONG_BRANCHING:
@@ -192,13 +199,12 @@ class Operand:
     def __bytes__(self) -> bytes:
         value = self.value[:]
         if (
-            isinstance(self.variable, Label)
+            self.variable
+            and isinstance(self.variable, Label)
             and 0 <= int(self.variable.value) <= 0x3FFFFF
             and self.operand_type not in (OperandType.BRANCHING, OperandType.LONG_BRANCHING)
         ):
-            if len(value) == 1:
-                value += 0xC0
-            elif len(value) == 3:
+            if len(value) == 3:
                 value += 0xC00000
         return bytes(value)
 
@@ -226,6 +232,19 @@ class Operand:
 
     @staticmethod
     def _is_destination_possible(parent_position: Bytes, length: int, destination: Bytes) -> bool:
+        """
+        Determines if the destination can be reached.
+        If the length of the operand is 3, the instruction containing the operand can jump to anywhere in the code so
+        it's always possible. If the length is 2, then the DataStructure containing the Operand must be in the same bank
+        as the destination. This is the case for Pointers and some Instructions. In the length is 1, it is assumed in
+        this function that the DataStructure containing the Operand is a branching Instruction. Therefore, it checks if
+        the destination is in the immediate vicinity [-127, 129] of the Instruction.
+
+        :param parent_position: The position of the DataStructure containing the Operand.
+        :param length: The length of the Operand.
+        :param destination: The destination of the Operand.
+        :return: True is the destination is reachable.
+        """
         if length == 3:
             return True
         if length == 2:

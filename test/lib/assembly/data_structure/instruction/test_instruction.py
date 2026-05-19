@@ -1,7 +1,6 @@
 import pytest
 
 from src.lib.assembly.artifact.flags import Flags
-from src.lib.assembly.artifact.variables import Variables
 from src.lib.assembly.data_structure.instruction.instruction import Instruction
 from src.lib.assembly.data_structure.instruction.operand import Operand, OperandType
 from src.lib.assembly.artifact.variable import Label
@@ -17,6 +16,7 @@ from test.lib.assembly.conftest import (
     DELTA,
     BRAVO,
     DEFAULT_POSITION,
+    pos,
 )
 
 
@@ -27,7 +27,7 @@ class TestInstruction:
             ("BRK", None, Flags(), Bytes([0x00]), list()),
             ("COP", "#$FF", Flags(), Bytes([0x02]), [Operand(Bytes([0xFF]), "#_")]),
             ("COP", "#alfa", Flags(), Bytes([0x02]), [Operand(TEST_BYTE, "#_", OperandType.DEFAULT, ALFA)]),
-            ("COP", "#.charlie", Flags(), Bytes([0x02]), [Operand(Bytes([0x12]), "#_", OperandType.DEFAULT, CHARLIE)]),
+            ("COP", "#.charlie", Flags(), Bytes([0x02]), [Operand(Bytes([0xD2]), "#_", OperandType.DEFAULT, CHARLIE)]),
             ("MVP", "#$ED,#$CB", Flags(), Bytes([0x44]), [Operand(Bytes([0xED]), "#_"), Operand(Bytes([0xCB]), "#_")]),
             (
                 "MVP",
@@ -35,8 +35,8 @@ class TestInstruction:
                 Flags(),
                 Bytes([0x44]),
                 [
-                    Operand(Bytes([0x12]), "#_", OperandType.DEFAULT, CHARLIE),
-                    Operand(Bytes([0xFF]), "#_", OperandType.DEFAULT, DELTA),
+                    Operand(Bytes([0xD2]), "#_", OperandType.DEFAULT, CHARLIE),
+                    Operand(Bytes([0x00]), "#_", OperandType.DEFAULT, DELTA),
                 ],
             ),
             ("ORA", "$8877,Y", Flags(), Bytes([0x19]), [Operand(Bytes([0x88, 0x77]), "_,Y")]),
@@ -101,8 +101,8 @@ class TestInstruction:
             "OperandType is long jumping and operand has a label",
         ],
     )
-    def test_from_string(self, command: str, operand: str | None, flags: Flags, opcode: Bytes, operands: list[Operand]):
-        instruction = Instruction.from_string(command, TEST_POSITION, flags, operand, Variables(*VARIABLES))
+    def test_from_line(self, command: str, operand: str | None, flags: Flags, opcode: Bytes, operands: list[Operand]):
+        instruction = Instruction.from_line(command, TEST_POSITION, flags, operand, VARIABLES)
         assert instruction.position == TEST_POSITION
         assert instruction.opcode == opcode
         assert instruction.operands == operands
@@ -143,7 +143,7 @@ class TestInstruction:
                         Operand(
                             Bytes([0x08, 0x07, 0x06]),
                             "_,X",
-                            variable=Label(Bytes.from_position(0x080706), "label_c80706"),
+                            variable=Label(pos(0x080706), "label_c80706"),
                         )
                     ],
                 ),
@@ -162,11 +162,7 @@ class TestInstruction:
                 b"\x80\x0b",
                 Instruction(
                     opcode=Bytes([0x80]),
-                    operands=[
-                        Operand(
-                            Bytes([0x0B]), "_", OperandType.BRANCHING, Label(Bytes.from_position(0x0D), "label_c0000d")
-                        )
-                    ],
+                    operands=[Operand(Bytes([0x0B]), "_", OperandType.BRANCHING, Label(pos(0x0D), "label_c0000d"))],
                 ),
                 Flags(),
                 DEFAULT_POSITION,
@@ -180,7 +176,7 @@ class TestInstruction:
                             Bytes([0x0D, 0x0C]),
                             "_",
                             OperandType.LONG_BRANCHING,
-                            Label(Bytes.from_position(0x0D0F), "label_c00d0f"),
+                            Label(pos(0x0D0F), "label_c00d0f"),
                         )
                     ],
                 ),
@@ -196,7 +192,7 @@ class TestInstruction:
                             Bytes([0x0F, 0x0E]),
                             "[_]",
                             OperandType.JUMPING,
-                            Label(Bytes.from_position(0x0F0E), "label_c00f0e"),
+                            Label(pos(0x0F0E), "label_c00f0e"),
                         )
                     ],
                 ),
@@ -212,7 +208,7 @@ class TestInstruction:
                             Bytes([0x12, 0x11, 0x10]),
                             "_",
                             OperandType.LONG_JUMPING,
-                            Label(Bytes.from_position(0x121110), "label_d21110"),
+                            Label(pos(0x121110), "label_d21110"),
                         )
                     ],
                 ),
@@ -232,11 +228,11 @@ class TestInstruction:
                 b"\x4c\x56\x34",
                 Instruction(
                     opcode=Bytes([0x4C]),
-                    position=Bytes.from_position(0x120000),
+                    position=pos(0x120000),
                     operands=[Operand(Bytes([0x34, 0x56]), "_", OperandType.JUMPING, variable=CHARLIE)],
                 ),
                 Flags(),
-                Bytes.from_position(0x120000),
+                pos(0x120000),
             ),
             (
                 b"\x5c\x56\x34\xd2",
@@ -251,21 +247,21 @@ class TestInstruction:
                 b"\x80\x04",
                 Instruction(
                     opcode=Bytes([0x80]),
-                    position=Bytes.from_position(0x123450),
+                    position=pos(0x123450),
                     operands=[Operand(Bytes([0x04]), "_", OperandType.BRANCHING, CHARLIE)],
                 ),
                 Flags(),
-                Bytes.from_position(0x123450),
+                pos(0x123450),
             ),
             (
                 b"\x82\x03\x00",
                 Instruction(
                     opcode=Bytes([0x82]),
-                    position=Bytes.from_position(0x123450),
+                    position=pos(0x123450),
                     operands=[Operand(Bytes([0x00, 0x03]), "_", OperandType.LONG_BRANCHING, CHARLIE)],
                 ),
                 Flags(),
-                Bytes.from_position(0x123450),
+                pos(0x123450),
             ),
         ],
         ids=[
@@ -288,9 +284,7 @@ class TestInstruction:
         ],
     )
     def test_from_bytes(self, value: bytes, expected: Instruction, flags: Flags, position: Bytes):
-        instruction = Instruction.from_bytes(
-            value=value, flags=flags, position=position, variables=Variables(*VARIABLES)
-        )
+        instruction = Instruction.from_bytes(value=value, flags=flags, position=position, variables=VARIABLES)
         assert instruction == expected
 
     @pytest.mark.parametrize(
@@ -321,7 +315,7 @@ class TestInstruction:
                         Operand(
                             Bytes([0x08, 0x07, 0x06]),
                             "_,X",
-                            variable=Label(Bytes.from_position(0x080706), "label_c80706"),
+                            variable=Label(pos(0x080706), "label_c80706"),
                         )
                     ],
                 ),
@@ -336,11 +330,7 @@ class TestInstruction:
                 b"\x80\x0b",
                 Instruction(
                     opcode=Bytes([0x80]),
-                    operands=[
-                        Operand(
-                            Bytes([0x0B]), "_", OperandType.BRANCHING, Label(Bytes.from_position(0x0D), "label_c0000d")
-                        )
-                    ],
+                    operands=[Operand(Bytes([0x0B]), "_", OperandType.BRANCHING, Label(pos(0x0D), "label_c0000d"))],
                 ),
             ),
             (
@@ -352,7 +342,7 @@ class TestInstruction:
                             Bytes([0x0D, 0x0C]),
                             "_",
                             OperandType.LONG_BRANCHING,
-                            Label(Bytes.from_position(0x0D0F), "label_c00d0f"),
+                            Label(pos(0x0D0F), "label_c00d0f"),
                         )
                     ],
                 ),
@@ -366,7 +356,7 @@ class TestInstruction:
                             Bytes([0x0F, 0x0E]),
                             "[_]",
                             OperandType.JUMPING,
-                            Label(Bytes.from_position(0x0F0E), "label_c00f0e"),
+                            Label(pos(0x0F0E), "label_c00f0e"),
                         )
                     ],
                 ),
@@ -380,7 +370,7 @@ class TestInstruction:
                             Bytes([0x11, 0x10]),
                             "_",
                             OperandType.LONG_JUMPING,
-                            Label(Bytes.from_position(0x1110), "label_c01110"),
+                            Label(pos(0x1110), "label_c01110"),
                         )
                     ],
                 ),
@@ -396,7 +386,7 @@ class TestInstruction:
                 b"\x4c\x56\x34",
                 Instruction(
                     opcode=Bytes([0x4C]),
-                    position=Bytes.from_position(0x120000),
+                    position=pos(0x120000),
                     operands=[Operand(Bytes([0x34, 0x56]), "_", OperandType.JUMPING, variable=CHARLIE)],
                 ),
             ),
@@ -411,7 +401,7 @@ class TestInstruction:
                 b"\x80\x04",
                 Instruction(
                     opcode=Bytes([0x80]),
-                    position=Bytes.from_position(0x123450),
+                    position=pos(0x123450),
                     operands=[Operand(Bytes([0x04]), "_", OperandType.BRANCHING, CHARLIE)],
                 ),
             ),
@@ -419,7 +409,7 @@ class TestInstruction:
                 b"\x82\x03\x00",
                 Instruction(
                     opcode=Bytes([0x82]),
-                    position=Bytes.from_position(0x123450),
+                    position=pos(0x123450),
                     operands=[Operand(Bytes([0x00, 0x03]), "_", OperandType.LONG_BRANCHING, CHARLIE)],
                 ),
             ),
@@ -487,7 +477,7 @@ class TestInstruction:
         ids=[
             "Unallowed length for command with mode _",
             "Unallowed mode for command",
-            "Unexisting mode",
+            "Non-existing mode",
             "Length is 4",
             "Length is 0 when mode is not _",
             "Bad length for command when mode is not _",
@@ -677,12 +667,12 @@ class TestInstruction:
                 Instruction(opcode=Bytes([0x02]), operands=[Operand(TEST_BYTE, "#_", OperandType.DEFAULT, ALFA)]),
             ),
             (
-                "Instruction(position=0x000000, as_str='MVP #.charlie,#delta', as_bytes=b'D\\xd2\\xff', as_hexa=0x4412FF, operand_var_1=Label(0x123456, 'charlie'), operand_var_2=SimpleVar(0xFF, 'delta'))",
+                "Instruction(position=0x000000, as_str='MVP #.charlie,#delta', as_bytes=b'D\\xd2\\x00', as_hexa=0x44D200, operand_var_1=Label(0x123456, 'charlie'), operand_var_2=SimpleVar(0x00, 'delta'))",
                 Instruction(
                     opcode=Bytes([0x44]),
                     operands=[
-                        Operand(TEST_BYTE, "#_", OperandType.DEFAULT, CHARLIE),
-                        Operand(Bytes([0xFF]), "#_", OperandType.DEFAULT, DELTA),
+                        Operand(Bytes([0xD2]), "#_", OperandType.DEFAULT, CHARLIE),
+                        Operand(Bytes([0x00]), "#_", OperandType.DEFAULT, DELTA),
                     ],
                 ),
             ),
@@ -722,3 +712,24 @@ class TestInstruction:
     )
     def test_to_line(self, instruction: Instruction, show_address: bool, expected: str):
         assert instruction.to_line(show_address=show_address) == expected
+
+    @pytest.mark.parametrize(
+        ["command", "operand", "length"],
+        [
+            ("BRK", None, 1),
+            ("MVP", "#$12,#alfa", 3),
+            ("BRA", "$12", 2),
+            ("BRL", "$1234", 3),
+            ("LDA", "$12", 2),
+            ("LDA", "$1234", 3),
+            ("LDA", "$123456", 4),
+            ("LDA", "alfa", 2),
+            ("LDA", "bravo", 3),
+            ("LDA", "charlie", 4),
+            ("LDA", ".charlie", 2),
+            ("LDA", "!charlie", 3),
+            ("LDA", "unrecognized_label", 4),
+        ],
+    )
+    def test_find_length(self, command: str, operand: str, length: int):
+        Instruction.find_length(command, operand, VARIABLES)
