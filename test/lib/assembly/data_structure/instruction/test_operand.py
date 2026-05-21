@@ -4,8 +4,8 @@ from src.lib.assembly.artifact.variable import Label
 from src.lib.assembly.artifact.variables import Variables
 from src.lib.assembly.bytes import Bytes
 from src.lib.assembly.data_structure.instruction.operand import Operand, OperandType
-from src.lib.misc.exception import NoVariableException
-from test.lib.assembly.conftest import VARIABLES, CHARLIE, BRAVO, ALFA, ECHO
+from src.lib.misc.exception import NoVariableException, UndefinedDestination
+from test.lib.assembly.conftest import VARIABLES, CHARLIE, BRAVO, ALFA, ECHO, pos
 
 
 class TestOperand:
@@ -15,49 +15,49 @@ class TestOperand:
         [
             (
                 "#$12",
-                Bytes.from_position(0),
+                pos(0),
                 OperandType.DEFAULT,
                 Operand(value=Bytes.from_int(0x12), mode="#_", operand_type=OperandType.DEFAULT),
             ),
             (
                 "$1234,X",
-                Bytes.from_position(0),
+                pos(0),
                 OperandType.DEFAULT,
                 Operand(value=Bytes.from_int(0x1234), mode="_,X", operand_type=OperandType.DEFAULT),
             ),
             (
                 "($123456),Y",
-                Bytes.from_position(0),
+                pos(0),
                 OperandType.DEFAULT,
                 Operand(value=Bytes.from_int(0x123456), mode="(_),Y", operand_type=OperandType.DEFAULT),
             ),
             (
                 "#alfa",
-                Bytes.from_position(0),
+                pos(0),
                 OperandType.DEFAULT,
                 Operand(value=Bytes.from_int(0x12), mode="#_", operand_type=OperandType.DEFAULT, variable=ALFA),
             ),
             (
                 "bravo,X",
-                Bytes.from_position(0),
+                pos(0),
                 OperandType.DEFAULT,
                 Operand(value=Bytes.from_int(0x1234), mode="_,X", operand_type=OperandType.DEFAULT, variable=BRAVO),
             ),
             (
                 "(.charlie),Y",
-                Bytes.from_position(0x120000),
+                pos(0x120000),
                 OperandType.DEFAULT,
-                Operand(value=Bytes.from_int(0x12), mode="(_),Y", operand_type=OperandType.DEFAULT, variable=CHARLIE),
+                Operand(value=Bytes.from_int(0xD2), mode="(_),Y", operand_type=OperandType.DEFAULT, variable=CHARLIE),
             ),
             (
                 "(!charlie),Y",
-                Bytes.from_position(0x120000),
+                pos(0x120000),
                 OperandType.DEFAULT,
                 Operand(value=Bytes.from_int(0x3456), mode="(_),Y", operand_type=OperandType.DEFAULT, variable=CHARLIE),
             ),
             (
                 "(charlie),Y",
-                Bytes.from_position(0x120000),
+                pos(0x120000),
                 OperandType.DEFAULT,
                 Operand(
                     value=Bytes.from_int(0x123456), mode="(_),Y", operand_type=OperandType.DEFAULT, variable=CHARLIE
@@ -65,20 +65,20 @@ class TestOperand:
             ),
             (
                 "echo",
-                Bytes.from_position(0x7E0123),
+                pos(0x7E0123),
                 OperandType.DEFAULT,
-                Operand(value=Bytes.from_position(0x7E0123), variable=ECHO),
+                Operand(value=pos(0x7E0123), variable=ECHO),
             ),
         ],
     )
-    def test_from_string(self, value: str, parent_position: Bytes, operand_type: OperandType, expected: Operand):
-        assert Operand.from_string(value, parent_position, operand_type, Variables(*VARIABLES)) == expected
+    def test_from_line(self, value: str, parent_position: Bytes, operand_type: OperandType, expected: Operand):
+        assert Operand.from_line(value, parent_position, operand_type, VARIABLES) == expected
 
-    def test_from_string_raises_value_error(self):
+    def test_from_line_raises_value_error(self):
         with pytest.raises(NoVariableException):
-            Operand.from_string(
+            Operand.from_line(
                 value="zebra,X",
-                parent_position=Bytes.from_position(0),
+                parent_position=pos(0),
                 operand_type=OperandType.DEFAULT,
                 variables=Variables(*VARIABLES),
             )
@@ -90,45 +90,45 @@ class TestOperand:
                 b"\x12",
                 "_",
                 OperandType.DEFAULT,
-                Bytes.from_position(0x123456),
+                pos(0x123456),
                 Operand(value=Bytes.from_int(0x12), mode="_", operand_type=OperandType.DEFAULT),
             ),
             (
                 b"\x56\x34",
                 "_,X",
                 OperandType.JUMPING,
-                Bytes.from_position(0x120000),
+                pos(0x120000),
                 Operand(
                     value=Bytes.from_int(0x3456),
                     mode="_,X",
                     operand_type=OperandType.JUMPING,
-                    variable=Label(Bytes.from_position(0x123456), "charlie"),
+                    variable=Label(pos(0x123456), "charlie"),
                 ),
             ),
             (
                 b"\x11\x11",
                 "_,X",
                 OperandType.JUMPING,
-                Bytes.from_position(0x120000),
+                pos(0x120000),
                 Operand(
                     value=Bytes.from_int(0x1111),
                     mode="_,X",
                     operand_type=OperandType.JUMPING,
-                    variable=Label(Bytes.from_position(0x121111), "label_d21111"),
+                    variable=Label(pos(0x121111), "label_d21111"),
                 ),
             ),
             (
                 b"\x23\x01\x7e",
                 "_",
                 OperandType.JUMPING,
-                Bytes.from_position(0x7E0123),
+                pos(0x7E0123),
                 Operand(value=Bytes.from_int(0x7E0123), mode="_", operand_type=OperandType.JUMPING, variable=ECHO),
             ),
             (
                 b"\x56\x34\xd2",
                 "_",
                 OperandType.JUMPING,
-                Bytes.from_position(0x123457),
+                pos(0x123457),
                 Operand(value=Bytes.from_int(0x123456), mode="_", operand_type=OperandType.JUMPING, variable=CHARLIE),
             ),
         ],
@@ -141,7 +141,7 @@ class TestOperand:
             mode=mode,
             operand_type=operand_type,
             parent_position=parent_position,
-            variables=Variables(*VARIABLES),
+            variables=VARIABLES,
         )
         assert operand == expected
 
@@ -174,28 +174,28 @@ class TestOperand:
     @pytest.mark.parametrize(
         ["parent_position", "operand_type", "length", "destination", "expected"],
         [
-            (Bytes.from_int(0x010000), OperandType.JUMPING, 2, Bytes.from_position(0x011234), Bytes([0x12, 0x34])),
+            (pos(0x010000), OperandType.JUMPING, 2, pos(0x011234), Bytes([0x12, 0x34])),
             (
-                Bytes.from_int(0x010000),
+                pos(0x010000),
                 OperandType.LONG_JUMPING,
                 3,
-                Bytes.from_position(0x023456),
+                pos(0x023456),
                 Bytes([0x02, 0x34, 0x56]),
             ),
-            (Bytes.from_int(0x010000), OperandType.DEFAULT, 1, Bytes.from_position(0x023456), Bytes([0x02])),
-            (Bytes.from_int(0x010000), OperandType.DEFAULT, 2, Bytes.from_position(0x023456), Bytes([0x34, 0x56])),
+            (pos(0x010000), OperandType.DEFAULT, 1, pos(0x023456), Bytes([0xC2])),
+            (pos(0x010000), OperandType.DEFAULT, 2, pos(0x023456), Bytes([0x34, 0x56])),
             (
-                Bytes.from_int(0x010000),
+                pos(0x010000),
                 OperandType.DEFAULT,
                 3,
-                Bytes.from_position(0x023456),
+                pos(0x023456),
                 Bytes([0x02, 0x34, 0x56]),
             ),
-            (Bytes.from_int(0x013456), OperandType.BRANCHING, 1, Bytes.from_position(0x013458), Bytes([0x00])),
-            (Bytes.from_int(0x013456), OperandType.BRANCHING, 1, Bytes.from_position(0x013459), Bytes([0x01])),
-            (Bytes.from_int(0x013456), OperandType.BRANCHING, 1, Bytes.from_position(0x013457), Bytes([0xFF])),
-            (Bytes.from_int(0x013456), OperandType.BRANCHING, 1, Bytes.from_position(0x0134D7), Bytes([0x7F])),
-            (Bytes.from_int(0x013456), OperandType.BRANCHING, 1, Bytes.from_position(0x0133D8), Bytes([0x80])),
+            (pos(0x013456), OperandType.BRANCHING, 1, pos(0x013458), Bytes([0x00])),
+            (pos(0x013456), OperandType.BRANCHING, 1, pos(0x013459), Bytes([0x01])),
+            (pos(0x013456), OperandType.BRANCHING, 1, pos(0x013457), Bytes([0xFF])),
+            (pos(0x013456), OperandType.BRANCHING, 1, pos(0x0134D7), Bytes([0x7F])),
+            (pos(0x013456), OperandType.BRANCHING, 1, pos(0x0133D8), Bytes([0x80])),
             (
                 Bytes.from_int(0x013456),
                 OperandType.LONG_BRANCHING,
@@ -310,9 +310,9 @@ class TestOperand:
         destination = operand.value_to_destination(parent_position=parent_position)
         assert destination == expected
 
-    def test_value_to_destination_raises_value_error(self):
-        with pytest.raises(ValueError):
-            operand = Operand(value=Bytes.from_int(0x12), mode="_", operand_type=OperandType.DEFAULT)
+    def test_value_to_destination_raises_undefined_destination(self):
+        operand = Operand(value=Bytes.from_int(0x12), mode="_", operand_type=OperandType.DEFAULT)
+        with pytest.raises(UndefinedDestination):
             operand.value_to_destination(parent_position=Bytes.from_position(0x123456))
 
     def test_len(self):
@@ -392,7 +392,7 @@ class TestOperand:
             ),
             (
                 Operand(value=Bytes([0x12]), mode="_", operand_type=OperandType.DEFAULT, variable=ALFA),
-                "Operand(value=0x12, mode='_', operand_type=OperandType.DEFAULT, variable=SimpleVar(0x12, 'alfa'))",
+                "Operand(value=0x12, mode='_', operand_type=OperandType.DEFAULT, variable=SimpleVar(name='alfa', value=0x12))",
             ),
         ],
     )

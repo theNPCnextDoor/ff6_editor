@@ -1,3 +1,5 @@
+import logging
+import re
 from typing import Self
 
 from src.lib.assembly.artifact.variables import Variables
@@ -29,7 +31,7 @@ class Instruction(DataStructure):
         self.operands = operands
 
     @classmethod
-    def from_string(
+    def from_line(
         cls, command: str, position: Bytes, flags: Flags, operand: str | None = None, variables: Variables | None = None
     ) -> Self:
         """
@@ -56,7 +58,7 @@ class Instruction(DataStructure):
         elif len(chunks) == 1:
             operand_type = cls._command_to_operand_type(command)
             operands.append(
-                Operand.from_string(
+                Operand.from_line(
                     value=chunks[0], parent_position=position, operand_type=operand_type, variables=variables
                 )
             )
@@ -70,14 +72,16 @@ class Instruction(DataStructure):
 
             for chunk in chunks:
                 operands.append(
-                    Operand.from_string(
+                    Operand.from_line(
                         value=chunk, parent_position=position, operand_type=operand_type, variables=variables
                     )
                 )
 
         opcode = cls._find_opcode(command=command, mode=mode, length=length, flags=flags)
 
-        return cls(position=position, opcode=opcode, operands=operands)
+        instruction = cls(position=position, opcode=opcode, operands=operands)
+        logging.debug(f"Created {repr(instruction)}.")
+        return instruction
 
     @classmethod
     def from_bytes(
@@ -110,7 +114,9 @@ class Instruction(DataStructure):
         elif length:
             operands.append(Operand.from_bytes(value[1 : length + 1], mode, operand_type, position, variables))
 
-        return Instruction(position=position, opcode=opcode, operands=operands)
+        instruction = Instruction(position=position, opcode=opcode, operands=operands)
+        logging.debug(f"Created {repr(instruction)}.")
+        return instruction
 
     @staticmethod
     def _command_to_operand_type(command: str) -> OperandType:
@@ -148,6 +154,9 @@ class Instruction(DataStructure):
         :param length: The length of the operand.
         :param flags: 'm' and 'x' flags, which provides the width of the accumulator and the X and Y registers.
         :return: The opcode, as a Bytes object.
+        :raises TooManyCandidatesException: Raised in the event that multiple opcode candidates correspond to the
+        command, mode and length.
+        :raises NoCandidateException: Raised in the event that no candidate fits the command, mode and length.
         """
         candidates = list()
         for code, operation in Opcodes.items():
@@ -161,9 +170,13 @@ class Instruction(DataStructure):
                     candidates.append(code)
 
         if len(candidates) > 1:
-            raise TooManyCandidatesException(f"More than one candidate for {command=} and {mode=}. {candidates=}")
+            message = f"More than one candidate for {command=} and {mode=}. {candidates=}"
+            logging.error(message)
+            raise TooManyCandidatesException(message)
         if len(candidates) == 0:
-            raise NoCandidateException(f"No candidate was found for {command=}, {mode=} and {length=}.")
+            message = f"No candidate was found for {command=}, {mode=} and {length=}."
+            logging.error(message)
+            raise NoCandidateException(message)
 
         return Bytes([candidates[0]])
 
@@ -218,7 +231,7 @@ class Instruction(DataStructure):
         Converts an instruction into the exact string which will be put in a script.
         :param show_address: Whether the position of the instruction should be added as a comment.
         :param labels: A list of labels. Unused.
-        :return: A string.
+        :return: A script line.
         """
         output = f"  {self}"
         output += f" ; {self.position.to_snes_address()}" if show_address else ""
@@ -250,36 +263,51 @@ class Instruction(DataStructure):
         """
         output = list()
         for operand in self.operands:
-            if operand.label:
-                output.append(operand.label)
+            if operand.variable and isinstance(operand.variable, Label):
+                output.append(operand.variable)
         return output
 
     @classmethod
-    def find_length(cls, command: str, prefix: str | None = None) -> int:
+    def find_length(cls, command: str, operand: str | None = None, variables: Variables | None = None) -> int:
         """
         Finds the length of the Instruction when the Label associated with it has yet to be defined. This is used so
         that we can continue to parse the script with the proper positions for the cursor.
+        :param operand: The operand of the instruction, as a string.
+        :param variables: The Variables list.
         :param command: The command of the instruction.
-        :param prefix: Either '.' for 8-bit, '!' for 16-bit or None for 24-bit operand.
         :return: The integer of the instruction, including the opcode and the operand.
         """
         operand_type = cls._command_to_operand_type(command)
-        if operand_type == OperandType.BRANCHING:
-            return 2
-        elif operand_type == OperandType.LONG_BRANCHING:
-            return 3
-        elif prefix == ".":
-            return 2
-        elif prefix == "!":
-            return 3
-        else:
-            return 4
+        stripped_value = re.sub(r"[#()\[\],SXY]", "", operand) if operand else ""
 
-    def has_destination(self) -> bool:
-        """
-        :return: True when the operand has a Label. Moving block instructions are considered not containing a
-        destination, even if one is used in either operand.
-        """
-        if self.operands and len(self.operands) == 1:
-            return isinstance(self.operands[0].variable, Label)
-        return False
+        if not operand:
+            length = 0
+        # If the instruction is a moving block instruction, the length is always 3.
+        elif operand.count("#") == 2:
+            length = 2
+
+        # If the instruction is a branching or long branching instruction, the length is either 2 or 3.
+        elif operand_type == OperandType.BRANCHING:
+            length = 1
+        elif operand_type == OperandType.LONG_BRANCHING:
+            length = 2
+
+        # If the operand contains a prefix, we can determine its length.
+        elif "$" in stripped_value:
+            length = len(stripped_value.replace("$", "")) // 2
+        elif "." in stripped_value:
+            length = 1
+        elif "!" in stripped_value:
+            length = 2
+
+        # If it doesn't exist, then it's guaranteed that it is a variable so we need to determine its value.
+        elif variable := variables.find_by_name(re.sub(r"[.!]", "", stripped_value)):
+            length = len(variable.value)
+        else:
+            # If we can't identify the variable, we assume it's a label that will be declared later in the script.
+            logging.warning(f"Can't find variable named '{operand}'. Assuming it is a label yet to be declared.")
+            length = 3
+
+        length += 1
+        logging.debug(f"Instruction '{command}{' ' + operand if operand else ''}' length is {length}.")
+        return length

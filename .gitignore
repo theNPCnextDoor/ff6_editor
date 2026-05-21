@@ -202,3 +202,4 @@ hacks/../dummy*
 resources/*
 
 config.toml
+logging.conf

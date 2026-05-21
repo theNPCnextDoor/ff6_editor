@@ -1,3 +1,4 @@
+import logging
 from typing import Self
 
 from src.lib.assembly.artifact.variables import Variables
@@ -21,14 +22,6 @@ class Pointer(DataStructure):
         position: Bytes | None = None,
         anchor: Operand | None = None,
     ):
-        """
-        :param position: The position of the pointer.
-        :param operand: The actual data of the pointer.
-        :param anchor: The address from which the game derives the destination. If None, will use the beginning of
-         the position's bank.
-        :raises ValueError: Raised when neither the data nor the destination is provided.
-        :raises ImpossibleDestination: Raised when the destination is not in the same bank as the anchor.
-        """
         super().__init__(position=position)
         self.anchor = anchor
         self.operand = operand
@@ -39,6 +32,11 @@ class Pointer(DataStructure):
 
     @property
     def destination(self) -> Bytes:
+        """
+        Determines the destination of the Pointer. It is either derived from the value and the Pointer's bank
+        when the Pointer is direct, or it is the value of the anchor plus the value of the Pointer.
+        :return: A Bytes object.
+        """
         if self.operand.variable:
             return self.operand.variable.value
         if self.anchor:
@@ -46,18 +44,21 @@ class Pointer(DataStructure):
         return Bytes.from_position(self.position.bank() + int(self.operand.value))
 
     @classmethod
-    def from_string(
+    def from_line(
         cls, operand: str, position: Bytes, anchor: Operand | None = None, labels: Variables | None = None
     ) -> Self:
         """
+        Converts a script line into a Pointer.
         :param operand: The destination of the pointer as a word (2-bytes object).
-        :param position: The position of the Pointer object.
+        :param position: The position of the Pointer.
         :param labels: A list of labels used to determine the destination.
         :param anchor: The address from which the game derives the destination.
-        :return: A Pointer object.
+        :return: A Pointer.
+        :raises ImpossibleDestination: Raised when the destination can't be reached from either the Pointer's position
+        or its anchor, when it exists.
         """
         parent_position = anchor.value if anchor else Bytes.from_position(position.bank())
-        _operand = Operand.from_string(
+        _operand = Operand.from_line(
             value=operand, parent_position=parent_position, operand_type=OperandType.DEFAULT, variables=labels
         )
 
@@ -72,24 +73,31 @@ class Pointer(DataStructure):
             destination = Bytes.from_position(int(position.bank()) + int(_operand.value))
 
         if destination < parent_position or destination.bank() != parent_position.bank():
-            raise ImpossibleDestination(
+            message = (
                 f"Destination '{destination.to_snes_address()}' can't be reached with pointer's"
                 f" {'anchor' if anchor else 'position'} at '{parent_position.to_snes_address()}'. "
             )
+            logging.error(message)
+            raise ImpossibleDestination(message)
 
-        return cls(position=position, operand=_operand, anchor=anchor)
+        pointer = cls(position=position, operand=_operand, anchor=anchor)
+        logging.debug(f"Created {repr(pointer)}.")
+        return pointer
 
     @classmethod
     def from_bytes(cls, value: bytes, position: Bytes, anchor: Bytes | None = None) -> Self:
         """
-        Converts a bytes array into a Pointer.
-        :param value: A bytes array representing the data of the Pointer.
+        Converts bytes into a Pointer.
+        :param value: The bytes representing the data of the Pointer.
         :param position: The position of the Pointer.
         :param anchor: The address from which the game derives the destination.
         :return: A Pointer.
         """
         operand = Operand(Bytes.from_bytes(value))
-        return Pointer(position=position, operand=operand, anchor=anchor)
+
+        pointer = Pointer(position=position, operand=operand, anchor=anchor)
+        logging.debug(f"Created {repr(pointer)}.")
+        return pointer
 
     def to_line(
         self, show_address: bool = False, labels: Variables | None = None, current_anchor: Bytes | None = None
@@ -122,10 +130,6 @@ class Pointer(DataStructure):
         return self.position == other.position and self.operand == other.operand and self.anchor == other.anchor
 
     def __bytes__(self) -> bytes:
-        """
-        Converts the Pointer into a bytes array.
-        :return: The bytes array corresponding to the data.
-        """
         return bytes(self.operand)
 
     def __str__(self) -> str:
@@ -151,3 +155,13 @@ class Pointer(DataStructure):
 
     def __len__(self) -> int:
         return 2
+
+    @classmethod
+    def find_length(cls) -> int:
+        """
+        Determines the length of the script line during the pre-parsing phase. However, a Pointer is always 2 bytes.
+        :return: 2
+        """
+        length = 2
+        logging.debug(f"Pointer length is always {length}.")
+        return length

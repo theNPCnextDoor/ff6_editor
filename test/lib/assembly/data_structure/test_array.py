@@ -7,17 +7,17 @@ from src.lib.assembly.data_structure.array import Array
 from src.lib.assembly.data_structure.instruction.operand import Operand
 from src.lib.assembly.data_structure.string.string import String, StringTypes
 from src.lib.assembly.bytes import Bytes
-from test.lib.assembly.conftest import TEST_WORD
+from test.lib.assembly.conftest import TEST_WORD, VARIABLES
 
 GROUP = Array(
-    blobs=[
+    parts=[
         Blob(operand=Operand(Bytes([0xAA]))),
         String(operand=Operand(Bytes([0x9A])), position=Bytes([0x00, 0x00, 0x01]), string_type=StringTypes.DESCRIPTION),
         Blob(operand=Operand(Bytes([0xBB])), position=Bytes([0x00, 0x00, 0x02]), delimiter=Operand(Bytes([0xFF]))),
         String(
             operand=Operand(Bytes([0x9B])),
             position=Bytes([0x00, 0x00, 0x04]),
-            delimiter=Operand(Bytes([0x00]), variable=SimpleVar(Bytes.from_int(0), "zero")),
+            delimiter=Operand(Bytes([0x00]), variable=SimpleVar(Bytes([0x00]), "zero")),
             string_type=StringTypes.MENU,
         ),
     ]
@@ -32,7 +32,7 @@ class TestArray:
             (
                 '"This is a string # " | $01',
                 Array(
-                    blobs=[
+                    parts=[
                         String(operand=Operand(TEST_WORD)),
                         Blob(operand=Operand(Bytes([0x01])), position=Bytes([0x00, 0x00, 0x13])),
                     ]
@@ -41,7 +41,7 @@ class TestArray:
             (
                 '$CD78 | "Status",$00',
                 Array(
-                    blobs=[
+                    parts=[
                         Blob(operand=Operand(Bytes([0xCD, 0x78]))),
                         String(operand=Operand(TEST_WORD), delimiter=Operand(Bytes([0x00]))),
                     ]
@@ -50,12 +50,12 @@ class TestArray:
         ],
     )
     @pytest.mark.parametrize("comment", ["", " ; some comment"])
-    def test_from_string(self, line: str, comment: str, group: Array):
+    def test_from_line(self, line: str, comment: str, group: Array):
         assert (
-            Array.from_string(
+            Array.from_line(
                 line=line,
                 position=Bytes([0x00, 0x00, 0x00]),
-                variables=Variables(SimpleVar(Bytes.from_position(0), "zero")),
+                variables=Variables(SimpleVar(Bytes.from_int(0), "zero")),
             )
             == Array()
         )
@@ -73,11 +73,11 @@ class TestArray:
         ["expected", "group"],
         [
             (
-                "Array(position=0x000000, as_str='$AA | desc \"a\" | $BB,$FF | \"b\",zero', as_bytes=b'\\xaa\\x9a\\xbb\\xff\\x9b\\x00', as_hexa=0xAA9ABB9B, blobs=["
+                "Array(position=0x000000, as_str='$AA | desc \"a\" | $BB,$FF | \"b\",zero', as_bytes=b'\\xaa\\x9a\\xbb\\xff\\x9b\\x00', as_hexa=0xAA9ABB9B, parts=["
                 "Blob(position=0x000000, as_str='$AA', as_bytes=b'\\xaa', as_hexa=0xAA), "
                 "String(position=0x000001, as_str='desc \"a\"', as_bytes=b'\\x9a', as_hexa=0x9A), "
                 "Blob(position=0x000002, as_str='$BB,$FF', as_bytes=b'\\xbb\\xff', as_hexa=0xBBFF), "
-                "String(position=0x000004, as_str='\"b\",zero', as_bytes=b'\\x9b\\x00', as_hexa=0x9B00, delimiter_var=SimpleVar(0x00, 'zero'))])",
+                "String(position=0x000004, as_str='\"b\",zero', as_bytes=b'\\x9b\\x00', as_hexa=0x9B00, delimiter_var=SimpleVar(name='zero', value=0x00))])",
                 GROUP,
             ),
         ],
@@ -114,3 +114,6 @@ class TestArray:
     )
     def test_bytes(self, group: Array, expected: bytes):
         assert bytes(group) == expected
+
+    def test_find_length(self):
+        assert Array.find_length('  $AA | desc "a" | $BB,$FF | "b",zero', VARIABLES) == 6

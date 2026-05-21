@@ -1,3 +1,4 @@
+import logging
 import re
 from dataclasses import dataclass
 from enum import Enum, auto
@@ -6,7 +7,7 @@ from typing import Self
 from src.lib.assembly.artifact.variable import Label, Variable
 from src.lib.assembly.artifact.variables import Variables
 from src.lib.assembly.bytes import Bytes
-from src.lib.misc.exception import NoVariableException
+from src.lib.misc.exception import NoVariableException, ImpossibleDestination, UndefinedDestination
 
 
 class OperandType(Enum):
@@ -39,7 +40,7 @@ class Operand:
     variable: Variable | None = None
 
     @classmethod
-    def from_string(
+    def from_line(
         cls,
         value: str,
         parent_position: Bytes | None = None,
@@ -54,6 +55,8 @@ class Operand:
         :param operand_type: The type of the operand.
         :param variables: A list of existing variables and labels.
         :return: An operand.
+        :raises NoVariableException: Raised when no variable can be found with the given name.
+        :raises ImpossibleDestination: Raised when the destination can't be reached from the parent position.
         """
         parent_position = parent_position or Bytes.from_position(0)
         variables = variables or Variables()
@@ -72,7 +75,9 @@ class Operand:
         variable = variables.find_by_name(stripped_value)
 
         if variable is None:
-            raise NoVariableException(f"Can't find variable named '{stripped_value}'.")
+            message = f"Can't find variable named '{stripped_value}'."
+            logging.error(message)
+            raise NoVariableException(message)
 
         if not isinstance(variable, Label):
             return cls(value=variable.value, mode=mode, operand_type=operand_type, variable=variable)
@@ -88,14 +93,17 @@ class Operand:
         if length != 1 and not cls._is_destination_possible(
             parent_position=parent_position, destination=destination, length=length
         ):
-            raise ValueError(
-                f"Destination {repr(destination)} impossible from parent position {repr(parent_position)}."
-            )
+            message = f"Destination {repr(destination)} impossible from parent position {repr(parent_position)}."
+            logging.error(message)
+            raise ImpossibleDestination(message)
 
         operand_value = cls._destination_to_value(
             parent_position=parent_position, operand_type=operand_type, length=length, destination=destination
         )
-        return cls(value=operand_value, mode=mode, operand_type=operand_type, variable=variable)
+
+        operand = cls(value=operand_value, mode=mode, operand_type=operand_type, variable=variable)
+        logging.debug(f"Created {repr(operand)}.")
+        return operand
 
     @classmethod
     def from_bytes(
@@ -153,17 +161,19 @@ class Operand:
     ) -> Bytes:
         """
         Converts the destination of the operand into its value.
-        :param parent_position:
-        :param operand_type:
-        :param length:
-        :param destination:
-        :return:
+        :param parent_position: The position of the DataStructure containing the Operand.
+        :param operand_type: The type of operand in order to determine the calculation.
+        :param length: The length of the operand.
+        :param destination: The target position of the operand.
+        :return: The value of the operand.
         """
         if operand_type == OperandType.BRANCHING:
             return Bytes.from_int((int(destination) - int(parent_position) - 2) % 0x0100)
         if operand_type == OperandType.LONG_BRANCHING:
             return Bytes.from_int(((int(destination) - int(parent_position) - 3) % 0x010000), length=2)
         if length == 1:
+            if 0 <= int(destination) <= 0x3FFFFF:
+                return destination[0:1] + Bytes.from_int(0xC0)
             return destination[0:1]
 
         if length == 2:
@@ -172,6 +182,13 @@ class Operand:
         return destination
 
     def value_to_destination(self, parent_position: Bytes) -> Bytes:
+        """
+        Converts the value of the Operand into its destination.
+        :param parent_position: The position of the DataStructure containing the Operand.
+        :return: The destination of the Operand.
+        :raises UndefinedDestination: Raised when the operand type is not branching or long branching and the length of
+        the length is 1 because the exact destination can't be inferred.
+        """
         if self.operand_type == OperandType.BRANCHING:
             return Bytes.from_position((int(self.value) + 0x80) % 0x0100 + int(parent_position) - 0x7E)
         if self.operand_type == OperandType.LONG_BRANCHING:
@@ -184,7 +201,10 @@ class Operand:
         if len(self) == 2:
             bank = parent_position.bank()
             return Bytes.from_position(int(self.value) + bank)
-        raise ValueError("Can't find the destination.")
+
+        message = f"Can't find the destination. {repr(self)}, parent_position: {parent_position}"
+        logging.error(message)
+        raise UndefinedDestination(message)
 
     def __len__(self) -> int:
         return len(self.value)
@@ -192,13 +212,12 @@ class Operand:
     def __bytes__(self) -> bytes:
         value = self.value[:]
         if (
-            isinstance(self.variable, Label)
+            self.variable
+            and isinstance(self.variable, Label)
             and 0 <= int(self.variable.value) <= 0x3FFFFF
             and self.operand_type not in (OperandType.BRANCHING, OperandType.LONG_BRANCHING)
         ):
-            if len(value) == 1:
-                value += 0xC0
-            elif len(value) == 3:
+            if len(value) == 3:
                 value += 0xC00000
         return bytes(value)
 
@@ -226,6 +245,19 @@ class Operand:
 
     @staticmethod
     def _is_destination_possible(parent_position: Bytes, length: int, destination: Bytes) -> bool:
+        """
+        Determines if the destination can be reached.
+        If the length of the operand is 3, the instruction containing the operand can jump to anywhere in the code so
+        it's always possible. If the length is 2, then the DataStructure containing the Operand must be in the same bank
+        as the destination. This is the case for Pointers and some Instructions. In the length is 1, it is assumed in
+        this function that the DataStructure containing the Operand is a branching Instruction. Therefore, it checks if
+        the destination is in the immediate vicinity [-127, 129] of the Instruction.
+
+        :param parent_position: The position of the DataStructure containing the Operand.
+        :param length: The length of the Operand.
+        :param destination: The destination of the Operand.
+        :return: True is the destination is reachable.
+        """
         if length == 3:
             return True
         if length == 2:
