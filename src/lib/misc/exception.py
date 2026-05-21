@@ -10,10 +10,6 @@ class ImpossibleDestination(Exception):
     pass
 
 
-class LabelConflict(Exception):
-    pass
-
-
 class LineConflict(Exception):
     pass
 
@@ -23,10 +19,6 @@ class MissingSectionAttribute(Exception):
 
 
 class NoCandidateException(Exception):
-    pass
-
-
-class NoLabelException(Exception):
     pass
 
 

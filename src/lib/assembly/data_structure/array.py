@@ -119,6 +119,8 @@ class Array(DataStructure):
             elif match := re.fullmatch(DataStructureRegex.STRING, part.strip()):
                 length += String.find_length(string=match.group("string"), delimiter=match.group("delimiter"))
             else:
-                UnrecognizedPart(f"Part '{part}' is unrecognized.")
+                message = f"Part '{part}' is unrecognized."
+                logging.error(message)
+                UnrecognizedPart(message)
         logging.debug(f"Array '{line}' length is {length}.")
         return length
