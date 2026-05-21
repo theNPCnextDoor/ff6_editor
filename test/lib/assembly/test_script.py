@@ -438,9 +438,6 @@ class TestScript:
 
         labels = script.labels()
 
-        for line in script.lines:
-            print(repr(line))
-
         assert len(labels) == 6
         assert labels[0] == Label(pos(0x000001), "start")
         assert labels[1] == Label(pos(0x000005), "archie")
@@ -526,9 +523,6 @@ class TestScript:
                 Operand(Bytes([0xE0]), "_", OperandType.BRANCHING, Label(value=Bytes([0x00, 0x00, 0x01]), name="start"))
             ],
         )
-
-        for blob in script.blobs():
-            print(blob)
 
         assert len(script.blobs()) == 3
 

@@ -62,7 +62,7 @@ class Script:
         for i, line in enumerate(data_lines[:-1]):
             length = len(line.component)
             if line.position + length > data_lines[i + 1].position:
-                message = f"Lines '{repr(line)}' and " f"'{repr(data_lines[i + 1])}' are conflicting with one another."
+                message = f"Conflicting lines: '{repr(line)}' and " f"'{repr(data_lines[i + 1])}'."
                 logging.error(message)
                 raise LineConflict(message)
 
