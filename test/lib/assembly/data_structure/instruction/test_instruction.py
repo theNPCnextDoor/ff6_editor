@@ -475,8 +475,8 @@ class TestInstruction:
             ("LDY", "#$_", 2, Flags(x=8)),
         ],
         ids=[
-            "Unallowed length for command with mode _",
-            "Unallowed mode for command",
+            "Forbidden length for command with mode _",
+            "Forbidden mode for command",
             "Non-existing mode",
             "Length is 4",
             "Length is 0 when mode is not _",
@@ -663,11 +663,11 @@ class TestInstruction:
                 Instruction(opcode=Bytes([0x02]), operands=[Operand(Bytes([0xFF]), "#_")]),
             ),
             (
-                "Instruction(position=0x000000, as_str='COP #alfa', as_bytes=b'\\x02\\x12', as_hexa=0x0212, operand_var_1=SimpleVar(0x12, 'alfa'))",
+                "Instruction(position=0x000000, as_str='COP #alfa', as_bytes=b'\\x02\\x12', as_hexa=0x0212, operand_var_1=SimpleVar(name='alfa', value=0x12))",
                 Instruction(opcode=Bytes([0x02]), operands=[Operand(TEST_BYTE, "#_", OperandType.DEFAULT, ALFA)]),
             ),
             (
-                "Instruction(position=0x000000, as_str='MVP #.charlie,#delta', as_bytes=b'D\\xd2\\x00', as_hexa=0x44D200, operand_var_1=Label(0x123456, 'charlie'), operand_var_2=SimpleVar(0x00, 'delta'))",
+                "Instruction(position=0x000000, as_str='MVP #.charlie,#delta', as_bytes=b'D\\xd2\\x00', as_hexa=0x44D200, operand_var_1=Label(name='charlie', value=0x123456), operand_var_2=SimpleVar(name='delta', value=0x00))",
                 Instruction(
                     opcode=Bytes([0x44]),
                     operands=[

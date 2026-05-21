@@ -4,7 +4,7 @@ from src.lib.assembly.artifact.variable import Label
 from src.lib.assembly.artifact.variables import Variables
 from src.lib.assembly.bytes import Bytes
 from src.lib.assembly.data_structure.instruction.operand import Operand, OperandType
-from src.lib.misc.exception import NoVariableException
+from src.lib.misc.exception import NoVariableException, UndefinedDestination
 from test.lib.assembly.conftest import VARIABLES, CHARLIE, BRAVO, ALFA, ECHO, pos
 
 
@@ -310,9 +310,9 @@ class TestOperand:
         destination = operand.value_to_destination(parent_position=parent_position)
         assert destination == expected
 
-    def test_value_to_destination_raises_value_error(self):
-        with pytest.raises(ValueError):
-            operand = Operand(value=Bytes.from_int(0x12), mode="_", operand_type=OperandType.DEFAULT)
+    def test_value_to_destination_raises_undefined_destination(self):
+        operand = Operand(value=Bytes.from_int(0x12), mode="_", operand_type=OperandType.DEFAULT)
+        with pytest.raises(UndefinedDestination):
             operand.value_to_destination(parent_position=Bytes.from_position(0x123456))
 
     def test_len(self):
@@ -392,7 +392,7 @@ class TestOperand:
             ),
             (
                 Operand(value=Bytes([0x12]), mode="_", operand_type=OperandType.DEFAULT, variable=ALFA),
-                "Operand(value=0x12, mode='_', operand_type=OperandType.DEFAULT, variable=SimpleVar(0x12, 'alfa'))",
+                "Operand(value=0x12, mode='_', operand_type=OperandType.DEFAULT, variable=SimpleVar(name='alfa', value=0x12))",
             ),
         ],
     )

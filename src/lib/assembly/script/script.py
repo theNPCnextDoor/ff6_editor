@@ -1,4 +1,6 @@
 from __future__ import annotations
+
+import logging
 import re
 from pathlib import Path
 from typing import Self, BinaryIO
@@ -7,7 +9,7 @@ from src.lib.assembly.artifact.variable import Label, SimpleVar
 from src.lib.assembly.artifact.variables import Variables
 from src.lib.assembly.data_structure.instruction.operand import Operand
 from src.lib.assembly.script.helpers import ScriptMode, ScriptSection, Line, LineType, clean_line, Component
-from src.lib.misc.exception import MissingSectionAttribute, LineConflict, UnrecognizedLine
+from src.lib.misc.exception import MissingSectionAttribute, LineConflict, UnrecognizedLine, UnrecognizedSubsectionMode
 from src.lib.assembly.data_structure.blob import Blob
 from src.lib.assembly.data_structure.array import Array
 from src.lib.assembly.data_structure.pointer import Pointer
@@ -34,12 +36,14 @@ class Script:
         :param filenames: The paths to the text files.
         :return: A Script.
         """
+        logging.info(f"Parsing script files: {filenames}.")
         script = cls()
         for filename in filenames:
             script.lines += cls._append_script_file(filename)
 
         cursor = 0
         for line in script.lines:
+            logging.debug(f"Pre-parsing {repr(line)}.")
             cursor = script._preparse_line(line, cursor)
         script._parse_lines()
 
@@ -58,17 +62,19 @@ class Script:
         for i, line in enumerate(data_lines[:-1]):
             length = len(line.component)
             if line.position + length > data_lines[i + 1].position:
-                raise LineConflict(
-                    f"Lines '{repr(line)}' and " f"'{repr(data_lines[i + 1])}' are conflicting with one another."
-                )
+                message = f"Lines '{repr(line)}' and " f"'{repr(data_lines[i + 1])}' are conflicting with one another."
+                logging.error(message)
+                raise LineConflict(message)
 
         flag_lines = [line for line in self.lines if line.component and line.component_info == LineType.FLAGS]
         for i, line in enumerate(flag_lines[:-1]):
             if line.position == flag_lines[i + 1].position and line.component != flag_lines[i + 1].component:
-                raise LineConflict(
-                    f"Flags lines {repr(line)} and "
-                    f"{repr(flag_lines[i + 1])} at position 0x{str(line.component.position)} are conflicting with one another."
+                message = (
+                    f"Flags lines {repr(line)} and {repr(flag_lines[i + 1])} "
+                    f"at position 0x{str(line.component.position)} are conflicting with one another."
                 )
+                logging.error(message)
+                raise LineConflict(message)
 
     def to_text_file(self, filename: str | Path, debug: bool = False) -> None:
         """
@@ -77,38 +83,48 @@ class Script:
         :param debug: When True, will append line position as a comment to any line that doesn't already display it.
         :return: None.
         """
+        logging.info(f"Dumping script to file '{filename}'.")
         self._extract_labels()
         self._sort_lines()
         lines = self.components()
         output = []
 
         cursor = int(lines[0].position)
+        logging.debug(f"Starting cursor at 0x{Bytes.from_position(cursor)}.")
         current_anchor = Operand(Bytes.from_int(0))
 
         first_component = self.data_structures()[0]
 
         if not self.labels().find_by_position(first_component.position):
-            start_label = Label(name="start", value=first_component.position)
+            name = "start" if not self.labels().find_by_name("start") else None
+            start_label = Label(name=name, value=first_component.position)
+            logging.info(f"Added {repr(start_label)}.")
             self.lines.append(Line.from_component(start_label))
             self._sort_lines()
 
-        for line in self.components():
-            if cursor != int(line.position):
-                if isinstance(line, Label):
-                    output.append(line.to_line(show_address=True))
-                    cursor = int(line.value)
+        for component in self.components():
+            logging.info(f"Dumping {repr(component)}.")
+            if cursor != int(component.position):
+                if isinstance(component, Label):
+                    output.append(component.to_line(show_address=True))
+                    cursor = int(component.value)
                     continue
 
-                label = Label(value=line.position)
+                label = Label(value=component.position)
+                logging.info(f"Created {repr(label)}.")
                 self.lines.append(Line.from_component(label))
+                logging.info(f"Writing {repr(label)} to file.")
                 output.append(label.to_line(show_address=True))
 
-            if isinstance(line, Pointer) and line.is_relative:
-                output.append(line.to_line(labels=self.labels(), show_address=debug, current_anchor=current_anchor))
-                current_anchor = line.anchor
+            if isinstance(component, Pointer) and component.is_relative:
+                output.append(
+                    component.to_line(labels=self.labels(), show_address=debug, current_anchor=current_anchor)
+                )
+                current_anchor = component.anchor
             else:
-                output.append(line.to_line(labels=self.labels(), show_address=debug))
-            cursor = int(line.position) + len(line)
+                output.append(component.to_line(labels=self.labels(), show_address=debug))
+            cursor = int(component.position) + len(component)
+            logging.debug(f"Advancing cursor to 0x{Bytes.from_position(cursor)}.")
 
         with open(filename, "w", encoding="utf-8") as f:
             f.write("\n".join(output))
@@ -120,11 +136,13 @@ class Script:
         :param input_path: The source ROM path.
         :return: None.
         """
+        logging.info(f"Assembling to ROM '{output_path}'.")
         input_path = input_path or output_path
         with open(input_path, "rb") as input_rom, open(output_path, "wb") as output_rom:
             rom = input_rom.read()
             output_rom.write(rom)
             for line in self.data_structures():
+                logging.info(f"Assembling {repr(line)} to ROM.")
                 output_rom.seek(int(line.position))
                 output_rom.write(bytes(line))
 
@@ -136,9 +154,12 @@ class Script:
         :param sections: A list of sections to interpret the ROM data.
         :return: A script.
         """
+        logging.info(f"Disassembling from ROM '{filename}'.")
         script = cls()
         with open(filename, "rb") as f:
             for section in sections:
+                logging.info(f"Disassembling {section.mode} section starting at {Bytes.from_position(section.start)}.")
+
                 cursor = section.start
                 f.seek(cursor)
 
@@ -148,7 +169,7 @@ class Script:
                 elif section.mode == ScriptMode.INSTRUCTIONS:
                     cls._disassemble_instructions(cursor, f, script, section)
 
-                elif section.mode in (ScriptMode.BLOBS, ScriptMode.MENU_STRINGS, ScriptMode.DESCRIPTION_STRINGS):
+                elif section.mode in (ScriptMode.BLOBS, ScriptMode.MENU_STRINGS, ScriptMode.MENU_DESCRIPTIONS):
                     cls._disassemble_blobs(cursor, f, script, section)
 
                 elif section.mode == ScriptMode.ARRAYS:
@@ -175,6 +196,8 @@ class Script:
         """
         lines = list()
 
+        logging.info(f"Appending file '{filename}'.")
+
         with open(filename, encoding="utf-8") as f:
             for raw_string in f.readlines():
                 if clean_string := clean_line(raw_string):
@@ -193,6 +216,7 @@ class Script:
         anchor = None
 
         for line in self.lines:
+            logging.info(f"Parsing {repr(line)}.")
             position = Bytes.from_position(line.position)
 
             if line.component_info in (LineType.VARIABLE_DECLARATION, LineType.LABEL):
@@ -200,6 +224,7 @@ class Script:
 
             if line.component_info == LineType.ANCHOR:
                 anchor = Operand.from_line(**line.regex_groups, parent_position=position, variables=self.variables())
+                logging.info(f"New anchor: {repr(anchor)}.")
             elif line.component_info == LineType.ARRAY:
                 array = Array.from_line(line=line.clean_line, position=position, variables=self.simple_vars())
                 line.component = array
@@ -209,6 +234,7 @@ class Script:
             elif line.component_info == LineType.FLAGS:
                 new_flags = Flags.from_line(**line.regex_groups, position=position)
                 if new_flags != flags:
+                    logging.info(f"New flags have been detected. {repr(new_flags)}")
                     flags = new_flags
                     line.component = new_flags
             elif line.component_info == LineType.INSTRUCTION:
@@ -217,6 +243,7 @@ class Script:
                 )
                 if instruction.is_flag_setter():
                     flags = instruction.set_flags(flags)
+                    logging.info(f"Instruction is a flag setter. New flags: {repr(flags)}.")
                 line.component = instruction
             elif line.component_info == LineType.POINTER:
                 pointer = Pointer.from_line(**line.regex_groups, position=position, anchor=anchor, labels=self.labels())
@@ -227,7 +254,9 @@ class Script:
             elif line.component_info == LineType.VARIABLE_DECLARATION:
                 continue
             else:
-                raise UnrecognizedLine(f"Line '{line.raw_line}' in file '{line.filename}' is not recognized.")
+                message = f"Line '{line.raw_line}' in file '{line.filename}' is not recognized."
+                logging.error(message)
+                raise UnrecognizedLine(message)
 
     def _preparse_line(
         self,
@@ -262,6 +291,7 @@ class Script:
                 name=match.group("name"), snes_address=match.group("snes_address"), position=Bytes.from_position(cursor)
             )
             cursor = int(label.value)
+            logging.debug(f"Cursor set at 0x{Bytes.from_position(cursor)}.")
             line.component_info = LineType.LABEL
             line.component = label
             line.position = cursor
@@ -273,16 +303,7 @@ class Script:
             line.component_info = LineType.FLAGS
 
         elif re.fullmatch(DataStructureRegex.ARRAY, cleaned_line):
-            parts = cleaned_line.split("|")
-            for part in parts:
-                if match := re.fullmatch(DataStructureRegex.BLOB, part.strip()):
-                    cursor += Blob.find_length(
-                        operand=match.group("operand"), variables=self.simple_vars(), delimiter=match.group("delimiter")
-                    )
-                elif match := re.fullmatch(DataStructureRegex.STRING, part.strip()):
-                    cursor += String.find_length(string=match.group("string"), delimiter=match.group("delimiter"))
-                else:
-                    UnrecognizedLine("The array is WRONG!")
+            cursor += Array.find_length(cleaned_line, self.variables())
             line.component_info = LineType.ARRAY
 
         elif match := re.fullmatch(DataStructureRegex.POINTER, cleaned_line):
@@ -326,7 +347,10 @@ class Script:
         :raises MissingSectionAttribute: Raised when the section misses the 'subsections' attribute.
         """
         if not section.attributes.get("sub_sections"):
-            raise MissingSectionAttribute("Attribute 'sub_sections' is missing." f"Attributes: {section.attributes}")
+            message = "Attribute 'sub_sections' is missing." f"Attributes: {section.attributes}"
+            logging.error(message)
+            raise MissingSectionAttribute(message)
+
         f.seek(cursor)
         while cursor < section.end:
             array = Array(position=Bytes.from_position(cursor))
@@ -343,7 +367,7 @@ class Script:
                         delimiter=delimiter,
                         string_type=StringTypes.MENU,
                     )
-                elif sub_section.mode == ScriptMode.DESCRIPTION_STRINGS:
+                elif sub_section.mode == ScriptMode.MENU_DESCRIPTIONS:
                     blob = String.from_bytes(
                         data=data,
                         position=Bytes.from_position(cursor),
@@ -351,7 +375,10 @@ class Script:
                         string_type=StringTypes.DESCRIPTION,
                     )
                 else:
-                    raise ValueError(f"Mode '{sub_section.mode}' unrecognized.")
+                    message = f"Mode '{sub_section.mode}' unrecognized."
+                    logging.error(message)
+                    raise UnrecognizedSubsectionMode(message)
+
                 cursor += len(blob)
                 array.parts.append(blob)
             script.lines.append(Line.from_component(array))
@@ -368,10 +395,12 @@ class Script:
         :raises MissingSectionAttribute: Raised when the section misses both the 'length' and 'delimiter' attributes.
         """
         if section.attributes.get("length", None) is None and section.attributes.get("delimiter", None) is None:
-            raise MissingSectionAttribute(
+            message = (
                 "Attribute 'length' and 'delimiter' are missing. Please provide either of them."
                 f"Attributes: {section.attributes}"
             )
+            logging.error(message)
+            raise MissingSectionAttribute(message)
 
         f.seek(cursor)
         delimiter = section.attributes.get("delimiter", None)
@@ -442,7 +471,10 @@ class Script:
         :raises MissingSectionAttribute: Raised when the section misses the 'flags' attribute.
         """
         if "flags" not in section.attributes:
-            raise MissingSectionAttribute(f"Attribute 'flags' is missing. Attributes: {section.attributes}")
+            message = f"Attribute 'flags' is missing. Attributes: {section.attributes}"
+            logging.error(message)
+            raise MissingSectionAttribute(message)
+
         flags = section.attributes["flags"]
         while cursor < section.end:
             f.seek(cursor)

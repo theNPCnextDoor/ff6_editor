@@ -1,36 +1,12 @@
-class TooManyCandidatesException(Exception):
+class DelimiterLengthError(Exception):
     pass
 
 
-class NoCandidateException(Exception):
-    pass
-
-
-class MissingSectionAttribute(Exception):
-    pass
-
-
-class UnderflowError(Exception):
-    pass
-
-
-class UnrecognizedBlob(Exception):
-    pass
-
-
-class ReassignmentException(Exception):
+class ForbiddenVarName(Exception):
     pass
 
 
 class ImpossibleDestination(Exception):
-    pass
-
-
-class NoLabelException(Exception):
-    pass
-
-
-class NoVariableException(Exception):
     pass
 
 
@@ -42,7 +18,47 @@ class LineConflict(Exception):
     pass
 
 
+class MissingSectionAttribute(Exception):
+    pass
+
+
+class NoCandidateException(Exception):
+    pass
+
+
+class NoLabelException(Exception):
+    pass
+
+
+class NoVariableException(Exception):
+    pass
+
+
+class TooManyCandidatesException(Exception):
+    pass
+
+
+class UndefinedDestination(Exception):
+    pass
+
+
+class UnderflowError(Exception):
+    pass
+
+
+class UnrecognizedPart(Exception):
+    pass
+
+
 class UnrecognizedLine(Exception):
+    pass
+
+
+class UnrecognizedPrefix(Exception):
+    pass
+
+
+class UnrecognizedSubsectionMode(Exception):
     pass
 
 
@@ -50,9 +66,5 @@ class VariableConflict(Exception):
     pass
 
 
-class ForbiddenVarName(Exception):
-    pass
-
-
-class DelimiterLengthError(Exception):
+class VariableLengthMismatch(Exception):
     pass

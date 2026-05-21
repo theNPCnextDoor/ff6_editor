@@ -1,3 +1,4 @@
+import logging
 import re
 from dataclasses import dataclass
 from typing import Self, Any
@@ -9,7 +10,7 @@ from src.lib.assembly.bytes import Bytes, Endian
 from src.lib.assembly.data_structure.regex import Regex
 
 from src.lib.assembly.data_structure.string.charset import Charset, MENU_CHARSET, DESCRIPTION_CHARSET
-from src.lib.misc.exception import DelimiterLengthError
+from src.lib.misc.exception import DelimiterLengthError, UnrecognizedPrefix
 
 
 @dataclass
@@ -34,13 +35,15 @@ class StringTypes:
         Determines the StringType by the script line prefix.
         :param prefix: The word that precedes the string in a script line, such as "desc".
         :return: A StringType.
-        :raise ValueError: Raised when the prefix is unrecognized.
+        :raise UnrecognizedPrefix: Raised when the string prefix is unrecognized.
         """
         for string_type in cls.__dict__.values():
             if isinstance(string_type, StringType) and string_type.prefix == prefix:
                 return string_type
         else:
-            raise ValueError(f"Prefix {prefix} is not recognized.")
+            message = f"Prefix {prefix} is not recognized."
+            logging.error(message)
+            raise UnrecognizedPrefix(message)
 
 
 class String(Blob):
@@ -86,12 +89,17 @@ class String(Blob):
         )
 
         if _delimiter and len(_delimiter) != 1:
-            raise DelimiterLengthError(f"Delimiter '{str(delimiter)}' must have a length of one.")
+            message = f"Delimiter '{str(delimiter)}' must have a length of one."
+            logging.error(message)
+            raise DelimiterLengthError(message)
 
         for char in chars:
             data += _string_type.charset.get_bytes(char)
         data_bytes = Operand(Bytes.from_bytes(value=data, endian=Endian.BIG))
-        return cls(operand=data_bytes, position=position, delimiter=_delimiter, string_type=_string_type)
+
+        string = cls(operand=data_bytes, position=position, delimiter=_delimiter, string_type=_string_type)
+        logging.debug(f"Created {repr(string)}.")
+        return string
 
     @classmethod
     def from_bytes(
@@ -112,7 +120,10 @@ class String(Blob):
         data = Operand(Bytes.from_bytes(value=data, endian=Endian.BIG))
         if delimiter is not None:
             delimiter = Operand(Bytes.from_bytes(value=delimiter))
-        return String(position=position, operand=data, delimiter=delimiter, string_type=string_type)
+
+        string = String(position=position, operand=data, delimiter=delimiter, string_type=string_type)
+        logging.debug(f"Created {repr(string)}.")
+        return string
 
     def __str__(self) -> str:
         output = ""
@@ -163,4 +174,6 @@ class String(Blob):
         length = len(re.findall(Regex.CHAR, string))
         if delimiter:
             length += 1
+
+        logging.debug(f"String '{string}{',' + delimiter if delimiter else ''}' length is {length}.")
         return length

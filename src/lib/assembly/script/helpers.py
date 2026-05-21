@@ -1,8 +1,8 @@
 from __future__ import annotations
 
+import logging
 import re
 from dataclasses import dataclass
-from enum import Enum, auto
 from pathlib import Path
 from typing import Any, Self
 
@@ -22,17 +22,17 @@ from src.lib.misc.exception import MissingSectionAttribute
 Component = Artifact | DataStructure
 
 
-class ScriptMode(Enum):
+class ScriptMode:
     """
     Script modes allows the disassembler to correctly interpret data it reads on the ROM.
     """
 
-    INSTRUCTIONS = auto()
-    POINTERS = auto()
-    BLOBS = auto()
-    MENU_STRINGS = auto()
-    DESCRIPTION_STRINGS = auto()
-    ARRAYS = auto()
+    INSTRUCTIONS = "Instructions"
+    POINTERS = "Pointers"
+    BLOBS = "Blobs"
+    MENU_STRINGS = "Menu strings"
+    MENU_DESCRIPTIONS = "Menu descriptions"
+    ARRAYS = "Arrays"
 
 
 def clean_line(line: str) -> str:
@@ -86,7 +86,9 @@ class SubSection:
         :raises MissingSectionAttribute: Raised when neither the length nor the delimiter is used.
         """
         if length is None and delimiter is None:
-            raise MissingSectionAttribute("Please provide either the length or the delimiter.")
+            message = "Please provide either the length or the delimiter."
+            logging.error(message)
+            raise MissingSectionAttribute(message)
         self.mode = mode
         self.length = length
         self.delimiter = delimiter
@@ -144,9 +146,10 @@ class Line:
     component: Component | None = None
 
     def __repr__(self) -> str:
+        raw_line = self.raw_line.strip("\n")
         return (
             "Line("
-            f"raw_line='{self.raw_line}', "
+            f"raw_line='{raw_line}', "
             f"clean_line='{self.clean_line}', "
             f"position={self.position}, "
             f"component_info={'ComponentInfo.' + self.component_info.name if self.component_info else None}, "

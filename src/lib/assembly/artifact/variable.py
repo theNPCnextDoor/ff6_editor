@@ -1,10 +1,10 @@
+import logging
 from abc import ABC, abstractmethod
 from typing import Self, Any
 
 from src.lib.assembly.artifact.artifact import Artifact
 from src.lib.assembly.bytes import Bytes
-from src.lib.misc.exception import ForbiddenVarName
-
+from src.lib.misc.exception import ForbiddenVarName, VariableLengthMismatch
 
 VAR_LENGTH = {"b": 1, "w": 2}
 FORBIDDEN_NAMES = ["db", "desc", "dw", "m", "ptr", "rptr", "x"]
@@ -28,7 +28,7 @@ class Variable(Artifact, ABC):
         return self.name
 
     def __repr__(self):
-        return f"{self.__class__.__name__}(0x{str(self.value)}, '{self.name}')"
+        return f"{self.__class__.__name__}(name='{self.name}', value=0x{str(self.value)})"
 
     def __eq__(self, other: Self):
         if other is None:
@@ -54,17 +54,24 @@ class SimpleVar(Variable):
         :param name: The name of the variable.
         :param operand: The value of the variable.
         :return: A Variable.
-        :raises ReassignmentException: Raised when we are trying to assign a value a second time to an existing value.
-        :raises ValueError: Raised when the expected length of the Variable does not match its given value.
+        :raises ForbiddenVarName: Raised when we are trying to assign a forbidden name to a Variable.
+        :raises VariableLengthMismatch: Raised when the expected length of the Variable does not match its given value.
         """
         if cls.is_name_forbidden(name):
-            raise ForbiddenVarName(f"Variable name '{name}' is forbidden. All forbidden names: {FORBIDDEN_NAMES}")
+            message = f"Variable name '{name}' is forbidden. All forbidden names: {FORBIDDEN_NAMES}"
+            logging.error(message)
+            raise ForbiddenVarName(message)
 
         _operand = Bytes.from_str(operand.replace("$", ""))
         _length = VAR_LENGTH[length]
 
         if _length != len(_operand):
-            raise ValueError(f"Length of value '{operand}' does not match expected length: {_length}.")
+            message = f"Length of value '{operand}' does not match expected length: {_length}."
+            logging.error(message)
+            raise VariableLengthMismatch(message)
+
+        simple_var = cls(_operand, name)
+        logging.debug(f"Created {repr(simple_var)}.")
         return cls(_operand, name)
 
     @property
@@ -111,16 +118,18 @@ class Label(SimpleVar):
         as the Label value.
         :param position: The current position of the Label in the script.
         :return: A Label.
+        :raises ForbiddenVarName: Raised when we are trying to assign a forbidden name to a Variable.
         """
         if cls.is_name_forbidden(name):
-            raise ForbiddenVarName(f"Variable name '{name}' is forbidden. All forbidden names: {FORBIDDEN_NAMES}")
+            message = f"Variable name '{name}' is forbidden. All forbidden names: {FORBIDDEN_NAMES}"
+            logging.error(message)
+            raise ForbiddenVarName(message)
 
         position = Bytes.from_snes_address(snes_address.replace("$", "")) if snes_address else position
 
-        return cls(
-            value=position,
-            name=name,
-        )
+        label = cls(value=position, name=name)
+        logging.debug(f"Created {repr(label)}.")
+        return label
 
     def to_line(self, show_address: bool = False, **kwargs: Any) -> str:
         """

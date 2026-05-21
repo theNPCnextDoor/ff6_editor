@@ -2,7 +2,7 @@ import pytest
 
 from src.lib.assembly.bytes import Bytes
 from src.lib.assembly.artifact.variable import SimpleVar, Label, Variable
-from src.lib.misc.exception import ForbiddenVarName
+from src.lib.misc.exception import ForbiddenVarName, VariableLengthMismatch
 from test.lib.assembly.conftest import ALFA, BRAVO, CHARLIE, ECHO, pos
 
 
@@ -13,7 +13,11 @@ class TestVariable:
 
     @pytest.mark.parametrize(
         ["variable", "expected"],
-        [(ALFA, "SimpleVar(0x12, 'alfa')"), (CHARLIE, "Label(0x123456, 'charlie')"), (ECHO, "Label(0x7E0123, 'echo')")],
+        [
+            (ALFA, "SimpleVar(name='alfa', value=0x12)"),
+            (CHARLIE, "Label(name='charlie', value=0x123456)"),
+            (ECHO, "Label(name='echo', value=0x7E0123)"),
+        ],
     )
     def test_repr(self, variable: Variable, expected: str):
         assert repr(variable) == expected
@@ -61,7 +65,7 @@ class TestSimpleVariable:
         ],
     )
     def test_from_line_but_length_doesnt_correspond_to_expectation(self, length: str, name: str, operand: str):
-        with pytest.raises(ValueError):
+        with pytest.raises(VariableLengthMismatch):
             SimpleVar.from_line(length, name, operand)
 
     @pytest.mark.parametrize(

@@ -1,3 +1,4 @@
+import logging
 from typing import Self, Any
 
 from src.lib.assembly.artifact.artifact import Artifact
@@ -37,7 +38,9 @@ class Flags(Artifact):
         :note: The reason that 8 and 16 are used is that it is more readable to see the width in bits of the accumulator
          and the indexes than having to convert the bool into number of bits.
         """
-        return cls(m=int(m_flag), x=int(x_flag), position=position)
+        flags = cls(m=int(m_flag), x=int(x_flag), position=position)
+        logging.debug(f"Created {repr(flags)}.")
+        return flags
 
     def __str__(self) -> str:
         m = str(self.m)
@@ -45,7 +48,7 @@ class Flags(Artifact):
         return f"m = {m}, x = {x}"
 
     def __repr__(self) -> str:
-        return f"Flags(m={self.m}, x={self.x}, position=0x{str(self.position)}"
+        return f"Flags(m={self.m}, x={self.x}, position=0x{str(self.position)})"
 
     def to_line(self, **kwargs: Any) -> str:
         """

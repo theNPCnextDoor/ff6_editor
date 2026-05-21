@@ -1,3 +1,4 @@
+import logging
 import re
 
 from src.lib.assembly.bytes import Bytes
@@ -28,6 +29,7 @@ class Charset:
         Extracts the hexadecimal value of an unrecognized character and returns it as an integer.
         :param value: An unrecognized character of the form '<0x??>'.
         :return: The integer corresponding to the hexadecimal value.
+        :raises NoCandidateException: Raised when the character can't be found in the charset.
         """
         string_byte_regex = r"<0x(?P<byte>[0-9A-F]{2})>"
         if match := re.fullmatch(string_byte_regex, value):
@@ -35,7 +37,10 @@ class Charset:
 
         candidates = [k for k, v in self.charset.items() if v == value]
         if len(candidates) == 0:
-            raise NoCandidateException(f"No candidate has been found for char '{value}'.")
+            message = f"No candidate has been found for char '{value}'."
+            logging.error(message)
+            raise NoCandidateException(message)
+
         return candidates[0]
 
     def get_bytes(self, value: str) -> bytes:
