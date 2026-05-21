@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from typing import Self, Any
 
 from src.lib.assembly.artifact.variables import Variables
@@ -37,6 +38,7 @@ class Blob(DataStructure):
         :param variables: The list of Variables. Both SimpleVars and Labels can be used to define a Blob value, but only
         the former can be used for the delimiter.
         :return: A Blob.
+        :raised DelimiterLengthError: Raised when the length of the delimiter is not 1.
         """
         _operand = Operand.from_line(operand, position, OperandType.DEFAULT, variables)
         _delimiter = (
@@ -46,9 +48,13 @@ class Blob(DataStructure):
         )
 
         if _delimiter and len(_delimiter) != 1:
-            raise DelimiterLengthError(f"Delimiter '{str(delimiter)}' must have a length of one.")
+            message = f"Delimiter '{str(delimiter)}' must have a length of one."
+            logging.error(message)
+            raise DelimiterLengthError(message)
 
-        return cls(position=position, operand=_operand, delimiter=_delimiter)
+        blob = cls(position=position, operand=_operand, delimiter=_delimiter)
+        logging.debug(f"Created {repr(blob)}.")
+        return blob
 
     @classmethod
     def from_bytes(cls, data: bytes, position: Bytes | None = None, delimiter: bytes | None = None) -> Self:
@@ -62,7 +68,10 @@ class Blob(DataStructure):
         data = Operand(Bytes.from_bytes(data))
         if delimiter is not None:
             delimiter = Operand(Bytes.from_bytes(delimiter))
-        return Blob(position=position, operand=data, delimiter=delimiter)
+
+        blob = Blob(position=position, operand=data, delimiter=delimiter)
+        logging.debug(f"Created {repr(blob)}.")
+        return blob
 
     def __str__(self) -> str:
         output = f"{self.operand}"
@@ -121,19 +130,15 @@ class Blob(DataStructure):
         length = 1 if delimiter else 0
         if "$" in operand:
             length += len(operand) // 2
-            return length
         elif "." in operand:
             length += 1
-            return length
         elif "!" in operand:
             length += 2
-            return length
-
-        variable = variables.find_by_name(operand)
-
-        if variable is None:
+        elif variable := variables.find_by_name(operand):
+            length += len(variable.value)
+        else:
             length += 3
-            return length
+            logging.warning(f"Can't find variable named '{operand}'. Assuming it is a label yet to be declared.")
 
-        length += len(variable.value)
+        logging.debug(f"Blob '{operand}{',' + delimiter if delimiter else ''}' length is {length}.")
         return length

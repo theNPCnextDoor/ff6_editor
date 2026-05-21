@@ -7,7 +7,7 @@ from src.lib.assembly.data_structure.array import Array
 from src.lib.assembly.data_structure.instruction.operand import Operand
 from src.lib.assembly.data_structure.string.string import String, StringTypes
 from src.lib.assembly.bytes import Bytes
-from test.lib.assembly.conftest import TEST_WORD
+from test.lib.assembly.conftest import TEST_WORD, VARIABLES
 
 GROUP = Array(
     parts=[
@@ -77,7 +77,7 @@ class TestArray:
                 "Blob(position=0x000000, as_str='$AA', as_bytes=b'\\xaa', as_hexa=0xAA), "
                 "String(position=0x000001, as_str='desc \"a\"', as_bytes=b'\\x9a', as_hexa=0x9A), "
                 "Blob(position=0x000002, as_str='$BB,$FF', as_bytes=b'\\xbb\\xff', as_hexa=0xBBFF), "
-                "String(position=0x000004, as_str='\"b\",zero', as_bytes=b'\\x9b\\x00', as_hexa=0x9B00, delimiter_var=SimpleVar(0x00, 'zero'))])",
+                "String(position=0x000004, as_str='\"b\",zero', as_bytes=b'\\x9b\\x00', as_hexa=0x9B00, delimiter_var=SimpleVar(name='zero', value=0x00))])",
                 GROUP,
             ),
         ],
@@ -114,3 +114,6 @@ class TestArray:
     )
     def test_bytes(self, group: Array, expected: bytes):
         assert bytes(group) == expected
+
+    def test_find_length(self):
+        assert Array.find_length('  $AA | desc "a" | $BB,$FF | "b",zero', VARIABLES) == 6

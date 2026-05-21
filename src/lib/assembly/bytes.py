@@ -1,4 +1,6 @@
 from __future__ import annotations
+
+import logging
 from enum import Enum, auto
 from typing import Self
 
@@ -26,7 +28,9 @@ class Bytes:
         """
 
         if not isinstance(value, list):
-            raise ValueError(f"Type of value must be list[int]. Actual type: {type(value)}")
+            message = f"Type of value must be list[int]. Actual type: {type(value)}"
+            logging.error(message)
+            raise ValueError(message)
         self.endian = endian
         self.value = value
         if length:
@@ -84,7 +88,9 @@ class Bytes:
         :raises ValueError: Raised when the value is an empty string or isn't a pair number of characters.
         """
         if len(value) % 2 != 0 or not value:
-            raise ValueError("Value must be a non-empty string with an even number of characters.")
+            message = f"Value '{value}' must be a non-empty string with an even number of characters."
+            logging.error(message)
+            raise ValueError(message)
 
         _list = list()
         for i in range(len(value) // 2):
@@ -101,7 +107,9 @@ class Bytes:
         :return: A Bytes object.
         """
         if len(value) == 0:
-            raise ValueError("Value must be a non-empty bytes object.")
+            message = f"Value '{value}' must be a non-empty bytes object."
+            logging.error(message)
+            raise ValueError(message)
         _list = list()
 
         for _byte in value:
@@ -183,7 +191,9 @@ class Bytes:
             return False
 
         if not isinstance(other, type(self)):
-            raise ValueError(f"Can't only compare two Bytes together. {other=}")
+            message = f"Can't only compare two Bytes together. {other=}"
+            logging.error(message)
+            raise ValueError(message)
 
         return self.value == other.value
 
@@ -194,7 +204,9 @@ class Bytes:
         :raises ValueError: Raised when the other object is not a Bytes object.
         """
         if not isinstance(other, type(self)):
-            raise ValueError(f"Can't only compare two Bytes together. {other=}")
+            message = f"Can't only compare two Bytes together. {other=}"
+            logging.error(message)
+            raise ValueError(message)
 
         return int(self) < int(other)
 
@@ -217,7 +229,10 @@ class Bytes:
         """
         _sum = int(self) + int(other)
         if _sum > 2 ** (8 * len(self.value)) - 1:
-            raise OverflowError(f"Overflow when adding {self} and {other}.")
+            message = f"Overflow when adding {self} and {other}."
+            logging.error(message)
+            raise OverflowError(message)
+
         instance = type(self).from_int(_sum)
         instance.endian = self.endian
         return instance
@@ -231,7 +246,9 @@ class Bytes:
         """
         difference = int(self) - int(other)
         if difference < 0:
-            raise UnderflowError("Value is below 0.")
+            message = f"Underflow when subtracting {other} from {self}."
+            logging.error(message)
+            raise UnderflowError(message)
 
         instance = type(self).from_int(difference)
         instance.endian = self.endian
@@ -243,7 +260,10 @@ class Bytes:
         :raises AttributeError: Raised when the Bytes object length is not 3.
         """
         if len(self) != 3:
-            raise AttributeError("Can't get the bank of a non-position Bytes object.")
+            message = f"Can't get the bank of a non-position Bytes object. Actual value: {repr(self)}"
+            logging.error(message)
+            raise AttributeError(message)
+
         return self.value[0] * 0x010000
 
     @classmethod
@@ -255,7 +275,10 @@ class Bytes:
         :raises ValueError: Raised when the address is not 6 characters.
         """
         if len(address) != 6:
-            raise ValueError(f"Address should consist of 6 characters. Address: {address}")
+            message = f"Address should consist of 6 characters. Address: {address}"
+            logging.error(message)
+            raise ValueError(message)
+
         instance = cls.from_str(value=address, endian=Endian.BIG)
         if int(instance) >= 0xC00000:
             instance -= 0xC00000
@@ -271,9 +294,12 @@ class Bytes:
         it doesn't correspond to a position.
         """
         if len(self.value) != 3:
-            raise AttributeError(
-                f"Can't convert to SNES address has the value of the Bytes object is not 3. Actual value: {self.value}"
+            message = (
+                "Can't convert to SNES address has the value of the Bytes object is not 3. "
+                f"Actual value: {self.value}"
             )
+            logging.error(message)
+            raise AttributeError(message)
 
         instance = Bytes.from_other(self)
 

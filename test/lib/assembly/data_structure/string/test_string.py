@@ -74,7 +74,7 @@ class TestString:
                     operand=Operand(Bytes([0x80, 0x81, 0x82])),
                     delimiter=Operand(Bytes.from_int(0), variable=SimpleVar(Bytes.from_int(0), "zero")),
                 ),
-                "String(position=0x000000, as_str='\"ABC\",zero', as_bytes=b'\\x82\\x81\\x80\\x00', as_hexa=0x80818200, delimiter_var=SimpleVar(0x00, 'zero'))",
+                "String(position=0x000000, as_str='\"ABC\",zero', as_bytes=b'\\x82\\x81\\x80\\x00', as_hexa=0x80818200, delimiter_var=SimpleVar(name='zero', value=0x00))",
             ),
         ],
     )

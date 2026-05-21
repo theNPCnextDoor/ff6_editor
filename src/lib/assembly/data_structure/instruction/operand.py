@@ -1,3 +1,4 @@
+import logging
 import re
 from dataclasses import dataclass
 from enum import Enum, auto
@@ -6,7 +7,7 @@ from typing import Self
 from src.lib.assembly.artifact.variable import Label, Variable
 from src.lib.assembly.artifact.variables import Variables
 from src.lib.assembly.bytes import Bytes
-from src.lib.misc.exception import NoVariableException
+from src.lib.misc.exception import NoVariableException, ImpossibleDestination, UndefinedDestination
 
 
 class OperandType(Enum):
@@ -54,6 +55,8 @@ class Operand:
         :param operand_type: The type of the operand.
         :param variables: A list of existing variables and labels.
         :return: An operand.
+        :raises NoVariableException: Raised when no variable can be found with the given name.
+        :raises ImpossibleDestination: Raised when the destination can't be reached from the parent position.
         """
         parent_position = parent_position or Bytes.from_position(0)
         variables = variables or Variables()
@@ -72,7 +75,9 @@ class Operand:
         variable = variables.find_by_name(stripped_value)
 
         if variable is None:
-            raise NoVariableException(f"Can't find variable named '{stripped_value}'.")
+            message = f"Can't find variable named '{stripped_value}'."
+            logging.error(message)
+            raise NoVariableException(message)
 
         if not isinstance(variable, Label):
             return cls(value=variable.value, mode=mode, operand_type=operand_type, variable=variable)
@@ -88,14 +93,17 @@ class Operand:
         if length != 1 and not cls._is_destination_possible(
             parent_position=parent_position, destination=destination, length=length
         ):
-            raise ValueError(
-                f"Destination {repr(destination)} impossible from parent position {repr(parent_position)}."
-            )
+            message = f"Destination {repr(destination)} impossible from parent position {repr(parent_position)}."
+            logging.error(message)
+            raise ImpossibleDestination(message)
 
         operand_value = cls._destination_to_value(
             parent_position=parent_position, operand_type=operand_type, length=length, destination=destination
         )
-        return cls(value=operand_value, mode=mode, operand_type=operand_type, variable=variable)
+
+        operand = cls(value=operand_value, mode=mode, operand_type=operand_type, variable=variable)
+        logging.debug(f"Created {repr(operand)}.")
+        return operand
 
     @classmethod
     def from_bytes(
@@ -178,6 +186,8 @@ class Operand:
         Converts the value of the Operand into its destination.
         :param parent_position: The position of the DataStructure containing the Operand.
         :return: The destination of the Operand.
+        :raises UndefinedDestination: Raised when the operand type is not branching or long branching and the length of
+        the length is 1 because the exact destination can't be inferred.
         """
         if self.operand_type == OperandType.BRANCHING:
             return Bytes.from_position((int(self.value) + 0x80) % 0x0100 + int(parent_position) - 0x7E)
@@ -191,7 +201,10 @@ class Operand:
         if len(self) == 2:
             bank = parent_position.bank()
             return Bytes.from_position(int(self.value) + bank)
-        raise ValueError("Can't find the destination.")
+
+        message = f"Can't find the destination. {repr(self)}, parent_position: {parent_position}"
+        logging.error(message)
+        raise UndefinedDestination(message)
 
     def __len__(self) -> int:
         return len(self.value)

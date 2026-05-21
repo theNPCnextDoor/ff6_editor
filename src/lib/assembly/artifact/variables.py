@@ -1,3 +1,4 @@
+import logging
 from typing import Self
 
 from src.lib.assembly.artifact.variable import Label, Variable
@@ -40,11 +41,16 @@ class Variables:
         :raises VariableConflict: Raised when a conflict is detected.
         """
         if isinstance(variable, Label) and (label := self.find_by_position(variable.value)):
-            raise VariableConflict(
-                f"Position conflict. Label '{label.name}', with position {repr(variable.value)} already exists."
+            message = (
+                f"Position conflict. Label '{label.name}', " f"with position {repr(variable.value)} already exists."
             )
+            logging.error(message)
+            raise VariableConflict(message)
+
         if self.find_by_name(variable.name):
-            raise VariableConflict(f"Name conflict. Variable '{variable.name}' already exists.")
+            message = f"Name conflict. Variable '{variable.name}' already exists."
+            logging.error(message)
+            raise VariableConflict(message)
 
     def find_by_name(self, name: str) -> Variable | None:
         """

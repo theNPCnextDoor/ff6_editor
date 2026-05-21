@@ -1,3 +1,4 @@
+import logging
 import re
 from typing import Self, Any
 
@@ -7,7 +8,7 @@ from src.lib.assembly.data_structure.regex import DataStructureRegex
 from src.lib.assembly.data_structure.data_structure import DataStructure
 from src.lib.assembly.data_structure.string.string import String
 from src.lib.assembly.bytes import Bytes
-from src.lib.misc.exception import UnrecognizedBlob
+from src.lib.misc.exception import UnrecognizedPart
 
 
 class Array(DataStructure):
@@ -28,16 +29,17 @@ class Array(DataStructure):
         :param position: The position of the line in the script.
         :param variables: The list of Variables that will be used to determine the value of Blobs and delimiters.
         :return: An Array.
+        :raised UnrecognizedPart: Raised when a part of the Array can't be parsed into a Blob or a String.
         """
-        parts = [part.strip() for part in line.split("|")]
+        chunks = [part.strip() for part in line.split("|")]
         cursor = int(position)
-        blobs = list()
+        parts = list()
 
-        for i, part in enumerate(parts):
-            cleaned_part = re.sub(' [^"]+$', "", part.strip())
+        for i, chunk in enumerate(chunks):
+            cleaned_part = re.sub(' [^"]+$', "", chunk.strip())
 
             if blob_match := re.search(DataStructureRegex.STRING, cleaned_part):
-                blob = String.from_line(
+                part = String.from_line(
                     string=blob_match.group("string"),
                     string_type=blob_match.group("string_type"),
                     delimiter=blob_match.group("delimiter"),
@@ -46,7 +48,7 @@ class Array(DataStructure):
                 )
 
             elif blob_match := re.search(DataStructureRegex.BLOB, cleaned_part):
-                blob = Blob.from_line(
+                part = Blob.from_line(
                     operand=blob_match.group("operand"),
                     delimiter=blob_match.group("delimiter"),
                     position=Bytes.from_position(cursor),
@@ -54,10 +56,16 @@ class Array(DataStructure):
                 )
 
             else:
-                raise UnrecognizedBlob(f"Blob part {i} is unrecognized.\n{cleaned_part=}\n{line}")
-            blobs.append(blob)
-            cursor += len(blob)
-        return cls(parts=blobs, position=position)
+                message = f"Blob part {i} is unrecognized.\n{cleaned_part=}\n{line}"
+                logging.error(message)
+                raise UnrecognizedPart(message)
+
+            parts.append(part)
+            cursor += len(part)
+
+        array = cls(parts=parts, position=position)
+        logging.debug(f"Created {repr(array)}.")
+        return array
 
     @classmethod
     def from_bytes(cls, *args, **kwargs) -> Self:
@@ -70,10 +78,10 @@ class Array(DataStructure):
         hexa = ""
         for blob in self.parts:
             hexa += str(blob.operand.value)
-        blobs_output = ", ".join(repr(blob) for blob in self.parts)
+        parts_output = ", ".join(repr(blob) for blob in self.parts)
         return (
             f"Array(position=0x{self.position}, as_str='{str(self)}', as_bytes={bytes(self)}, as_hexa=0x{hexa}, "
-            f"parts=[{blobs_output}])"
+            f"parts=[{parts_output}])"
         )
 
     def to_line(self, show_address: bool = False, **kwargs: Any) -> str:
@@ -94,3 +102,25 @@ class Array(DataStructure):
 
     def __bytes__(self) -> bytes:
         return b"".join([bytes(part) for part in self.parts])
+
+    @classmethod
+    def find_length(cls, line: str, variables: Variables) -> int:
+        """
+        Determines the length of the array by adding the length of all parts.
+        :return: An integer.
+        """
+        length = 0
+        parts = line.split("|")
+        for part in parts:
+            if match := re.fullmatch(DataStructureRegex.BLOB, part.strip()):
+                length += Blob.find_length(
+                    operand=match.group("operand"), variables=variables, delimiter=match.group("delimiter")
+                )
+            elif match := re.fullmatch(DataStructureRegex.STRING, part.strip()):
+                length += String.find_length(string=match.group("string"), delimiter=match.group("delimiter"))
+            else:
+                message = f"Part '{part}' is unrecognized."
+                logging.error(message)
+                UnrecognizedPart(message)
+        logging.debug(f"Array '{line}' length is {length}.")
+        return length

@@ -643,7 +643,7 @@ class TestScript:
             ScriptSection(
                 start=0x000034,
                 end=0x00003A,
-                mode=ScriptMode.DESCRIPTION_STRINGS,
+                mode=ScriptMode.MENU_DESCRIPTIONS,
                 delimiter=b"\x00",
                 charset=Charset(charset=DESCRIPTION_CHARSET),
             ),

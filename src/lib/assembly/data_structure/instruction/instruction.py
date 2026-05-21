@@ -79,7 +79,9 @@ class Instruction(DataStructure):
 
         opcode = cls._find_opcode(command=command, mode=mode, length=length, flags=flags)
 
-        return cls(position=position, opcode=opcode, operands=operands)
+        instruction = cls(position=position, opcode=opcode, operands=operands)
+        logging.debug(f"Created {repr(instruction)}.")
+        return instruction
 
     @classmethod
     def from_bytes(
@@ -112,7 +114,9 @@ class Instruction(DataStructure):
         elif length:
             operands.append(Operand.from_bytes(value[1 : length + 1], mode, operand_type, position, variables))
 
-        return Instruction(position=position, opcode=opcode, operands=operands)
+        instruction = Instruction(position=position, opcode=opcode, operands=operands)
+        logging.debug(f"Created {repr(instruction)}.")
+        return instruction
 
     @staticmethod
     def _command_to_operand_type(command: str) -> OperandType:
@@ -150,6 +154,9 @@ class Instruction(DataStructure):
         :param length: The length of the operand.
         :param flags: 'm' and 'x' flags, which provides the width of the accumulator and the X and Y registers.
         :return: The opcode, as a Bytes object.
+        :raises TooManyCandidatesException: Raised in the event that multiple opcode candidates correspond to the
+        command, mode and length.
+        :raises NoCandidateException: Raised in the event that no candidate fits the command, mode and length.
         """
         candidates = list()
         for code, operation in Opcodes.items():
@@ -163,9 +170,13 @@ class Instruction(DataStructure):
                     candidates.append(code)
 
         if len(candidates) > 1:
-            raise TooManyCandidatesException(f"More than one candidate for {command=} and {mode=}. {candidates=}")
+            message = f"More than one candidate for {command=} and {mode=}. {candidates=}"
+            logging.error(message)
+            raise TooManyCandidatesException(message)
         if len(candidates) == 0:
-            raise NoCandidateException(f"No candidate was found for {command=}, {mode=} and {length=}.")
+            message = f"No candidate was found for {command=}, {mode=} and {length=}."
+            logging.error(message)
+            raise NoCandidateException(message)
 
         return Bytes([candidates[0]])
 
@@ -266,36 +277,37 @@ class Instruction(DataStructure):
         :param command: The command of the instruction.
         :return: The integer of the instruction, including the opcode and the operand.
         """
+        operand_type = cls._command_to_operand_type(command)
+        stripped_value = re.sub(r"[#()\[\],SXY]", "", operand) if operand else ""
 
         if not operand:
-            return 1
-
+            length = 0
         # If the instruction is a moving block instruction, the length is always 3.
-        if operand.count("#") == 2:
-            return 3
+        elif operand.count("#") == 2:
+            length = 2
 
         # If the instruction is a branching or long branching instruction, the length is either 2 or 3.
-        operand_type = cls._command_to_operand_type(command)
-        if operand_type == OperandType.BRANCHING:
-            return 2
+        elif operand_type == OperandType.BRANCHING:
+            length = 1
         elif operand_type == OperandType.LONG_BRANCHING:
-            return 3
+            length = 2
 
-        stripped_value = re.sub(r"[#()\[\],SXY]", "", operand)
         # If the operand contains a prefix, we can determine its length.
-        if "$" in stripped_value:
-            return 1 + (len(stripped_value.replace("$", "")) // 2)
+        elif "$" in stripped_value:
+            length = len(stripped_value.replace("$", "")) // 2
         elif "." in stripped_value:
-            return 2
+            length = 1
         elif "!" in stripped_value:
-            return 3
+            length = 2
 
         # If it doesn't exist, then it's guaranteed that it is a variable so we need to determine its value.
-        variable_name = re.sub(r"[.!]", "", stripped_value)
-        variable = variables.find_by_name(variable_name)
-        if variable:
-            return 1 + len(variable.value)
+        elif variable := variables.find_by_name(re.sub(r"[.!]", "", stripped_value)):
+            length = len(variable.value)
+        else:
+            # If we can't identify the variable, we assume it's a label that will be declared later in the script.
+            logging.warning(f"Can't find variable named '{operand}'. Assuming it is a label yet to be declared.")
+            length = 3
 
-        # If we can't identify the variable, we assume it's a label that will be declared later in the script.
-        logging.warning(f"Can't find variable named '{variable_name}'. Assuming it is a label yet to be declared.")
-        return 4
+        length += 1
+        logging.debug(f"Instruction '{command}{' ' + operand if operand else ''}' length is {length}.")
+        return length

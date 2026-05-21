@@ -1,3 +1,4 @@
+import logging
 from typing import Self
 
 from src.lib.assembly.artifact.variables import Variables
@@ -72,12 +73,16 @@ class Pointer(DataStructure):
             destination = Bytes.from_position(int(position.bank()) + int(_operand.value))
 
         if destination < parent_position or destination.bank() != parent_position.bank():
-            raise ImpossibleDestination(
+            message = (
                 f"Destination '{destination.to_snes_address()}' can't be reached with pointer's"
                 f" {'anchor' if anchor else 'position'} at '{parent_position.to_snes_address()}'. "
             )
+            logging.error(message)
+            raise ImpossibleDestination(message)
 
-        return cls(position=position, operand=_operand, anchor=anchor)
+        pointer = cls(position=position, operand=_operand, anchor=anchor)
+        logging.debug(f"Created {repr(pointer)}.")
+        return pointer
 
     @classmethod
     def from_bytes(cls, value: bytes, position: Bytes, anchor: Bytes | None = None) -> Self:
@@ -89,7 +94,10 @@ class Pointer(DataStructure):
         :return: A Pointer.
         """
         operand = Operand(Bytes.from_bytes(value))
-        return Pointer(position=position, operand=operand, anchor=anchor)
+
+        pointer = Pointer(position=position, operand=operand, anchor=anchor)
+        logging.debug(f"Created {repr(pointer)}.")
+        return pointer
 
     def to_line(
         self, show_address: bool = False, labels: Variables | None = None, current_anchor: Bytes | None = None
@@ -154,4 +162,6 @@ class Pointer(DataStructure):
         Determines the length of the script line during the pre-parsing phase. However, a Pointer is always 2 bytes.
         :return: 2
         """
-        return 2
+        length = 2
+        logging.debug(f"Pointer length is always {length}.")
+        return length
