@@ -90,8 +90,12 @@ class Operand:
             length = 3
 
         destination = variable.position
-        if length != 1 and not cls._is_destination_possible(
-            parent_position=parent_position, destination=destination, length=length
+        if (
+            length != 1
+            and operand_type != OperandType.DEFAULT
+            and not cls._is_destination_possible(
+                parent_position=parent_position, destination=destination, length=length
+            )
         ):
             message = f"Destination {repr(destination)} impossible from parent position {repr(parent_position)}."
             logging.error(message)
@@ -179,7 +183,7 @@ class Operand:
         if length == 2:
             return Bytes.from_other(destination, length=2)
 
-        return destination
+        return Bytes.from_other(destination)
 
     def value_to_destination(self, parent_position: Bytes) -> Bytes:
         """

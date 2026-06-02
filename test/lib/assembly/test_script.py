@@ -29,7 +29,7 @@ DUMMY_INPUT_SCRIPT_1 = Path(RESOURCES_FOLDER, "dummy_input_script_1.asm")
 DUMMY_INPUT_SCRIPT_2 = Path(RESOURCES_FOLDER, "dummy_input_script_2.asm")
 DUMMY_ERROR_SCRIPT = Path(RESOURCES_FOLDER, "dummy_error_script.asm")
 DUMMY_OUTPUT_SCRIPT = Path(RESOURCES_FOLDER, "dummy_output_script.asm")
-DUMMY_INPUT_ROM = Path(RESOURCES_FOLDER, "dummy_input_rom.sfc")
+DUMMY_INPUT_ROM = Path(RESOURCES_FOLDER, "dummy_input_rom.rom")
 DUMMY_OUTPUT_ROM = Path(RESOURCES_FOLDER, "dummy_output_rom.sfc")
 
 LABELS = [
@@ -428,6 +428,19 @@ class ScriptImpl:
                 component=LABELS[6],
                 filename=DUMMY_INPUT_SCRIPT_2,
             ),
+            Line(
+                raw_line="  JSL !archie",
+                clean_line="JSL !archie",
+                position=0x123457,
+                component_info=LineType.INSTRUCTION,
+                regex_groups={"command": "JSL", "operand": "!archie"},
+                component=Instruction(
+                    position=pos(0x123457),
+                    opcode=Bytes([0x22]),
+                    operands=[Operand(Bytes([0x00, 0x00, 0x05]), "_", OperandType.LONG_JUMPING, LABELS[1])],
+                ),
+                filename=DUMMY_INPUT_SCRIPT_2,
+            ),
         ]
 
 
@@ -465,7 +478,7 @@ class TestScript:
             operand=Operand(Bytes([0x34, 0x55]), variable=labels[5]),
         )
 
-        assert len(script.instructions()) == 12
+        assert len(script.instructions()) == 13
         assert script.instructions()[0] == Instruction(
             position=Bytes([0x00, 0x00, 0x05]), opcode=Bytes([0xAA]), operands=None
         )
@@ -522,6 +535,11 @@ class TestScript:
             operands=[
                 Operand(Bytes([0xE0]), "_", OperandType.BRANCHING, Label(value=Bytes([0x00, 0x00, 0x01]), name="start"))
             ],
+        )
+        assert script.instructions()[12] == Instruction(
+            position=Bytes([0x12, 0x34, 0x57]),
+            opcode=Bytes([0x22]),
+            operands=[Operand(Bytes([0x00, 0x00, 0x05]), "_", OperandType.LONG_JUMPING, LABELS[1])],
         )
 
         assert len(script.blobs()) == 3
@@ -608,6 +626,7 @@ class TestScript:
         assert output[0x3A:0x3C] == b"\x55\x34"  # rptr !label_d23456
         assert output[0x3C:0x3E] == b"\x56\x34"  # rptr !label_d23457
         assert output[0x3E:0x40] == b"\x55\x34"  # rptr !label_d23457
+        assert output[0x123457:0x12345B] == b"\x22\x05\x00\xc0"  # JSL archie
 
     def test_from_rom(self):
         sections = [
@@ -643,6 +662,7 @@ class TestScript:
             ),
             ScriptSection(start=0x00003A, end=0x00003E, mode=ScriptMode.POINTERS, anchor=0x120001),
             ScriptSection(start=0x00003E, end=0x000040, mode=ScriptMode.POINTERS, anchor=0x120002),
+            ScriptSection(start=0x123457, end=0x12345A, mode=ScriptMode.INSTRUCTIONS, flags=Flags(m=8)),
         ]
 
         test_script = ScriptImpl().script
@@ -737,5 +757,6 @@ db delta = $00
 
 @rptr_1 = $D23456
 
-@rptr_2 = $D23457"""
+@rptr_2 = $D23457
+  JSL archie"""
         )
