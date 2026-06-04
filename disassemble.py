@@ -1,7 +1,8 @@
 import tomllib
 
 from src.lib.assembly.artifact.flags import Flags
-from src.lib.assembly.script import Script, ScriptSection, ScriptMode, SubSection
+from src.lib.assembly.script.script import Script
+from src.lib.assembly.script.helpers import ScriptSection, ScriptMode, SubSection
 
 
 def disassemble(configs: dict):

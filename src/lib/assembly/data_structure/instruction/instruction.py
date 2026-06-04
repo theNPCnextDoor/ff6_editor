@@ -305,7 +305,7 @@ class Instruction(DataStructure):
             length = len(variable.value)
         else:
             # If we can't identify the variable, we assume it's a label that will be declared later in the script.
-            logging.warning(f"Can't find variable named '{operand}'. Assuming it is a label yet to be declared.")
+            logging.warning(f"Can't find variable named '{stripped_value}'. Assuming it is a label yet to be declared.")
             length = 3
 
         length += 1

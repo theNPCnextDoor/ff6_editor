@@ -254,7 +254,8 @@ class Script:
             elif line.component_info == LineType.VARIABLE_DECLARATION:
                 continue
             else:
-                message = f"Line '{line.raw_line}' in file '{line.filename}' is not recognized."
+                raw_line = line.raw_line.strip("\n")
+                message = f"Line '{raw_line}' in file '{line.filename}' is not recognized."
                 logging.error(message)
                 raise UnrecognizedLine(message)
 

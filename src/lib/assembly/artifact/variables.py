@@ -42,7 +42,8 @@ class Variables:
         """
         if isinstance(variable, Label) and (label := self.find_by_position(variable.value)):
             message = (
-                f"Position conflict. Label '{label.name}', " f"with position {repr(variable.value)} already exists."
+                f"Position conflict. Labels '{variable.name}' and '{label.name}', both with "
+                f"position {repr(variable.value)} already exists."
             )
             logging.error(message)
             raise VariableConflict(message)
