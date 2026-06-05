@@ -16,8 +16,8 @@ def assemble(configs: dict):
         else:
             script_files.append(file)
 
-    script = Script.from_text_files(*script_files)
-    script.to_rom(input_path=configs["source"], output_path=configs["destination"])
+    script = Script.parse(*script_files)
+    script.assemble(input_path=configs["source"], output_path=configs["destination"])
 
 
 if __name__ == "__main__":

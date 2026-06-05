@@ -1,10 +1,9 @@
-m = 8, x = 16
-
 db alfa = $12
 dw bravo = $1234
 db delta = $00
 
 @archie = $C00005
+m = 8, x = 16
   TAX ; some comment
   LDA (alfa,X)
   LDX #$FEDC
@@ -33,9 +32,12 @@ db delta = $00
 
 #$D20002
   rptr !rptr_2
+m = 8, x = 8 ; Unnecessary flags redifinition here.
+  JSR !archie
 
 @label_c0fedc = $C0FEDC
 @anchor_1 = $D20001
 @rptr_1 = $D23456
 @rptr_2 = $D23457
+m = 16, x = 16
   JSL archie

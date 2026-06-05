@@ -9,12 +9,18 @@ from src.lib.assembly.artifact.variable import Label, SimpleVar
 from src.lib.assembly.artifact.variables import Variables
 from src.lib.assembly.data_structure.instruction.operand import Operand
 from src.lib.assembly.script.helpers import ScriptMode, ScriptSection, Line, LineType, clean_line, Component
-from src.lib.misc.exception import MissingSectionAttribute, LineConflict, UnrecognizedLine, UnrecognizedSubsectionMode
+from src.lib.misc.exception import (
+    MissingSectionAttribute,
+    LineConflict,
+    UnrecognizedLine,
+    UnrecognizedSubsectionMode,
+    UndefinedFlags,
+)
 from src.lib.assembly.data_structure.blob import Blob
 from src.lib.assembly.data_structure.array import Array
 from src.lib.assembly.data_structure.pointer import Pointer
 from src.lib.assembly.data_structure.instruction.instruction import Instruction
-from src.lib.assembly.artifact.flags import Flags
+from src.lib.assembly.artifact.flags import Flags, RegisterWidth
 from src.lib.assembly.data_structure.regex import InstructionRegex, ArtifactRegex, DataStructureRegex
 from src.lib.assembly.data_structure.string.string import String, StringTypes
 from src.lib.assembly.data_structure.data_structure import DataStructure
@@ -30,7 +36,7 @@ class Script:
         self.lines = list()
 
     @classmethod
-    def from_text_files(cls, *filenames: str | Path) -> Self:
+    def parse(cls, *filenames: str | Path) -> Self:
         """
         Creates a script out of disassembled text files.
         :param filenames: The paths to the text files.
@@ -76,9 +82,9 @@ class Script:
                 logging.error(message)
                 raise LineConflict(message)
 
-    def to_text_file(self, filename: str | Path, debug: bool = False) -> None:
+    def dump(self, filename: str | Path, debug: bool = False) -> None:
         """
-        Disassembles a script into a text file.
+        Dumps a script into a text file.
         :param filename: The path of the text file.
         :param debug: When True, will append line position as a comment to any line that doesn't already display it.
         :return: None.
@@ -86,14 +92,13 @@ class Script:
         logging.info(f"Dumping script to file '{filename}'.")
         self._extract_labels()
         self._sort_lines()
-        lines = self.components()
         output = []
 
-        cursor = int(lines[0].position)
-        logging.debug(f"Starting cursor at 0x{Bytes.from_position(cursor)}.")
+        cursor = 0
         current_anchor = Operand(Bytes.from_int(0))
 
         first_component = self.data_structures()[0]
+        flags = Flags(m=RegisterWidth.INVALID, x=RegisterWidth.INVALID)
 
         if not self.labels().find_by_position(first_component.position):
             name = "start" if not self.labels().find_by_name("start") else None
@@ -104,9 +109,15 @@ class Script:
 
         for component in self.components():
             logging.info(f"Dumping {repr(component)}.")
+            if flags and isinstance(component, Flags):
+                if flags.m == component.m and flags.x == component.x:
+                    logging.debug("Unnecessary flags redifinition. Skipping.")
+                    continue
+                flags = component
             if cursor != int(component.position):
                 if isinstance(component, Label):
                     output.append(component.to_line(show_address=True))
+                    logging.debug(f"Setting cursor at 0x{Bytes.from_position(cursor)}.")
                     cursor = int(component.value)
                     continue
 
@@ -115,6 +126,9 @@ class Script:
                 self.lines.append(Line.from_component(label))
                 logging.info(f"Writing {repr(label)} to file.")
                 output.append(label.to_line(show_address=True))
+
+            if isinstance(component, Instruction) and component.is_flag_setter():
+                flags = component.set_flags(flags)
 
             if isinstance(component, Pointer) and component.is_relative:
                 output.append(
@@ -129,7 +143,7 @@ class Script:
         with open(filename, "w", encoding="utf-8") as f:
             f.write("\n".join(output))
 
-    def to_rom(self, output_path: str | Path, input_path: str | Path | None = None) -> None:
+    def assemble(self, output_path: str | Path, input_path: str | Path | None = None) -> None:
         """
         Assembles a script into a ROM using a source ROM to modify.
         :param output_path: The destination ROM path.
@@ -147,7 +161,7 @@ class Script:
                 output_rom.write(bytes(line))
 
     @classmethod
-    def from_rom(cls, filename: str | Path, sections: list[ScriptSection]) -> Self:
+    def disassemble(cls, filename: str | Path, sections: list[ScriptSection]) -> Self:
         """
         Disassembles a ROM into a script.
         :param filename: The path of the ROM.
@@ -184,7 +198,8 @@ class Script:
         Sorts the script lines by position, with Flags and Labels in priority.
         :return: Nothing.
         """
-        self.lines.sort(key=lambda x: x.component_info not in [LineType.FLAGS, LineType.LABEL])
+        self.lines.sort(key=lambda x: x.component_info != LineType.FLAGS)
+        self.lines.sort(key=lambda x: x.component_info != LineType.LABEL)
         self.lines.sort(key=lambda x: x.position)
 
     @classmethod
@@ -212,7 +227,7 @@ class Script:
         :return: Nothing.
         :raises UnrecognizedLine: Raised when the Component type can't be determined.
         """
-        flags = Flags()
+        flags = Flags(m=RegisterWidth.INVALID, x=RegisterWidth.INVALID)
         anchor = None
 
         for line in self.lines:
@@ -235,9 +250,13 @@ class Script:
                 new_flags = Flags.from_line(**line.regex_groups, position=position)
                 if new_flags != flags:
                     logging.info(f"New flags have been detected. {repr(new_flags)}")
-                    flags = new_flags
-                    line.component = new_flags
+                flags = new_flags
+                line.component = Flags.copy(new_flags)
             elif line.component_info == LineType.INSTRUCTION:
+                if flags.m == RegisterWidth.INVALID or flags.x == RegisterWidth.INVALID:
+                    message = "Flags have not been defined before the first instruction."
+                    logging.error(message)
+                    raise UndefinedFlags(message)
                 instruction = Instruction.from_line(
                     **line.regex_groups, flags=flags, position=position, variables=self.variables()
                 )
@@ -477,6 +496,9 @@ class Script:
             raise MissingSectionAttribute(message)
 
         flags = section.attributes["flags"]
+        script.lines.append(
+            Line.from_component(Flags(m=flags.m, x=flags.x, position=Bytes.from_position(section.start)))
+        )
         while cursor < section.end:
             f.seek(cursor)
             value = f.read(4)
