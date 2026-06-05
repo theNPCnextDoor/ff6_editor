@@ -34,6 +34,10 @@ class UndefinedDestination(Exception):
     pass
 
 
+class UndefinedFlags(Exception):
+    pass
+
+
 class UnderflowError(Exception):
     pass
 

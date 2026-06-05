@@ -6,6 +6,7 @@ from src.lib.assembly.bytes import Bytes
 
 
 class RegisterWidth:
+    INVALID = 0
     EIGHT_BITS = 8
     SIXTEEN_BITS = 16
 
@@ -41,6 +42,15 @@ class Flags(Artifact):
         flags = cls(m=int(m_flag), x=int(x_flag), position=position)
         logging.debug(f"Created {repr(flags)}.")
         return flags
+
+    @classmethod
+    def copy(cls, flags: Self) -> Self:
+        """
+        Creates a deep copy of a Flags object.
+        :param flags: The original Flags object.
+        :return: The new Flags object.
+        """
+        return Flags(m=flags.m, x=flags.x, position=flags.position)
 
     def __str__(self) -> str:
         m = str(self.m)

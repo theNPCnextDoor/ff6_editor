@@ -32,8 +32,8 @@ def disassemble(configs: dict):
 
     sections.sort()
 
-    script = Script.from_rom(filename=configs["source"], sections=sections)
-    script.to_text_file(filename=configs["destination"], debug=configs.get("debug", False))
+    script = Script.disassemble(filename=configs["source"], sections=sections)
+    script.dump(filename=configs["destination"], debug=configs.get("debug", False))
 
 
 if __name__ == "__main__":
