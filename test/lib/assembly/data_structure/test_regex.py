@@ -117,6 +117,11 @@ class TestRegex:
 
 
 class TestArtifactRegex:
+    def test_memory_map(self):
+        match = re.match(ArtifactRegex.MEMORY_MAP, "map: LoROM")
+        assert bool(match)
+        assert match.group("mapping_mode") == "LoROM"
+
     @pytest.mark.parametrize(
         ["line", "is_match", "m_flag", "x_flag"],
         [("m=8,x=16", True, "8", "16"), ("m=16,x=8", True, "16", "8"), ("m=True,x=False", False, None, None)],

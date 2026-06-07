@@ -69,9 +69,9 @@ class Bytes:
         return cls(value=_list, length=length)
 
     @classmethod
-    def from_position(cls, value: int) -> Self:
+    def from_address(cls, value: int) -> Self:
         """
-        Converts a position into a Bytes object
+        Converts an integer address into a Bytes object.
         :param value: An integer between 0 and 2 ** 24 - 1.
         :return: A Bytes object with a length of 3.
         """
@@ -256,55 +256,12 @@ class Bytes:
 
     def bank(self) -> int:
         """
-        :return: An integer representing the value of the most significant byte of a position.
+        :return: An integer representing the value of the most significant byte of an address.
         :raises AttributeError: Raised when the Bytes object length is not 3.
         """
         if len(self) != 3:
-            message = f"Can't get the bank of a non-position Bytes object. Actual value: {repr(self)}"
+            message = f"Can't get the bank of a non-address Bytes object. Actual value: {repr(self)}"
             logging.error(message)
             raise AttributeError(message)
 
         return self.value[0] * 0x010000
-
-    @classmethod
-    def from_snes_address(cls, address: str) -> Self:
-        """
-        :param address: A string representing a SNES address. Such addresses covers from 'C00000' to 'FFFFFF' and then
-        from '400000' to 'BFFFFF'.
-        :return: A Bytes object.
-        :raises ValueError: Raised when the address is not 6 characters.
-        """
-        if len(address) != 6:
-            message = f"Address should consist of 6 characters. Address: {address}"
-            logging.error(message)
-            raise ValueError(message)
-
-        instance = cls.from_str(value=address, endian=Endian.BIG)
-        if int(instance) >= 0xC00000:
-            instance -= 0xC00000
-
-        instance._adjust(length=3)
-        return instance
-
-    def to_snes_address(self) -> str:
-        """
-        :return: A SNES address corresponding to the position. The SNES address is a hexadecimal
-        representation of the Bytes object, plus 0xC00000 if below 0x3FFFFF.
-        :raises AttributeError: Raised when the length of the Bytes object is not 3, meaning that
-        it doesn't correspond to a position.
-        """
-        if len(self.value) != 3:
-            message = (
-                "Can't convert to SNES address has the value of the Bytes object is not 3. "
-                f"Actual value: {self.value}"
-            )
-            logging.error(message)
-            raise AttributeError(message)
-
-        instance = Bytes.from_other(self)
-
-        if int(self) <= 0x3FFFFF:
-            instance += type(self).from_position(0xC00000)
-
-        address = str(instance)
-        return address

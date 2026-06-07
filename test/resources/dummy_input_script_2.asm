@@ -1,3 +1,4 @@
+map: HiROM
 db alfa = $12
 dw bravo = $1234
 db delta = $00

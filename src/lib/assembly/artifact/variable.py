@@ -7,7 +7,7 @@ from src.lib.assembly.bytes import Bytes
 from src.lib.misc.exception import ForbiddenVarName, VariableLengthMismatch
 
 VAR_LENGTH = {"b": 1, "w": 2}
-FORBIDDEN_NAMES = ["db", "desc", "dw", "m", "ptr", "rptr", "x"]
+FORBIDDEN_NAMES = ["db", "desc", "dw", "m", "map", "ptr", "rptr", "x"]
 
 
 class Variable(Artifact, ABC):
@@ -21,7 +21,7 @@ class Variable(Artifact, ABC):
 
     @property
     @abstractmethod
-    def position(self) -> Bytes:
+    def address(self) -> Bytes:
         pass
 
     def __str__(self):
@@ -75,8 +75,8 @@ class SimpleVar(Variable):
         return cls(_operand, name)
 
     @property
-    def position(self) -> Bytes:
-        return Bytes.from_position(0)
+    def address(self) -> Bytes:
+        return Bytes.from_address(0)
 
     def to_line(self, **kwargs: Any) -> str:
         """
@@ -95,28 +95,28 @@ class Label(SimpleVar):
 
     def __init__(self, value: Bytes, name: str | None = None):
         """
-        :param value: The value, or the position, of the Label.
+        :param value: The value, or the address, of the Label.
         :param name: The name of the Label.
         """
-        name = (name or f"label_{value.to_snes_address()}").lower()
+        name = (name or f"label_{str(value)}").lower()
         super().__init__(name=name, value=value)
 
     @property
-    def position(self) -> Bytes:
+    def address(self) -> Bytes:
         """
-        For a Label, its value is its position.
+        For a Label, its value is its address.
         :return: The value of the Label.
         """
         return self.value
 
     @classmethod
-    def from_line(cls, name: str, snes_address: str | None = None, position: Bytes | None = None) -> Self:
+    def from_line(cls, name: str, snes_address: str | None = None, address: Bytes | None = None) -> Self:
         """
         Converts a string into a Label.
         :param name: The name of the Label.
-        :param snes_address: The SNES address of the Label. When omitted, will use the current position in the script
+        :param snes_address: The SNES address of the Label. When omitted, will use the current address in the script
         as the Label value.
-        :param position: The current position of the Label in the script.
+        :param address: The current address of the Label in the script.
         :return: A Label.
         :raises ForbiddenVarName: Raised when we are trying to assign a forbidden name to a Variable.
         """
@@ -125,16 +125,16 @@ class Label(SimpleVar):
             logging.error(message)
             raise ForbiddenVarName(message)
 
-        position = Bytes.from_snes_address(snes_address.replace("$", "")) if snes_address else position
+        address = Bytes.from_str(snes_address.replace("$", "")) if snes_address else address
 
-        label = cls(value=position, name=name)
+        label = cls(value=address, name=name)
         logging.debug(f"Created {repr(label)}.")
         return label
 
     def to_line(self, show_address: bool = False, **kwargs: Any) -> str:
         """
         Converts a Label into the exact string which will be put in a script to declare it.
-        :param show_address: Whether the position of the label should be added. Usually added when there is a skip
+        :param show_address: Whether the address of the label should be added. Usually added when there is a skip
         happening in the script.
         :return: A script line.
         """
@@ -142,5 +142,5 @@ class Label(SimpleVar):
         if show_address:
             output += "\n"
         output += f"@{str(self)}"
-        output += f" = ${self.value.to_snes_address()}" if show_address else ""
+        output += f" = ${self.value}" if show_address else ""
         return output

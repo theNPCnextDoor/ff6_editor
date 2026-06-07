@@ -17,22 +17,22 @@ class Array(DataStructure):
     define, for example, a Menu String alongside its coordinates of the screen.
     """
 
-    def __init__(self, parts: list[Blob] | None = None, position: Bytes | None = None):
-        super().__init__(position=position)
+    def __init__(self, parts: list[Blob] | None = None, address: Bytes | None = None):
+        super().__init__(address=address)
         self.parts = parts or list()
 
     @classmethod
-    def from_line(cls, line: str, position: Bytes | None = None, variables: Variables | None = None) -> Self:
+    def from_line(cls, line: str, address: Bytes | None = None, variables: Variables | None = None) -> Self:
         """
         Converts a script line into an Array. Each part will be parsed separately.
         :param line: The script line.
-        :param position: The position of the line in the script.
+        :param address: The address of the line in the script.
         :param variables: The list of Variables that will be used to determine the value of Blobs and delimiters.
         :return: An Array.
         :raised UnrecognizedPart: Raised when a part of the Array can't be parsed into a Blob or a String.
         """
         chunks = [part.strip() for part in line.split("|")]
-        cursor = int(position)
+        cursor = int(address)
         parts = list()
 
         for i, chunk in enumerate(chunks):
@@ -43,7 +43,7 @@ class Array(DataStructure):
                     string=blob_match.group("string"),
                     string_type=blob_match.group("string_type"),
                     delimiter=blob_match.group("delimiter"),
-                    position=Bytes.from_position(cursor),
+                    address=Bytes.from_address(cursor),
                     variables=variables.simple_variables,
                 )
 
@@ -51,7 +51,7 @@ class Array(DataStructure):
                 part = Blob.from_line(
                     operand=blob_match.group("operand"),
                     delimiter=blob_match.group("delimiter"),
-                    position=Bytes.from_position(cursor),
+                    address=Bytes.from_address(cursor),
                     variables=variables,
                 )
 
@@ -63,7 +63,7 @@ class Array(DataStructure):
             parts.append(part)
             cursor += len(part)
 
-        array = cls(parts=parts, position=position)
+        array = cls(parts=parts, address=address)
         logging.debug(f"Created {repr(array)}.")
         return array
 
@@ -80,7 +80,7 @@ class Array(DataStructure):
             hexa += str(blob.operand.value)
         parts_output = ", ".join(repr(blob) for blob in self.parts)
         return (
-            f"Array(position=0x{self.position}, as_str='{str(self)}', as_bytes={bytes(self)}, as_hexa=0x{hexa}, "
+            f"Array(address=0x{self.address}, as_str='{str(self)}', as_bytes={bytes(self)}, as_hexa=0x{hexa}, "
             f"parts=[{parts_output}])"
         )
 
@@ -94,7 +94,7 @@ class Array(DataStructure):
         """
         output = f"  {self}"
         if show_address:
-            output += f" ; {self.position.to_snes_address()}"
+            output += f" ; ${self.address}"
         return output
 
     def __len__(self) -> int:

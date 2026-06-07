@@ -1,3 +1,4 @@
+map: HiROM
 @label00 = $C01234
   LDA #$1234
   STA $1337

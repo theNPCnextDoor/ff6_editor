@@ -5,12 +5,12 @@ import pytest
 from src.lib.assembly.data_structure.instruction.operand import Operand
 from src.lib.assembly.bytes import Bytes
 from src.lib.assembly.data_structure.blob import Blob
-from test.lib.assembly.conftest import TEST_BYTE, BRAVO, ALFA, VARIABLES
+from test.lib.assembly.conftest import TEST_BYTE, BRAVO, ALFA, VARIABLES, DEFAULT_ADDRESS
 
 
 class TestBlob:
     @pytest.mark.parametrize(
-        ["blob", "position", "data"],
+        ["blob", "address", "data"],
         [
             (
                 Blob(operand=Operand(Bytes([0x12, 0x34, 0x56, 0x78]))),
@@ -18,14 +18,14 @@ class TestBlob:
                 Operand(Bytes([0x12, 0x34, 0x56, 0x78])),
             ),
             (
-                Blob(operand=Operand(Bytes([0x9A, 0xBC, 0xDE, 0xF0])), position=Bytes([0x56, 0x34, 0x12])),
+                Blob(operand=Operand(Bytes([0x9A, 0xBC, 0xDE, 0xF0])), address=Bytes([0x56, 0x34, 0x12])),
                 Bytes([0x56, 0x34, 0x12]),
                 Operand(Bytes([0x9A, 0xBC, 0xDE, 0xF0])),
             ),
         ],
     )
-    def test_init(self, blob: Blob, position: Bytes, data: Bytes):
-        assert blob.position == position
+    def test_init(self, blob: Blob, address: Bytes, data: Bytes):
+        assert blob.address == address
         assert blob.operand == data
 
     @pytest.mark.parametrize(
@@ -73,14 +73,14 @@ class TestBlob:
         [
             (
                 Blob(operand=Operand(Bytes([0x12, 0x34, 0x56, 0x78]))),
-                "Blob(position=0x000000, as_str='$12345678', as_bytes=b'xV4\\x12', as_hexa=0x12345678)",
+                "Blob(address=0x000000, as_str='$12345678', as_bytes=b'xV4\\x12', as_hexa=0x12345678)",
             ),
             (
                 Blob(
                     operand=Operand(Bytes([0x12, 0x34]), variable=BRAVO),
                     delimiter=Operand(Bytes([0x12]), variable=ALFA),
                 ),
-                "Blob(position=0x000000, as_str='bravo,alfa', as_bytes=b'4\\x12\\x12', as_hexa=0x123412, operand_var=SimpleVar(name='bravo', value=0x1234), delimiter_var=SimpleVar(name='alfa', value=0x12))",
+                "Blob(address=0x000000, as_str='bravo,alfa', as_bytes=b'4\\x12\\x12', as_hexa=0x123412, operand_var=SimpleVar(name='bravo', value=0x1234), delimiter_var=SimpleVar(name='alfa', value=0x12))",
             ),
         ],
     )
@@ -91,7 +91,11 @@ class TestBlob:
         ["blob", "show_address", "expected"],
         [
             (Blob(operand=Operand(Bytes([0x12, 0x34, 0x56, 0x78]))), False, "  $12345678"),
-            (Blob(operand=Operand(Bytes([0x12, 0x34, 0x56, 0x78]))), True, "  $12345678 ; C00000"),
+            (
+                Blob(address=DEFAULT_ADDRESS, operand=Operand(Bytes([0x12, 0x34, 0x56, 0x78]))),
+                True,
+                "  $12345678 ; $C00000",
+            ),
         ],
     )
     def test_to_line(self, blob: Blob, show_address: bool, expected: str):

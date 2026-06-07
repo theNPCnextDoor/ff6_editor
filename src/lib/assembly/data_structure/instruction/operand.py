@@ -43,7 +43,7 @@ class Operand:
     def from_line(
         cls,
         value: str,
-        parent_position: Bytes | None = None,
+        parent_address: Bytes | None = None,
         operand_type: OperandType = OperandType.DEFAULT,
         variables: Variables | None = None,
     ) -> Self:
@@ -51,14 +51,14 @@ class Operand:
         Converts a string into an operand.
         :param value: The string to convert. It can represent a hexadecimal value or a variable, both encapsulated in
         the operand mode.
-        :param parent_position: The position of the instruction containing the operand.
+        :param parent_address: The address of the instruction containing the operand.
         :param operand_type: The type of the operand.
         :param variables: A list of existing variables and labels.
         :return: An operand.
         :raises NoVariableException: Raised when no variable can be found with the given name.
-        :raises ImpossibleDestination: Raised when the destination can't be reached from the parent position.
+        :raises ImpossibleDestination: Raised when the destination can't be reached from the parent address.
         """
-        parent_position = parent_position or Bytes.from_position(0)
+        parent_address = parent_address or Bytes.from_address(0)
         variables = variables or Variables()
         mode = cls._to_mode(value, operand_type)
         stripped_value = re.sub(r"[$.!#()\[\],SXY]", "", value)
@@ -67,10 +67,7 @@ class Operand:
         value_type = match[0] if match else None
 
         if value_type == "$":
-            operand = cls(value=Bytes.from_str(stripped_value), mode=mode, operand_type=operand_type)
-            if len(operand) == 3 and 0xC00000 <= int(operand.value) <= 0xFFFFFF:
-                operand.value -= 0xC00000
-            return operand
+            return cls(value=Bytes.from_str(stripped_value), mode=mode, operand_type=operand_type)
 
         variable = variables.find_by_name(stripped_value)
 
@@ -89,20 +86,18 @@ class Operand:
         else:
             length = 3
 
-        destination = variable.position
+        destination = variable.address
         if (
             length != 1
             and operand_type != OperandType.DEFAULT
-            and not cls._is_destination_possible(
-                parent_position=parent_position, destination=destination, length=length
-            )
+            and not cls._is_destination_possible(parent_address=parent_address, destination=destination, length=length)
         ):
-            message = f"Destination {repr(destination)} impossible from parent position {repr(parent_position)}."
+            message = f"Destination {repr(destination)} impossible from parent address {repr(parent_address)}."
             logging.error(message)
             raise ImpossibleDestination(message)
 
         operand_value = cls._destination_to_value(
-            parent_position=parent_position, operand_type=operand_type, length=length, destination=destination
+            parent_address=parent_address, operand_type=operand_type, length=length, destination=destination
         )
 
         operand = cls(value=operand_value, mode=mode, operand_type=operand_type, variable=variable)
@@ -115,7 +110,7 @@ class Operand:
         value: bytes,
         mode: str,
         operand_type: OperandType,
-        parent_position: Bytes,
+        parent_address: Bytes,
         variables: Variables | None = None,
     ) -> Self:
         """
@@ -124,7 +119,7 @@ class Operand:
         :param mode: The mode is used by the processor in order to understand how to interpret the data of the
         instruction.
         :param operand_type: The type of the operand.
-        :param parent_position: The position of the instruction containing the operand.
+        :param parent_address: The address of the instruction containing the operand.
         :param variables: A list of existing variables and labels.
         :return: An operand.
         """
@@ -134,13 +129,10 @@ class Operand:
         if operand_type == OperandType.DEFAULT and len(value) != 3:
             return cls(value=value, operand_type=operand_type, mode=mode)
 
-        if 0xC00000 <= int(value) <= 0xFFFFFF:
-            value -= 0xC00000
-
         operand = cls(value=value, operand_type=operand_type, mode=mode)
-        destination = operand.value_to_destination(parent_position=parent_position)
+        destination = operand.value_to_destination(parent_address=parent_address)
 
-        operand.variable = variables.find_by_position(destination)
+        operand.variable = variables.find_by_address(destination)
         if operand.variable is None:
             operand.variable = Label(destination)
 
@@ -161,23 +153,21 @@ class Operand:
 
     @staticmethod
     def _destination_to_value(
-        parent_position: Bytes, operand_type: OperandType, length: int, destination: Bytes
+        parent_address: Bytes, operand_type: OperandType, length: int, destination: Bytes
     ) -> Bytes:
         """
         Converts the destination of the operand into its value.
-        :param parent_position: The position of the DataStructure containing the Operand.
+        :param parent_address: The address of the DataStructure containing the Operand.
         :param operand_type: The type of operand in order to determine the calculation.
         :param length: The length of the operand.
-        :param destination: The target position of the operand.
+        :param destination: The target address of the operand.
         :return: The value of the operand.
         """
         if operand_type == OperandType.BRANCHING:
-            return Bytes.from_int((int(destination) - int(parent_position) - 2) % 0x0100)
+            return Bytes.from_int((int(destination) - int(parent_address) - 2) % 0x0100)
         if operand_type == OperandType.LONG_BRANCHING:
-            return Bytes.from_int(((int(destination) - int(parent_position) - 3) % 0x010000), length=2)
+            return Bytes.from_int(((int(destination) - int(parent_address) - 3) % 0x010000), length=2)
         if length == 1:
-            if 0 <= int(destination) <= 0x3FFFFF:
-                return destination[0:1] + Bytes.from_int(0xC0)
             return destination[0:1]
 
         if length == 2:
@@ -185,28 +175,28 @@ class Operand:
 
         return Bytes.from_other(destination)
 
-    def value_to_destination(self, parent_position: Bytes) -> Bytes:
+    def value_to_destination(self, parent_address: Bytes) -> Bytes:
         """
         Converts the value of the Operand into its destination.
-        :param parent_position: The position of the DataStructure containing the Operand.
+        :param parent_address: The address of the DataStructure containing the Operand.
         :return: The destination of the Operand.
         :raises UndefinedDestination: Raised when the operand type is not branching or long branching and the length of
         the length is 1 because the exact destination can't be inferred.
         """
         if self.operand_type == OperandType.BRANCHING:
-            return Bytes.from_position((int(self.value) + 0x80) % 0x0100 + int(parent_position) - 0x7E)
+            return Bytes.from_address((int(self.value) + 0x80) % 0x0100 + int(parent_address) - 0x7E)
         if self.operand_type == OperandType.LONG_BRANCHING:
-            return Bytes.from_position(
-                int(parent_position.bank()) + (int(parent_position) + int(self.value) + 3) % 0x010000
+            return Bytes.from_address(
+                int(parent_address.bank()) + (int(parent_address) + int(self.value) + 3) % 0x010000
             )
 
         if len(self) == 3:
             return self.value
         if len(self) == 2:
-            bank = parent_position.bank()
-            return Bytes.from_position(int(self.value) + bank)
+            bank = parent_address.bank()
+            return Bytes.from_address(int(self.value) + bank)
 
-        message = f"Can't find the destination. {repr(self)}, parent_position: {parent_position}"
+        message = f"Can't find the destination. {repr(self)}, parent_address: {parent_address}"
         logging.error(message)
         raise UndefinedDestination(message)
 
@@ -215,14 +205,6 @@ class Operand:
 
     def __bytes__(self) -> bytes:
         value = self.value[:]
-        if (
-            self.variable
-            and isinstance(self.variable, Label)
-            and 0 <= int(self.variable.value) <= 0x3FFFFF
-            and self.operand_type not in (OperandType.BRANCHING, OperandType.LONG_BRANCHING)
-        ):
-            if len(value) == 3:
-                value += 0xC00000
         return bytes(value)
 
     def __str__(self) -> str:
@@ -248,7 +230,7 @@ class Operand:
         return output
 
     @staticmethod
-    def _is_destination_possible(parent_position: Bytes, length: int, destination: Bytes) -> bool:
+    def _is_destination_possible(parent_address: Bytes, length: int, destination: Bytes) -> bool:
         """
         Determines if the destination can be reached.
         If the length of the operand is 3, the instruction containing the operand can jump to anywhere in the code so
@@ -257,7 +239,7 @@ class Operand:
         this function that the DataStructure containing the Operand is a branching Instruction. Therefore, it checks if
         the destination is in the immediate vicinity [-127, 129] of the Instruction.
 
-        :param parent_position: The position of the DataStructure containing the Operand.
+        :param parent_address: The address of the DataStructure containing the Operand.
         :param length: The length of the Operand.
         :param destination: The destination of the Operand.
         :return: True is the destination is reachable.
@@ -265,5 +247,5 @@ class Operand:
         if length == 3:
             return True
         if length == 2:
-            return parent_position.bank() == destination.bank()
-        return int(parent_position) - 0x7E <= int(destination) <= int(parent_position) + 0x81
+            return parent_address.bank() == destination.bank()
+        return int(parent_address) - 0x7E <= int(destination) <= int(parent_address) + 0x81

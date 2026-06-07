@@ -21,25 +21,25 @@ class Flags(Artifact):
     """
 
     def __init__(
-        self, m: int = RegisterWidth.SIXTEEN_BITS, x: int = RegisterWidth.SIXTEEN_BITS, position: Bytes | None = None
+        self, m: int = RegisterWidth.SIXTEEN_BITS, x: int = RegisterWidth.SIXTEEN_BITS, address: Bytes | None = None
     ):
         self.m = m
         self.x = x
-        self.position = position or Bytes.from_position(0)
+        self.address = address or Bytes.from_address(0)
 
     @classmethod
-    def from_line(cls, m_flag: str, x_flag: str, position: Bytes | None = None) -> Self:
+    def from_line(cls, m_flag: str, x_flag: str, address: Bytes | None = None) -> Self:
         """
         Takes a string that matches ArtifactRegex.FLAGS and will return a Flags object. It will consider either "8" or
         "true" for True and "16" or "false" for False.
         :param m_flag: Width of the accumulator. Either '8' or '16'.
         :param x_flag: Width of the X and Y registers. Either '8' or '16'.
-        :param position: Position of the Flags in the script.
+        :param address: Address of the Flags in the script.
         :return: A Flags object.
         :note: The reason that 8 and 16 are used is that it is more readable to see the width in bits of the accumulator
          and the indexes than having to convert the bool into number of bits.
         """
-        flags = cls(m=int(m_flag), x=int(x_flag), position=position)
+        flags = cls(m=int(m_flag), x=int(x_flag), address=address)
         logging.debug(f"Created {repr(flags)}.")
         return flags
 
@@ -50,7 +50,7 @@ class Flags(Artifact):
         :param flags: The original Flags object.
         :return: The new Flags object.
         """
-        return Flags(m=flags.m, x=flags.x, position=flags.position)
+        return Flags(m=flags.m, x=flags.x, address=flags.address)
 
     def __str__(self) -> str:
         m = str(self.m)
@@ -58,7 +58,7 @@ class Flags(Artifact):
         return f"m = {m}, x = {x}"
 
     def __repr__(self) -> str:
-        return f"Flags(m={self.m}, x={self.x}, position=0x{str(self.position)})"
+        return f"Flags(m={self.m}, x={self.x}, address=0x{str(self.address)})"
 
     def to_line(self, **kwargs: Any) -> str:
         """
@@ -69,4 +69,4 @@ class Flags(Artifact):
         return str(self)
 
     def __eq__(self, other: Self) -> bool:
-        return self.m == other.m and self.x == other.x and self.position == other.position
+        return self.m == other.m and self.x == other.x and self.address == other.address

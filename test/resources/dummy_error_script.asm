@@ -1,3 +1,4 @@
+map: HiROM
 m = 8, x = 16
 
 @start = $C00001

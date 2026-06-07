@@ -45,8 +45,8 @@ class TestBytes:
         ["value", "expected"],
         [(0x00, [0x00, 0x00, 0x00]), (0x1234, [0x00, 0x12, 0x34]), (0x123456, [0x12, 0x34, 0x56])],
     )
-    def test_from_position(self, value: int, expected: list[int]):
-        assert Bytes.from_position(value=value).value == expected
+    def test_from_address(self, value: int, expected: list[int]):
+        assert Bytes.from_address(value=value).value == expected
 
     @pytest.mark.parametrize(
         ["value", "expected"], [("00", [0x00]), ("12", [0x12]), ("0000", [0x00, 0x00]), ("1234", [0x12, 0x34])]
@@ -198,28 +198,6 @@ class TestBytes:
     def test_bank(self, value: list[int], expected: int):
         assert Bytes(value=value).bank() == expected
 
-    def test_bank_raises_an_error_when_not_a_position(self):
+    def test_bank_raises_an_error_when_not_an_address(self):
         with pytest.raises(AttributeError):
             Bytes([0x00]).bank()
-
-    @pytest.mark.parametrize(
-        ["address", "expected"],
-        [("C00000", [0x00, 0x00, 0x00]), ("D23456", [0x12, 0x34, 0x56]), ("7E0123", [0x7E, 0x01, 0x23])],
-    )
-    def test_from_snes_address(self, address: str, expected: list[int]):
-        assert Bytes.from_snes_address(address=address).value == expected
-
-    def test_from_snes_address_raise_error_when_not_an_address(self):
-        with pytest.raises(ValueError):
-            Bytes.from_snes_address(address="12345")
-
-    @pytest.mark.parametrize(
-        ["value", "expected"],
-        [([0x00, 0x00, 0x00], "C00000"), ([0x12, 0x34, 0x56], "D23456"), ([0x7E, 0x01, 0x23], "7E0123")],
-    )
-    def test_to_snes_address(self, value: list[int], expected: str):
-        assert Bytes(value=value).to_snes_address() == expected
-
-    def test_to_snes_address_raises_error_when_not_a_position(self):
-        with pytest.raises(AttributeError):
-            Bytes([0x00]).to_snes_address()

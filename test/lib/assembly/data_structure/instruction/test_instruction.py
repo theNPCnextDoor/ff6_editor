@@ -9,14 +9,14 @@ from src.lib.misc.exception import NoCandidateException
 from test.lib.assembly.conftest import (
     TEST_BYTE,
     TEST_WORD,
-    TEST_POSITION,
+    TEST_ADDRESS,
     VARIABLES,
     CHARLIE,
     ALFA,
     DELTA,
     BRAVO,
-    DEFAULT_POSITION,
-    pos,
+    DEFAULT_ADDRESS,
+    addr,
 )
 
 
@@ -71,14 +71,14 @@ class TestInstruction:
                 "$D23456",
                 Flags(),
                 Bytes([0x5C]),
-                [Operand(Bytes([0x12, 0x34, 0x56]), "_", OperandType.LONG_JUMPING)],
+                [Operand(Bytes([0xD2, 0x34, 0x56]), "_", OperandType.LONG_JUMPING)],
             ),
             (
                 "JML",
                 "charlie",
                 Flags(),
                 Bytes([0x5C]),
-                [Operand(TEST_POSITION, "_", OperandType.LONG_JUMPING, CHARLIE)],
+                [Operand(TEST_ADDRESS, "_", OperandType.LONG_JUMPING, CHARLIE)],
             ),
         ],
         ids=[
@@ -102,166 +102,184 @@ class TestInstruction:
         ],
     )
     def test_from_line(self, command: str, operand: str | None, flags: Flags, opcode: Bytes, operands: list[Operand]):
-        instruction = Instruction.from_line(command, TEST_POSITION, flags, operand, VARIABLES)
-        assert instruction.position == TEST_POSITION
+        instruction = Instruction.from_line(command, TEST_ADDRESS, flags, operand, VARIABLES)
+        assert instruction.address == TEST_ADDRESS
         assert instruction.opcode == opcode
         assert instruction.operands == operands
 
     @pytest.mark.parametrize(
-        ["value", "expected", "flags", "position"],
+        ["value", "expected", "flags", "address"],
         [
-            (b"\x00", Instruction(opcode=Bytes([0x00]), operands=list()), Flags(), DEFAULT_POSITION),
+            (
+                b"\x00",
+                Instruction(address=DEFAULT_ADDRESS, opcode=Bytes([0x00]), operands=list()),
+                Flags(),
+                DEFAULT_ADDRESS,
+            ),
             (
                 b"\x01\x02",
-                Instruction(opcode=Bytes([0x01]), operands=[Operand(Bytes([0x02]), "(_,X)")]),
+                Instruction(address=DEFAULT_ADDRESS, opcode=Bytes([0x01]), operands=[Operand(Bytes([0x02]), "(_,X)")]),
                 Flags(),
-                DEFAULT_POSITION,
+                DEFAULT_ADDRESS,
             ),
             (
                 b"\x09\x03\x04",
-                Instruction(opcode=Bytes([0x09]), operands=[Operand(Bytes([0x04, 0x03]), "#_")]),
+                Instruction(
+                    address=DEFAULT_ADDRESS, opcode=Bytes([0x09]), operands=[Operand(Bytes([0x04, 0x03]), "#_")]
+                ),
                 Flags(),
-                DEFAULT_POSITION,
+                DEFAULT_ADDRESS,
             ),
             (
                 b"\x09\x05",
-                Instruction(opcode=Bytes([0x09]), operands=[Operand(Bytes([0x05]), "#_")]),
+                Instruction(address=DEFAULT_ADDRESS, opcode=Bytes([0x09]), operands=[Operand(Bytes([0x05]), "#_")]),
                 Flags(m=8),
-                DEFAULT_POSITION,
+                DEFAULT_ADDRESS,
             ),
             (
                 b"\xa0\x08",
-                Instruction(opcode=Bytes([0xA0]), operands=[Operand(Bytes([0x08]), "#_")]),
+                Instruction(address=DEFAULT_ADDRESS, opcode=Bytes([0xA0]), operands=[Operand(Bytes([0x08]), "#_")]),
                 Flags(x=8),
-                DEFAULT_POSITION,
+                DEFAULT_ADDRESS,
             ),
             (
                 b"\x1f\x06\x07\xc8",
                 Instruction(
+                    address=DEFAULT_ADDRESS,
                     opcode=Bytes([0x1F]),
                     operands=[
                         Operand(
-                            Bytes([0x08, 0x07, 0x06]),
+                            Bytes([0xC8, 0x07, 0x06]),
                             "_,X",
-                            variable=Label(pos(0x080706), "label_c80706"),
+                            variable=Label(addr(0xC80706), "label_c80706"),
                         )
                     ],
                 ),
                 Flags(),
-                DEFAULT_POSITION,
+                DEFAULT_ADDRESS,
             ),
             (
                 b"\x44\x09\x0a",
                 Instruction(
-                    opcode=Bytes([0x44]), operands=[Operand(Bytes([0x09]), "#_"), Operand(Bytes([0x0A]), "#_")]
+                    address=DEFAULT_ADDRESS,
+                    opcode=Bytes([0x44]),
+                    operands=[Operand(Bytes([0x09]), "#_"), Operand(Bytes([0x0A]), "#_")],
                 ),
                 Flags(),
-                DEFAULT_POSITION,
+                DEFAULT_ADDRESS,
             ),
             (
                 b"\x80\x0b",
                 Instruction(
+                    address=DEFAULT_ADDRESS,
                     opcode=Bytes([0x80]),
-                    operands=[Operand(Bytes([0x0B]), "_", OperandType.BRANCHING, Label(pos(0x0D), "label_c0000d"))],
+                    operands=[
+                        Operand(Bytes([0x0B]), "_", OperandType.BRANCHING, Label(addr(0xC0000D), "label_c0000d"))
+                    ],
                 ),
                 Flags(),
-                DEFAULT_POSITION,
+                DEFAULT_ADDRESS,
             ),
             (
                 b"\x82\x0c\x0d",
                 Instruction(
+                    address=DEFAULT_ADDRESS,
                     opcode=Bytes([0x82]),
                     operands=[
                         Operand(
                             Bytes([0x0D, 0x0C]),
                             "_",
                             OperandType.LONG_BRANCHING,
-                            Label(pos(0x0D0F), "label_c00d0f"),
+                            Label(addr(0xC00D0F), "label_c00d0f"),
                         )
                     ],
                 ),
                 Flags(),
-                DEFAULT_POSITION,
+                DEFAULT_ADDRESS,
             ),
             (
                 b"\xdc\x0e\x0f",
                 Instruction(
+                    address=DEFAULT_ADDRESS,
                     opcode=Bytes([0xDC]),
                     operands=[
                         Operand(
                             Bytes([0x0F, 0x0E]),
                             "[_]",
                             OperandType.JUMPING,
-                            Label(pos(0x0F0E), "label_c00f0e"),
+                            Label(addr(0xC00F0E), "label_c00f0e"),
                         )
                     ],
                 ),
                 Flags(),
-                DEFAULT_POSITION,
+                DEFAULT_ADDRESS,
             ),
             (
                 b"\x22\x10\x11\xd2",
                 Instruction(
+                    address=DEFAULT_ADDRESS,
                     opcode=Bytes([0x22]),
                     operands=[
                         Operand(
-                            Bytes([0x12, 0x11, 0x10]),
+                            Bytes([0xD2, 0x11, 0x10]),
                             "_",
                             OperandType.LONG_JUMPING,
-                            Label(pos(0x121110), "label_d21110"),
+                            Label(addr(0xD21110), "label_d21110"),
                         )
                     ],
                 ),
                 Flags(),
-                DEFAULT_POSITION,
+                DEFAULT_ADDRESS,
             ),
             (
                 b"\x1f\x56\x34\xd2",
                 Instruction(
+                    address=DEFAULT_ADDRESS,
                     opcode=Bytes([0x1F]),
-                    operands=[Operand(Bytes([0x12, 0x34, 0x56]), "_,X", OperandType.DEFAULT, variable=CHARLIE)],
+                    operands=[Operand(Bytes([0xD2, 0x34, 0x56]), "_,X", OperandType.DEFAULT, variable=CHARLIE)],
                 ),
                 Flags(),
-                DEFAULT_POSITION,
+                DEFAULT_ADDRESS,
             ),
             (
                 b"\x4c\x56\x34",
                 Instruction(
                     opcode=Bytes([0x4C]),
-                    position=pos(0x120000),
+                    address=addr(0xD20000),
                     operands=[Operand(Bytes([0x34, 0x56]), "_", OperandType.JUMPING, variable=CHARLIE)],
                 ),
                 Flags(),
-                pos(0x120000),
+                addr(0xD20000),
             ),
             (
                 b"\x5c\x56\x34\xd2",
                 Instruction(
+                    address=DEFAULT_ADDRESS,
                     opcode=Bytes([0x5C]),
-                    operands=[Operand(Bytes([0x12, 0x34, 0x56]), "_", OperandType.LONG_JUMPING, variable=CHARLIE)],
+                    operands=[Operand(Bytes([0xD2, 0x34, 0x56]), "_", OperandType.LONG_JUMPING, variable=CHARLIE)],
                 ),
                 Flags(),
-                DEFAULT_POSITION,
+                DEFAULT_ADDRESS,
             ),
             (
                 b"\x80\x04",
                 Instruction(
                     opcode=Bytes([0x80]),
-                    position=pos(0x123450),
+                    address=addr(0xD23450),
                     operands=[Operand(Bytes([0x04]), "_", OperandType.BRANCHING, CHARLIE)],
                 ),
                 Flags(),
-                pos(0x123450),
+                addr(0xD23450),
             ),
             (
                 b"\x82\x03\x00",
                 Instruction(
                     opcode=Bytes([0x82]),
-                    position=pos(0x123450),
+                    address=addr(0xD23450),
                     operands=[Operand(Bytes([0x00, 0x03]), "_", OperandType.LONG_BRANCHING, CHARLIE)],
                 ),
                 Flags(),
-                pos(0x123450),
+                addr(0xD23450),
             ),
         ],
         ids=[
@@ -283,8 +301,8 @@ class TestInstruction:
             "Long jumping instruction with pre-existing label",
         ],
     )
-    def test_from_bytes(self, value: bytes, expected: Instruction, flags: Flags, position: Bytes):
-        instruction = Instruction.from_bytes(value=value, flags=flags, position=position, variables=VARIABLES)
+    def test_from_bytes(self, value: bytes, expected: Instruction, flags: Flags, address: Bytes):
+        instruction = Instruction.from_bytes(value=value, flags=flags, address=address, variables=VARIABLES)
         assert instruction == expected
 
     @pytest.mark.parametrize(
@@ -313,9 +331,9 @@ class TestInstruction:
                     opcode=Bytes([0x1F]),
                     operands=[
                         Operand(
-                            Bytes([0x08, 0x07, 0x06]),
+                            Bytes([0xC8, 0x07, 0x06]),
                             "_,X",
-                            variable=Label(pos(0x080706), "label_c80706"),
+                            variable=Label(addr(0xC80706), "label_c80706"),
                         )
                     ],
                 ),
@@ -330,7 +348,7 @@ class TestInstruction:
                 b"\x80\x0b",
                 Instruction(
                     opcode=Bytes([0x80]),
-                    operands=[Operand(Bytes([0x0B]), "_", OperandType.BRANCHING, Label(pos(0x0D), "label_c0000d"))],
+                    operands=[Operand(Bytes([0x0B]), "_", OperandType.BRANCHING, Label(addr(0x0D), "label_c0000d"))],
                 ),
             ),
             (
@@ -342,7 +360,7 @@ class TestInstruction:
                             Bytes([0x0D, 0x0C]),
                             "_",
                             OperandType.LONG_BRANCHING,
-                            Label(pos(0x0D0F), "label_c00d0f"),
+                            Label(addr(0x0D0F), "label_c00d0f"),
                         )
                     ],
                 ),
@@ -356,7 +374,7 @@ class TestInstruction:
                             Bytes([0x0F, 0x0E]),
                             "[_]",
                             OperandType.JUMPING,
-                            Label(pos(0x0F0E), "label_c00f0e"),
+                            Label(addr(0x0F0E), "label_c00f0e"),
                         )
                     ],
                 ),
@@ -370,7 +388,7 @@ class TestInstruction:
                             Bytes([0x11, 0x10]),
                             "_",
                             OperandType.LONG_JUMPING,
-                            Label(pos(0x1110), "label_c01110"),
+                            Label(addr(0x1110), "label_c01110"),
                         )
                     ],
                 ),
@@ -379,14 +397,14 @@ class TestInstruction:
                 b"\x1f\x56\x34\xd2",
                 Instruction(
                     opcode=Bytes([0x1F]),
-                    operands=[Operand(Bytes([0x12, 0x34, 0x56]), "_,X", OperandType.DEFAULT, variable=CHARLIE)],
+                    operands=[Operand(Bytes([0xD2, 0x34, 0x56]), "_,X", OperandType.DEFAULT, variable=CHARLIE)],
                 ),
             ),
             (
                 b"\x4c\x56\x34",
                 Instruction(
                     opcode=Bytes([0x4C]),
-                    position=pos(0x120000),
+                    address=addr(0x120000),
                     operands=[Operand(Bytes([0x34, 0x56]), "_", OperandType.JUMPING, variable=CHARLIE)],
                 ),
             ),
@@ -394,14 +412,14 @@ class TestInstruction:
                 b"\x5c\x56\x34\xd2",
                 Instruction(
                     opcode=Bytes([0x5C]),
-                    operands=[Operand(Bytes([0x12, 0x34, 0x56]), "_", OperandType.LONG_JUMPING, variable=CHARLIE)],
+                    operands=[Operand(Bytes([0xD2, 0x34, 0x56]), "_", OperandType.LONG_JUMPING, variable=CHARLIE)],
                 ),
             ),
             (
                 b"\x80\x04",
                 Instruction(
                     opcode=Bytes([0x80]),
-                    position=pos(0x123450),
+                    address=addr(0x123450),
                     operands=[Operand(Bytes([0x04]), "_", OperandType.BRANCHING, CHARLIE)],
                 ),
             ),
@@ -409,7 +427,7 @@ class TestInstruction:
                 b"\x82\x03\x00",
                 Instruction(
                     opcode=Bytes([0x82]),
-                    position=pos(0x123450),
+                    address=addr(0x123450),
                     operands=[Operand(Bytes([0x00, 0x03]), "_", OperandType.LONG_BRANCHING, CHARLIE)],
                 ),
             ),
@@ -619,12 +637,12 @@ class TestInstruction:
             ),
             (
                 "JML $D23456",
-                Instruction(opcode=Bytes([0x5C]), operands=[Operand(TEST_POSITION, "_", OperandType.LONG_JUMPING)]),
+                Instruction(opcode=Bytes([0x5C]), operands=[Operand(TEST_ADDRESS, "_", OperandType.LONG_JUMPING)]),
             ),
             (
                 "JML charlie",
                 Instruction(
-                    opcode=Bytes([0x5C]), operands=[Operand(TEST_POSITION, "_", OperandType.LONG_JUMPING, CHARLIE)]
+                    opcode=Bytes([0x5C]), operands=[Operand(TEST_ADDRESS, "_", OperandType.LONG_JUMPING, CHARLIE)]
                 ),
             ),
         ],
@@ -655,19 +673,19 @@ class TestInstruction:
         ["expected", "instruction"],
         [
             (
-                "Instruction(position=0x000000, as_str='BRK', as_bytes=b'\\x00', as_hexa=0x00)",
+                "Instruction(address=0x000000, as_str='BRK', as_bytes=b'\\x00', as_hexa=0x00)",
                 Instruction(opcode=Bytes([0x00])),
             ),
             (
-                "Instruction(position=0x000000, as_str='COP #$FF', as_bytes=b'\\x02\\xff', as_hexa=0x02FF)",
+                "Instruction(address=0x000000, as_str='COP #$FF', as_bytes=b'\\x02\\xff', as_hexa=0x02FF)",
                 Instruction(opcode=Bytes([0x02]), operands=[Operand(Bytes([0xFF]), "#_")]),
             ),
             (
-                "Instruction(position=0x000000, as_str='COP #alfa', as_bytes=b'\\x02\\x12', as_hexa=0x0212, operand_var_1=SimpleVar(name='alfa', value=0x12))",
+                "Instruction(address=0x000000, as_str='COP #alfa', as_bytes=b'\\x02\\x12', as_hexa=0x0212, operand_var_1=SimpleVar(name='alfa', value=0x12))",
                 Instruction(opcode=Bytes([0x02]), operands=[Operand(TEST_BYTE, "#_", OperandType.DEFAULT, ALFA)]),
             ),
             (
-                "Instruction(position=0x000000, as_str='MVP #.charlie,#delta', as_bytes=b'D\\xd2\\x00', as_hexa=0x44D200, operand_var_1=Label(name='charlie', value=0x123456), operand_var_2=SimpleVar(name='delta', value=0x00))",
+                "Instruction(address=0x000000, as_str='MVP #.charlie,#delta', as_bytes=b'D\\xd2\\x00', as_hexa=0x44D200, operand_var_1=Label(name='charlie', value=0xD23456), operand_var_2=SimpleVar(name='delta', value=0x00))",
                 Instruction(
                     opcode=Bytes([0x44]),
                     operands=[
@@ -699,14 +717,20 @@ class TestInstruction:
                 False,
                 "  MVP #$12,#$34",
             ),
-            (Instruction(opcode=Bytes([0xAA])), True, "  TAX ; C00000"),
-            (Instruction(opcode=Bytes([0xA9]), operands=[Operand(TEST_WORD, "#_")]), True, "  LDA #$1234 ; C00000"),
+            (Instruction(address=DEFAULT_ADDRESS, opcode=Bytes([0xAA])), True, "  TAX ; $C00000"),
+            (
+                Instruction(address=DEFAULT_ADDRESS, opcode=Bytes([0xA9]), operands=[Operand(TEST_WORD, "#_")]),
+                True,
+                "  LDA #$1234 ; $C00000",
+            ),
             (
                 Instruction(
-                    opcode=Bytes([0x44]), operands=[Operand(TEST_BYTE, "#_"), Operand(Bytes.from_int(0x34), "#_")]
+                    address=DEFAULT_ADDRESS,
+                    opcode=Bytes([0x44]),
+                    operands=[Operand(TEST_BYTE, "#_"), Operand(Bytes.from_int(0x34), "#_")],
                 ),
                 True,
-                "  MVP #$12,#$34 ; C00000",
+                "  MVP #$12,#$34 ; $C00000",
             ),
         ],
     )

@@ -16,8 +16,8 @@ class Blob(DataStructure):
     when the Blob ends.
     """
 
-    def __init__(self, operand: Operand, position: Bytes | None = None, delimiter: Operand | None = None):
-        super().__init__(position=position)
+    def __init__(self, operand: Operand, address: Bytes | None = None, delimiter: Operand | None = None):
+        super().__init__(address=address)
         self.operand = operand
         self.delimiter = delimiter
 
@@ -26,7 +26,7 @@ class Blob(DataStructure):
         cls,
         operand: str,
         delimiter: str | None = None,
-        position: Bytes | None = None,
+        address: Bytes | None = None,
         variables: Variables | None = None,
     ) -> Self:
         """
@@ -34,15 +34,15 @@ class Blob(DataStructure):
         :param operand: The actual blob part in the script line.
         :param delimiter: The part of the script line that defines the byte used to let the game know that the Blob
         ended.
-        :param position: The position of the Blob.
+        :param address: The address of the Blob.
         :param variables: The list of Variables. Both SimpleVars and Labels can be used to define a Blob value, but only
         the former can be used for the delimiter.
         :return: A Blob.
         :raised DelimiterLengthError: Raised when the length of the delimiter is not 1.
         """
-        _operand = Operand.from_line(operand, position, OperandType.DEFAULT, variables)
+        _operand = Operand.from_line(operand, address, OperandType.DEFAULT, variables)
         _delimiter = (
-            Operand.from_line(delimiter, position, OperandType.DEFAULT, variables.simple_variables)
+            Operand.from_line(delimiter, address, OperandType.DEFAULT, variables.simple_variables)
             if delimiter
             else None
         )
@@ -52,16 +52,16 @@ class Blob(DataStructure):
             logging.error(message)
             raise DelimiterLengthError(message)
 
-        blob = cls(position=position, operand=_operand, delimiter=_delimiter)
+        blob = cls(address=address, operand=_operand, delimiter=_delimiter)
         logging.debug(f"Created {repr(blob)}.")
         return blob
 
     @classmethod
-    def from_bytes(cls, data: bytes, position: Bytes | None = None, delimiter: bytes | None = None) -> Self:
+    def from_bytes(cls, data: bytes, address: Bytes | None = None, delimiter: bytes | None = None) -> Self:
         """
         Converts bytes into a Blob.
         :param data: The bytes defining the Blob.
-        :param position: The position of the Blob.
+        :param address: The address of the Blob.
         :param delimiter: The byte used to determine the end of the Blob.
         :return: A Blob.
         """
@@ -69,7 +69,7 @@ class Blob(DataStructure):
         if delimiter is not None:
             delimiter = Operand(Bytes.from_bytes(delimiter))
 
-        blob = Blob(position=position, operand=data, delimiter=delimiter)
+        blob = Blob(address=address, operand=data, delimiter=delimiter)
         logging.debug(f"Created {repr(blob)}.")
         return blob
 
@@ -81,7 +81,7 @@ class Blob(DataStructure):
 
     def __repr__(self) -> str:
         hexa = str(self.operand.value) + (str(self.delimiter.value) if self.delimiter else "")
-        output = f"Blob(position=0x{self.position}, as_str='{str(self)}', as_bytes={bytes(self)}, as_hexa=0x{hexa}"
+        output = f"Blob(address=0x{self.address}, as_str='{str(self)}', as_bytes={bytes(self)}, as_hexa=0x{hexa}"
         if self.operand.variable:
             output += f", operand_var={repr(self.operand.variable)}"
         if self.delimiter and self.delimiter.variable:
@@ -92,13 +92,13 @@ class Blob(DataStructure):
     def to_line(self, show_address: bool = False, **kwargs: Any) -> str:
         """
         Converts a Blob into a script line.
-        :param show_address: Whether the position of the Blob will be added
+        :param show_address: Whether the address of the Blob will be added.
         :param kwargs: Unused. Added to prevent errors.
         :return: A script line.
         """
         output = f"  {self}"
         if show_address:
-            output += f" ; {self.position.to_snes_address()}"
+            output += f" ; ${self.address}"
         return output
 
     def __len__(self) -> int:
@@ -113,7 +113,7 @@ class Blob(DataStructure):
         return output
 
     def __eq__(self, other: Self) -> bool:
-        return self.position == other.position and self.operand == other.operand and self.delimiter == other.delimiter
+        return self.address == other.address and self.operand == other.operand and self.delimiter == other.delimiter
 
     @classmethod
     def find_length(cls, operand: str, variables: Variables, delimiter: str | None = None) -> int:

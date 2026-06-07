@@ -19,10 +19,10 @@ class Pointer(DataStructure):
     def __init__(
         self,
         operand: Operand,
-        position: Bytes | None = None,
+        address: Bytes | None = None,
         anchor: Operand | None = None,
     ):
-        super().__init__(position=position)
+        super().__init__(address=address)
         self.anchor = anchor
         self.operand = operand
 
@@ -40,26 +40,26 @@ class Pointer(DataStructure):
         if self.operand.variable:
             return self.operand.variable.value
         if self.anchor:
-            return Bytes.from_position(int(self.anchor.value) + int(self.operand.value))
-        return Bytes.from_position(self.position.bank() + int(self.operand.value))
+            return Bytes.from_address(int(self.anchor.value) + int(self.operand.value))
+        return Bytes.from_address(self.address.bank() + int(self.operand.value))
 
     @classmethod
     def from_line(
-        cls, operand: str, position: Bytes, anchor: Operand | None = None, labels: Variables | None = None
+        cls, operand: str, address: Bytes, anchor: Operand | None = None, labels: Variables | None = None
     ) -> Self:
         """
         Converts a script line into a Pointer.
         :param operand: The destination of the pointer as a word (2-bytes object).
-        :param position: The position of the Pointer.
+        :param address: The address of the Pointer.
         :param labels: A list of labels used to determine the destination.
         :param anchor: The address from which the game derives the destination.
         :return: A Pointer.
-        :raises ImpossibleDestination: Raised when the destination can't be reached from either the Pointer's position
+        :raises ImpossibleDestination: Raised when the destination can't be reached from either the Pointer's address
         or its anchor, when it exists.
         """
-        parent_position = anchor.value if anchor else Bytes.from_position(position.bank())
+        parent_address = anchor.value if anchor else Bytes.from_address(address.bank())
         _operand = Operand.from_line(
-            value=operand, parent_position=parent_position, operand_type=OperandType.DEFAULT, variables=labels
+            value=operand, parent_address=parent_address, operand_type=OperandType.DEFAULT, variables=labels
         )
 
         if anchor and _operand.variable:
@@ -68,34 +68,34 @@ class Pointer(DataStructure):
         if _operand.variable:
             destination = _operand.variable.value
         elif anchor:
-            destination = Bytes.from_position(int(anchor.value) + int(_operand.value))
+            destination = Bytes.from_address(int(anchor.value) + int(_operand.value))
         else:
-            destination = Bytes.from_position(int(position.bank()) + int(_operand.value))
+            destination = Bytes.from_address(int(address.bank()) + int(_operand.value))
 
-        if destination < parent_position or destination.bank() != parent_position.bank():
+        if destination < parent_address or destination.bank() != parent_address.bank():
             message = (
-                f"Destination '{destination.to_snes_address()}' can't be reached with pointer's"
-                f" {'anchor' if anchor else 'position'} at '{parent_position.to_snes_address()}'. "
+                f"Destination '{destination}' can't be reached with pointer's"
+                f" {'anchor' if anchor else 'address'} at '{parent_address}'. "
             )
             logging.error(message)
             raise ImpossibleDestination(message)
 
-        pointer = cls(position=position, operand=_operand, anchor=anchor)
+        pointer = cls(address=address, operand=_operand, anchor=anchor)
         logging.debug(f"Created {repr(pointer)}.")
         return pointer
 
     @classmethod
-    def from_bytes(cls, value: bytes, position: Bytes, anchor: Bytes | None = None) -> Self:
+    def from_bytes(cls, value: bytes, address: Bytes, anchor: Bytes | None = None) -> Self:
         """
         Converts bytes into a Pointer.
         :param value: The bytes representing the data of the Pointer.
-        :param position: The position of the Pointer.
+        :param address: The address of the Pointer.
         :param anchor: The address from which the game derives the destination.
         :return: A Pointer.
         """
         operand = Operand(Bytes.from_bytes(value))
 
-        pointer = Pointer(position=position, operand=operand, anchor=anchor)
+        pointer = Pointer(address=address, operand=operand, anchor=anchor)
         logging.debug(f"Created {repr(pointer)}.")
         return pointer
 
@@ -104,7 +104,7 @@ class Pointer(DataStructure):
     ) -> str:
         """
         Converts a Pointer into a script line.
-        :param show_address: When True, will add the Pointer's position as a comment.
+        :param show_address: When True, will add the Pointer's address as a comment.
         :param labels: A list of labels in order to represent the destination as a label and not a SNES address.
         :param current_anchor: If the Pointer is relative and the current_anchor is different from the Pointer's one,
          an anchor line will be prepended to the output.
@@ -114,20 +114,20 @@ class Pointer(DataStructure):
         anchor_label = None
 
         if labels and self.anchor:
-            anchor_label = labels.find_by_position(self.anchor.value)
+            anchor_label = labels.find_by_address(self.anchor.value)
 
         if self.is_relative and current_anchor and current_anchor != self.anchor:
             output += "\n#"
-            output += f"{anchor_label.name}" if anchor_label else f"${self.anchor.value.to_snes_address()}"
+            output += f"{anchor_label.name}" if anchor_label else f"${self.anchor.value}"
             output += "\n"
 
         output += f"  {'r' if self.is_relative else ''}ptr {str(self.operand)}"
-        output += f" ; {self.position.to_snes_address()}" if show_address else ""
+        output += f" ; {self.address}" if show_address else ""
 
         return output
 
     def __eq__(self, other: Self) -> bool:
-        return self.position == other.position and self.operand == other.operand and self.anchor == other.anchor
+        return self.address == other.address and self.operand == other.operand and self.anchor == other.anchor
 
     def __bytes__(self) -> bytes:
         return bytes(self.operand)
@@ -138,7 +138,7 @@ class Pointer(DataStructure):
     def __repr__(self) -> str:
         output = (
             "Pointer("
-            f"position=0x{self.position}, "
+            f"address=0x{self.address}, "
             f"as_str='{str(self)}', "
             f"as_bytes={bytes(self)}, "
             f"as_hexa=0x{str(self.operand.value)}, "

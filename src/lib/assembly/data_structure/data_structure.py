@@ -6,11 +6,11 @@ from abc import ABC, abstractmethod
 
 
 class DataStructure(ABC):
-    def __init__(self, position: Bytes | None = None):
-        self.position = position if position is not None else Bytes.from_position(0)
+    def __init__(self, address: Bytes | None = None):
+        self.address = address if address is not None else Bytes.from_address(0)
 
     def __eq__(self, other: Self) -> bool:
-        return self.position == other.position
+        return self.address == other.address
 
     @classmethod
     @abstractmethod
