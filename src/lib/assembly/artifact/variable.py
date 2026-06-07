@@ -7,7 +7,7 @@ from src.lib.assembly.bytes import Bytes
 from src.lib.misc.exception import ForbiddenVarName, VariableLengthMismatch
 
 VAR_LENGTH = {"b": 1, "w": 2}
-FORBIDDEN_NAMES = ["db", "desc", "dw", "m", "ptr", "rptr", "x"]
+FORBIDDEN_NAMES = ["db", "desc", "dw", "m", "map", "ptr", "rptr", "x"]
 
 
 class Variable(Artifact, ABC):

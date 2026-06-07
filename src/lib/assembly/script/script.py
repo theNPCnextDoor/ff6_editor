@@ -5,7 +5,7 @@ import re
 from pathlib import Path
 from typing import Self, BinaryIO
 
-from src.lib.assembly.artifact.memory_map import MemoryMap
+from src.lib.assembly.artifact.memory_map import MemoryMap, AreaTypes
 from src.lib.assembly.artifact.variable import Label, SimpleVar
 from src.lib.assembly.artifact.variables import Variables
 from src.lib.assembly.data_structure.instruction.operand import Operand
@@ -17,6 +17,7 @@ from src.lib.misc.exception import (
     UnrecognizedSubsectionMode,
     UndefinedFlags,
     MismatchedMappingModes,
+    IllegalAddress,
 )
 from src.lib.assembly.data_structure.blob import Blob
 from src.lib.assembly.data_structure.array import Array
@@ -56,10 +57,10 @@ class Script:
             cursor = script._preparse_line(line, cursor)
         script._parse_lines()
 
-        script._detect_conflicts()
+        script._detect_anomalies()
         return script
 
-    def _detect_conflicts(self):
+    def _detect_anomalies(self):
         """
         Checks if any data structure address conflicts with another.
         :return: None.
@@ -85,6 +86,24 @@ class Script:
                 logging.error(message)
                 raise LineConflict(message)
 
+        for component in self.data_structures():
+            if not self._is_data_structure_in_rom_area(component):
+                message = (
+                    f"Illegal address for Anchor {repr(component)}. Allowed address: {self.memory_map.mapping_mode.rom}"
+                )
+                logging.error(message)
+                raise IllegalAddress(message)
+
+        if not self.memory_map.mapping_mode.invalid:
+            return
+
+        for component in self._get_components(LineType.LABEL, LineType.FLAGS):
+            address = component.address if hasattr(component, "address") else component.parent_address
+            if component and self.memory_map.is_in_area_type(address, AreaTypes.INVALID):
+                message = f"Illegal address for {repr(component)}. Allowed address: {self.memory_map.mapping_mode.rom}"
+                logging.error(message)
+                raise IllegalAddress(message)
+
     def dump(self, filename: str | Path, debug: bool = False) -> None:
         """
         Dumps a script into a text file.
@@ -98,7 +117,7 @@ class Script:
         output = []
 
         cursor = 0
-        current_anchor = Operand(Bytes.from_int(0))
+        current_anchor = Operand(Bytes.from_address(0))
 
         first_component = self.data_structures()[0]
         flags = Flags(m=RegisterWidth.INVALID, x=RegisterWidth.INVALID)
@@ -245,7 +264,7 @@ class Script:
 
         for line in self.lines:
             logging.info(f"Parsing {repr(line)}.")
-            address = Bytes.from_address(line.address)
+            address = line.address
 
             if line.component_info in (LineType.MEMORY_MAP, LineType.VARIABLE_DECLARATION, LineType.LABEL):
                 continue
@@ -304,7 +323,7 @@ class Script:
         if line.address is not None:
             cursor = line.address
 
-        cleaned_line = line.clean_line if isinstance(line, Line) else line
+        cleaned_line = line.clean_line  # if isinstance(line, Line) else line
 
         if match := re.fullmatch(ArtifactRegex.MEMORY_MAP, cleaned_line):
             memory_map = MemoryMap.from_line(match.group("mapping_mode"))
@@ -315,7 +334,7 @@ class Script:
                 )
                 logging.error(message)
                 raise MismatchedMappingModes(message)
-            line.address = 0
+            line.address = Bytes.from_address(0)
             line.component = memory_map
             line.component_info = LineType.MEMORY_MAP
             self.memory_map = memory_map
@@ -326,10 +345,10 @@ class Script:
                 length=match.group("length"), name=match.group("name"), operand=match.group("operand")
             )
             line.component_info = LineType.VARIABLE_DECLARATION
-            line.address = 0
+            line.address = Bytes.from_address(0)
+            return cursor
 
-        if isinstance(line, Line):
-            line.address = cursor
+        line.address = Bytes.from_address(cursor)
 
         if match := re.fullmatch(ArtifactRegex.LABEL, cleaned_line):
             label = Label.from_line(
@@ -339,7 +358,6 @@ class Script:
             logging.debug(f"Cursor set at 0x{Bytes.from_address(cursor)}.")
             line.component_info = LineType.LABEL
             line.component = label
-            line.address = cursor
 
         elif match := re.fullmatch(ArtifactRegex.ANCHOR, cleaned_line):
             line.component_info = LineType.ANCHOR
@@ -370,13 +388,17 @@ class Script:
                 command=match.group("command"), operand=match.group("operand"), variables=self.variables()
             )
             line.component_info = LineType.INSTRUCTION
+        else:
+            raw_line = line.raw_line.strip("\n")
+            message = f"Line '{raw_line}' in file '{line.filename}' is not recognized."
+            logging.error(message)
+            raise UnrecognizedLine(message)
 
-        if isinstance(line, Line):
-            if match:
-                line.regex_groups = {
-                    group: match.group(group) if line.component_info.regex_groups else None
-                    for group in line.component_info.regex_groups
-                }
+        if match:
+            line.regex_groups = {
+                group: match.group(group) if line.component_info.regex_groups else None
+                for group in line.component_info.regex_groups
+            }
 
         return cursor
 
@@ -610,3 +632,23 @@ class Script:
         :return: A list of Components.
         """
         return [line.component for line in self.lines if line.component_info in component_infos]
+
+    def _is_data_structure_in_rom_area(self, data_structure: DataStructure) -> bool:
+        """
+        Determines if the entirety of the DataStructure is inside the ROM area in the MemoryMap. Also,
+        if the DataStructure is a relative Pointer, it will do the same for the
+        :param data_structure: A DataStructure.
+        :return: True if the DataStructure and its anchor, if applicable, are contained within the ROM area.
+        """
+        first_byte = data_structure.address
+        last_byte = Bytes.from_address(int(data_structure.address) + len(data_structure) - 1)
+        for address in first_byte, last_byte:
+            if not self.memory_map.is_in_area_type(address, AreaTypes.ROM):
+                return False
+        if (
+            isinstance(data_structure, Pointer)
+            and data_structure.anchor
+            and not self.memory_map.is_in_area_type(data_structure.anchor.value, AreaTypes.ROM)
+        ):
+            return False
+        return True

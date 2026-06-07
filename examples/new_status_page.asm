@@ -4,6 +4,8 @@
 ; Also, pressing Y will alternate between total XP and XP needed for level up,
 ; which is represented by the "↑" character.
 
+map: HiROM
+
 m = 8, x = 16
 
 db palette_addr = $29

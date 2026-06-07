@@ -2,6 +2,8 @@
 ; when Shadow makes one, he deals 300% damage instead of the usual
 ; 200%.
 
+map: HiROM
+
 m = 8, x = 8
 
 db shadow_id = $03

@@ -163,7 +163,7 @@ class MemoryMap(Artifact):
         """
         return str(self)
 
-    def _is_in_area_type(self, address: Bytes, area_type: str) -> bool:
+    def is_in_area_type(self, address: Bytes, area_type: str) -> bool:
         """
         Determines if an address is contained in any of the Areas of the AreaType.
         :param address: An address, as a Bytes object.
@@ -185,7 +185,7 @@ class MemoryMap(Artifact):
         """
         area_type = area_type or "rom"
         areas = getattr(self.mapping_mode, area_type)
-        if not self._is_in_area_type(address, area_type):
+        if not self.is_in_area_type(address, area_type):
             message = f"Illegal {area_type.upper()} address 0x{address}. Allowed addresses: {areas}."
             logging.error(message)
             raise IllegalAddress(message)

@@ -142,7 +142,7 @@ class Line:
     filename: str | Path | None = None
     raw_line: str | None = None
     clean_line: str | None = None
-    address: int | None = None
+    address: Bytes | None = None
     component_info: ComponentInfo | None = None
     regex_groups: dict[str, str | None] | None = None
     component: Component | None = None

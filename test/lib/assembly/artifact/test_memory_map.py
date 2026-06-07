@@ -103,7 +103,7 @@ class TestMemoryMap:
 
     @pytest.mark.parametrize(["address", "expected"], [(addr(0x3F2000), False), (addr(0x7E0001), True)])
     def test_is_in_area_type(self, address: Bytes, expected: bool):
-        assert MEMORY_MAP._is_in_area_type(address, "low_ram") is expected
+        assert MEMORY_MAP.is_in_area_type(address, "low_ram") is expected
 
     @pytest.mark.parametrize(
         ["address", "rom_position"],

@@ -13,7 +13,7 @@ from src.lib.assembly.data_structure.instruction.operand import Operand, Operand
 from src.lib.assembly.data_structure.pointer import Pointer
 from src.lib.assembly.data_structure.string.charset import MENU_CHARSET, Charset, DESCRIPTION_CHARSET
 from src.lib.assembly.data_structure.string.string import String, StringTypes
-from src.lib.assembly.script.helpers import ScriptMode, ScriptSection, SubSection, Line, LineType
+from src.lib.assembly.script.helpers import ScriptMode, ScriptSection, SubSection, Line, LineType, Component
 from src.lib.assembly.script.script import (
     Script,
 )
@@ -685,9 +685,8 @@ class TestScript:
         assert output[0x123457:0x12345B] == b"\x22\x05\x00\xc0"  # JSL archie
 
     def test_parse_raises_error_when_illegal_address(self):
-        script = Script.parse(ILLEGAL_ADDRESS)
         with pytest.raises(IllegalAddress):
-            script.assemble(DUMMY_OUTPUT_ROM)
+            Script.parse(ILLEGAL_ADDRESS)
 
     def test_disassemble(self):
         sections = [
@@ -860,3 +859,20 @@ m = 8, x = 16
 m = 16, x = 16
   JSL archie"""
         )
+
+    @pytest.mark.parametrize(
+        ["component", "expected"],
+        [
+            (Instruction(address=addr(0x400000), opcode=Bytes([0x00])), False),
+            (Instruction(address=addr(0x3FFFFF), opcode=Bytes([0x00])), True),
+            (Pointer(address=addr(0x3FFFFF), operand=Operand(Bytes([0x00, 0x00]))), True),
+            (Pointer(address=addr(0x400000), operand=Operand(Bytes([0x00, 0x00]))), False),
+            (
+                Pointer(address=addr(0x3FFFFF), operand=Operand(Bytes([0x00, 0x00])), anchor=Operand(addr(0x400000))),
+                False,
+            ),
+        ],
+    )
+    def test_is_component_in_rom_area(self, component: Component, expected: bool):
+        script = Script()
+        script.memory_map = MemoryMap(MappingModes.HI_ROM)
