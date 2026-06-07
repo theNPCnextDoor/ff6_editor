@@ -3,7 +3,7 @@ import pytest
 from src.lib.assembly.bytes import Bytes
 from src.lib.assembly.artifact.variable import SimpleVar, Label, Variable
 from src.lib.misc.exception import ForbiddenVarName, VariableLengthMismatch
-from test.lib.assembly.conftest import ALFA, BRAVO, CHARLIE, ECHO, pos
+from test.lib.assembly.conftest import ALFA, BRAVO, CHARLIE, ECHO, addr
 
 
 class TestVariable:
@@ -15,7 +15,7 @@ class TestVariable:
         ["variable", "expected"],
         [
             (ALFA, "SimpleVar(name='alfa', value=0x12)"),
-            (CHARLIE, "Label(name='charlie', value=0x123456)"),
+            (CHARLIE, "Label(name='charlie', value=0xD23456)"),
             (ECHO, "Label(name='echo', value=0x7E0123)"),
         ],
     )
@@ -26,7 +26,7 @@ class TestVariable:
         ["left", "right", "expected"],
         [
             (ALFA, SimpleVar(Bytes.from_int(0x12), "alfa"), True),
-            (CHARLIE, Label(pos(0x123456), "charlie"), True),
+            (CHARLIE, Label(addr(0xD23456), "charlie"), True),
             (ALFA, SimpleVar(Bytes.from_int(0x13), "alfa"), False),
             (ALFA, SimpleVar(Bytes.from_int(0x12), "alfo"), False),
             (ALFA, None, False),
@@ -80,25 +80,25 @@ class TestLabel:
     @pytest.mark.parametrize(
         ["label", "expected"],
         [
-            (Label(pos(0x111222)), "label_d11222"),
-            (Label(pos(0x7E1222)), "label_7e1222"),
-            (Label(pos(0x111222), "with_name"), "with_name"),
+            (Label(addr(0x111222)), "label_111222"),
+            (Label(addr(0x7E1222)), "label_7e1222"),
+            (Label(addr(0x111222), "with_name"), "with_name"),
         ],
     )
     def test_init(self, label: Label, expected: str):
         assert label.name == expected
 
     @pytest.mark.parametrize(
-        ["name", "snes_address", "position", "label"],
+        ["name", "snes_address", "address", "label"],
         [
-            ("golf", None, pos(0x123456), Label(pos(0x123456), "golf")),
-            ("hotel", "$C3FFFF", None, Label(pos(0x03FFFF), "hotel")),
-            ("india", "$7E4455", None, Label(pos(0x7E4455), "india")),
-            ("juliett", None, pos(0x7E3690), Label(pos(0x7E3690), "juliett")),
+            ("golf", None, addr(0x123456), Label(addr(0x123456), "golf")),
+            ("hotel", "$C3FFFF", None, Label(addr(0xC3FFFF), "hotel")),
+            ("india", "$7E4455", None, Label(addr(0x7E4455), "india")),
+            ("juliett", None, addr(0x7E3690), Label(addr(0x7E3690), "juliett")),
         ],
     )
-    def test_from_line(self, name: str, snes_address: str | None, position: Bytes | None, label: Label):
-        assert Label.from_line(name, snes_address, position) == label
+    def test_from_line(self, name: str, snes_address: str | None, address: Bytes | None, label: Label):
+        assert Label.from_line(name, snes_address, address) == label
 
     @pytest.mark.parametrize(
         "name",

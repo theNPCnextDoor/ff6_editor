@@ -1,3 +1,4 @@
+map: HiROM
 m = 16, x = 16
 @label00 = $C01234
   LDA #$1234

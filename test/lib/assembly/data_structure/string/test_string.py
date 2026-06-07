@@ -4,6 +4,7 @@ from src.lib.assembly.artifact.variable import SimpleVar
 from src.lib.assembly.data_structure.instruction.operand import Operand
 from src.lib.assembly.data_structure.string.string import String
 from src.lib.assembly.bytes import Bytes
+from test.lib.assembly.conftest import DEFAULT_ADDRESS
 
 
 class TestString:
@@ -67,14 +68,14 @@ class TestString:
         [
             (
                 String(operand=Operand(Bytes([0x00, 0x80, 0xD8, 0xEB, 0xFF]))),
-                "String(position=0x000000, as_str='\"<0x00>A<KNIFE><0xEB>_\"', as_bytes=b'\\xff\\xeb\\xd8\\x80\\x00', as_hexa=0x0080D8EBFF)",
+                "String(address=0x000000, as_str='\"<0x00>A<KNIFE><0xEB>_\"', as_bytes=b'\\xff\\xeb\\xd8\\x80\\x00', as_hexa=0x0080D8EBFF)",
             ),
             (
                 String(
                     operand=Operand(Bytes([0x80, 0x81, 0x82])),
                     delimiter=Operand(Bytes.from_int(0), variable=SimpleVar(Bytes.from_int(0), "zero")),
                 ),
-                "String(position=0x000000, as_str='\"ABC\",zero', as_bytes=b'\\x82\\x81\\x80\\x00', as_hexa=0x80818200, delimiter_var=SimpleVar(name='zero', value=0x00))",
+                "String(address=0x000000, as_str='\"ABC\",zero', as_bytes=b'\\x82\\x81\\x80\\x00', as_hexa=0x80818200, delimiter_var=SimpleVar(name='zero', value=0x00))",
             ),
         ],
     )
@@ -86,9 +87,9 @@ class TestString:
         [
             (String(operand=Operand(Bytes([0x00, 0x80, 0xD8, 0xEB, 0xFF]))), False, '  "<0x00>A<KNIFE><0xEB>_"'),
             (
-                String(operand=Operand(Bytes([0x00, 0x80, 0xD8, 0xEB, 0xFF]))),
+                String(address=DEFAULT_ADDRESS, operand=Operand(Bytes([0x00, 0x80, 0xD8, 0xEB, 0xFF]))),
                 True,
-                '  "<0x00>A<KNIFE><0xEB>_" ; C00000',
+                '  "<0x00>A<KNIFE><0xEB>_" ; $C00000',
             ),
             (
                 String(operand=Operand(Bytes([0x00, 0x80, 0xD8, 0xEB, 0xFF])), delimiter=Operand(Bytes([0x00]))),
@@ -96,9 +97,13 @@ class TestString:
                 '  "<0x00>A<KNIFE><0xEB>_",$00',
             ),
             (
-                String(operand=Operand(Bytes([0x00, 0x80, 0xD8, 0xEB, 0xFF])), delimiter=Operand(Bytes([0xFF]))),
+                String(
+                    address=DEFAULT_ADDRESS,
+                    operand=Operand(Bytes([0x00, 0x80, 0xD8, 0xEB, 0xFF])),
+                    delimiter=Operand(Bytes([0xFF])),
+                ),
                 True,
-                '  "<0x00>A<KNIFE><0xEB>_",$FF ; C00000',
+                '  "<0x00>A<KNIFE><0xEB>_",$FF ; $C00000',
             ),
         ],
     )

@@ -34,16 +34,16 @@ class Variables:
 
     def _detect_conflicts(self, variable: Variable) -> None:
         """
-        If the variable is a Label, checks first if the position it represents is also represented by another label.
+        If the variable is a Label, checks first if the address it represents is also represented by another label.
         Then, checks if the name of the variable already exists.
         :param variable: The variable to be inserted in the list.
         :return: None.
         :raises VariableConflict: Raised when a conflict is detected.
         """
-        if isinstance(variable, Label) and (label := self.find_by_position(variable.value)):
+        if isinstance(variable, Label) and (label := self.find_by_address(variable.value)):
             message = (
-                f"Position conflict. Labels '{variable.name}' and '{label.name}', both with "
-                f"position {repr(variable.value)} already exists."
+                f"Address conflict. Labels '{variable.name}' and '{label.name}', both with "
+                f"address {repr(variable.value)} already exists."
             )
             logging.error(message)
             raise VariableConflict(message)
@@ -64,20 +64,20 @@ class Variables:
                 return variable
         return None
 
-    def find_by_position(self, position: Bytes) -> Label | None:
+    def find_by_address(self, address: Bytes) -> Label | None:
         """
-        Return the label by its position.
-        :param position: The position of the label.
+        Return the label by its address.
+        :param address: The address of the label.
         :return: The label if found. None otherwise.
         """
         for label in self._labels:
-            if label.value == position:
+            if label.value == address:
                 return label
         return None
 
     def sort(self) -> None:
         """
-        Sorts the simple variables by name and the labels by their position.
+        Sorts the simple variables by name and the labels by their address.
         :return: None.
         """
         self._simple_variables.sort(key=lambda x: x.name)

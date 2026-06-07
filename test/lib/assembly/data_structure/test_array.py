@@ -7,20 +7,21 @@ from src.lib.assembly.data_structure.array import Array
 from src.lib.assembly.data_structure.instruction.operand import Operand
 from src.lib.assembly.data_structure.string.string import String, StringTypes
 from src.lib.assembly.bytes import Bytes
-from test.lib.assembly.conftest import TEST_WORD, VARIABLES
+from test.lib.assembly.conftest import TEST_WORD, VARIABLES, DEFAULT_ADDRESS
 
 GROUP = Array(
+    address=DEFAULT_ADDRESS,
     parts=[
-        Blob(operand=Operand(Bytes([0xAA]))),
-        String(operand=Operand(Bytes([0x9A])), position=Bytes([0x00, 0x00, 0x01]), string_type=StringTypes.DESCRIPTION),
-        Blob(operand=Operand(Bytes([0xBB])), position=Bytes([0x00, 0x00, 0x02]), delimiter=Operand(Bytes([0xFF]))),
+        Blob(address=DEFAULT_ADDRESS, operand=Operand(Bytes([0xAA]))),
+        String(operand=Operand(Bytes([0x9A])), address=Bytes([0xC0, 0x00, 0x01]), string_type=StringTypes.DESCRIPTION),
+        Blob(operand=Operand(Bytes([0xBB])), address=Bytes([0xC0, 0x00, 0x02]), delimiter=Operand(Bytes([0xFF]))),
         String(
             operand=Operand(Bytes([0x9B])),
-            position=Bytes([0x00, 0x00, 0x04]),
+            address=Bytes([0xC0, 0x00, 0x04]),
             delimiter=Operand(Bytes([0x00]), variable=SimpleVar(Bytes([0x00]), "zero")),
             string_type=StringTypes.MENU,
         ),
-    ]
+    ],
 )
 
 
@@ -34,7 +35,7 @@ class TestArray:
                 Array(
                     parts=[
                         String(operand=Operand(TEST_WORD)),
-                        Blob(operand=Operand(Bytes([0x01])), position=Bytes([0x00, 0x00, 0x13])),
+                        Blob(operand=Operand(Bytes([0x01])), address=Bytes([0x00, 0x00, 0x13])),
                     ]
                 ),
             ),
@@ -54,7 +55,7 @@ class TestArray:
         assert (
             Array.from_line(
                 line=line,
-                position=Bytes([0x00, 0x00, 0x00]),
+                address=Bytes([0x00, 0x00, 0x00]),
                 variables=Variables(SimpleVar(Bytes.from_int(0), "zero")),
             )
             == Array()
@@ -73,11 +74,11 @@ class TestArray:
         ["expected", "group"],
         [
             (
-                "Array(position=0x000000, as_str='$AA | desc \"a\" | $BB,$FF | \"b\",zero', as_bytes=b'\\xaa\\x9a\\xbb\\xff\\x9b\\x00', as_hexa=0xAA9ABB9B, parts=["
-                "Blob(position=0x000000, as_str='$AA', as_bytes=b'\\xaa', as_hexa=0xAA), "
-                "String(position=0x000001, as_str='desc \"a\"', as_bytes=b'\\x9a', as_hexa=0x9A), "
-                "Blob(position=0x000002, as_str='$BB,$FF', as_bytes=b'\\xbb\\xff', as_hexa=0xBBFF), "
-                "String(position=0x000004, as_str='\"b\",zero', as_bytes=b'\\x9b\\x00', as_hexa=0x9B00, delimiter_var=SimpleVar(name='zero', value=0x00))])",
+                "Array(address=0xC00000, as_str='$AA | desc \"a\" | $BB,$FF | \"b\",zero', as_bytes=b'\\xaa\\x9a\\xbb\\xff\\x9b\\x00', as_hexa=0xAA9ABB9B, parts=["
+                "Blob(address=0xC00000, as_str='$AA', as_bytes=b'\\xaa', as_hexa=0xAA), "
+                "String(address=0xC00001, as_str='desc \"a\"', as_bytes=b'\\x9a', as_hexa=0x9A), "
+                "Blob(address=0xC00002, as_str='$BB,$FF', as_bytes=b'\\xbb\\xff', as_hexa=0xBBFF), "
+                "String(address=0xC00004, as_str='\"b\",zero', as_bytes=b'\\x9b\\x00', as_hexa=0x9B00, delimiter_var=SimpleVar(name='zero', value=0x00))])",
                 GROUP,
             ),
         ],
@@ -94,7 +95,7 @@ class TestArray:
     @pytest.mark.parametrize("show_address", [True, False])
     def test_to_line(self, group: Array, show_address: bool, expected: str):
         if show_address:
-            expected += " ; C00000"
+            expected += " ; $C00000"
         assert group.to_line(show_address=show_address) == expected
 
     @pytest.mark.parametrize(

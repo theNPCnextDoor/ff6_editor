@@ -32,7 +32,7 @@ def disassemble(configs: dict):
 
     sections.sort()
 
-    script = Script.disassemble(filename=configs["source"], sections=sections)
+    script = Script.disassemble(filename=configs["source"], sections=sections, memory_map=configs["memory_map"])
     script.dump(filename=configs["destination"], debug=configs.get("debug", False))
 
 

@@ -18,28 +18,27 @@ class Instruction(DataStructure):
     moving block instructions (MVP and MVN) are considered having two operands.
     """
 
-    def __init__(self, opcode: Bytes, position: Bytes | None = None, operands: list[Operand] | None = None):
+    def __init__(self, opcode: Bytes, address: Bytes | None = None, operands: list[Operand] | None = None):
         """
         Instantiates an instruction.
         :param opcode: The command to be interpreted by the processor.
-        :param position: The address of the instruction in the ROM.
+        :param address: The address of the instruction in the ROM.
         :param operands: The data to be interpreted by the processor.
         """
         operands = operands or list()
-        super().__init__(position=position)
+        super().__init__(address=address)
         self.opcode = opcode
         self.operands = operands
 
     @classmethod
     def from_line(
-        cls, command: str, position: Bytes, flags: Flags, operand: str | None = None, variables: Variables | None = None
+        cls, command: str, address: Bytes, flags: Flags, operand: str | None = None, variables: Variables | None = None
     ) -> Self:
         """
-        Converts a string from a regex match into an instruction. 24-bit operands written as an address will be converted
-        to their corresponding position in the ROM.
+        Converts a string from a regex match into an instruction.
         :param command: The command of the instruction, represented by 3 capital letters.
         :param operand: The data of the instruction, which may spans between 0 and 3 bytes inclusively.
-        :param position: The address of the instruction in the ROM.
+        :param address: The address of the instruction in the ROM.
         :param flags: 'm' and 'x' flags, which provides the width of the accumulator and the X and Y registers.
         :param variables: A list of existing variables.
         :return: An instruction.
@@ -59,7 +58,7 @@ class Instruction(DataStructure):
             operand_type = cls._command_to_operand_type(command)
             operands.append(
                 Operand.from_line(
-                    value=chunks[0], parent_position=position, operand_type=operand_type, variables=variables
+                    value=chunks[0], parent_address=address, operand_type=operand_type, variables=variables
                 )
             )
 
@@ -73,26 +72,26 @@ class Instruction(DataStructure):
             for chunk in chunks:
                 operands.append(
                     Operand.from_line(
-                        value=chunk, parent_position=position, operand_type=operand_type, variables=variables
+                        value=chunk, parent_address=address, operand_type=operand_type, variables=variables
                     )
                 )
 
         opcode = cls._find_opcode(command=command, mode=mode, length=length, flags=flags)
 
-        instruction = cls(position=position, opcode=opcode, operands=operands)
+        instruction = cls(address=address, opcode=opcode, operands=operands)
         logging.debug(f"Created {repr(instruction)}.")
         return instruction
 
     @classmethod
     def from_bytes(
-        cls, value: bytes, position: Bytes = None, flags: Flags = None, variables: Variables | None = None
+        cls, value: bytes, address: Bytes = None, flags: Flags = None, variables: Variables | None = None
     ) -> Self:
         """
         Converts bytes into an instruction. The method takes the next four bytes in the ROM and will determine how many
         are actually needed for the instruction depending on the opcode and the flags. 24-bit operands written as an
-        address will be converted to their corresponding position in the ROM.
+        address will be converted to their corresponding address in the ROM.
         :param value: The byte of the opcode and the next three bytes, which is the largest operand possible.
-        :param position: The address of the instruction in the ROM.
+        :param address: The address of the instruction in the ROM.
         :param flags: 'm' and 'x' flags, which provides the width of the accumulator and the X and Y registers.
         :param variables: A list of existing variables.
         :return: An instruction.
@@ -109,12 +108,12 @@ class Instruction(DataStructure):
         )
         operands = list()
         if mode == "#_,#_":
-            operands.append(Operand.from_bytes(value[1:2], "#_", operand_type, position, variables))
-            operands.append(Operand.from_bytes(value[2:3], "#_", operand_type, position, variables))
+            operands.append(Operand.from_bytes(value[1:2], "#_", operand_type, address, variables))
+            operands.append(Operand.from_bytes(value[2:3], "#_", operand_type, address, variables))
         elif length:
-            operands.append(Operand.from_bytes(value[1 : length + 1], mode, operand_type, position, variables))
+            operands.append(Operand.from_bytes(value[1 : length + 1], mode, operand_type, address, variables))
 
-        instruction = Instruction(position=position, opcode=opcode, operands=operands)
+        instruction = Instruction(address=address, opcode=opcode, operands=operands)
         logging.debug(f"Created {repr(instruction)}.")
         return instruction
 
@@ -213,7 +212,7 @@ class Instruction(DataStructure):
         :param other: The second instruction.
         :return: Whether the values of the fields of the instruction are the same.
         """
-        return self.position == other.position and self.opcode == other.opcode and self.operands == other.operands
+        return self.address == other.address and self.opcode == other.opcode and self.operands == other.operands
 
     def __str__(self) -> str:
         """
@@ -229,12 +228,12 @@ class Instruction(DataStructure):
     def to_line(self, show_address: bool = False, labels: list[Label] | None = None) -> str:
         """
         Converts an instruction into the exact string which will be put in a script.
-        :param show_address: Whether the position of the instruction should be added as a comment.
+        :param show_address: Whether the address of the instruction should be added as a comment.
         :param labels: A list of labels. Unused.
         :return: A script line.
         """
         output = f"  {self}"
-        output += f" ; {self.position.to_snes_address()}" if show_address else ""
+        output += f" ; ${self.address}" if show_address else ""
         return output
 
     def __repr__(self) -> str:
@@ -244,9 +243,7 @@ class Instruction(DataStructure):
         hexa = str(self.opcode)
         for operand in self.operands:
             hexa += str(operand.value)
-        output = (
-            f"Instruction(position=0x{self.position}, as_str='{str(self)}', as_bytes={bytes(self)}, as_hexa=0x{hexa}"
-        )
+        output = f"Instruction(address=0x{self.address}, as_str='{str(self)}', as_bytes={bytes(self)}, as_hexa=0x{hexa}"
 
         if self.operands:
             if self.operands[0].variable:

@@ -6,11 +6,23 @@ class ForbiddenVarName(Exception):
     pass
 
 
+class IllegalAddress(Exception):
+    pass
+
+
+class IllegalRomPosition(Exception):
+    pass
+
+
 class ImpossibleDestination(Exception):
     pass
 
 
 class LineConflict(Exception):
+    pass
+
+
+class MismatchedMappingModes(Exception):
     pass
 
 
@@ -63,4 +75,8 @@ class VariableConflict(Exception):
 
 
 class VariableLengthMismatch(Exception):
+    pass
+
+
+class UnrecognizedMappingMode(Exception):
     pass

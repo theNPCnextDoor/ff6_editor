@@ -8,6 +8,7 @@ from typing import Any, Self
 
 from src.lib.assembly.artifact.artifact import Artifact
 from src.lib.assembly.artifact.flags import Flags
+from src.lib.assembly.artifact.memory_map import MemoryMap
 from src.lib.assembly.artifact.variable import Label, Variable
 from src.lib.assembly.bytes import Bytes
 from src.lib.assembly.data_structure.array import Array
@@ -117,6 +118,7 @@ class LineType:
     FLAGS = ComponentInfo("Flags", Flags, ArtifactRegex.FLAGS, ("m_flag", "x_flag"))
     INSTRUCTION = ComponentInfo("Instruction", Instruction, InstructionRegex.INSTRUCTION, ("command", "operand"))
     LABEL = ComponentInfo("Label", Label, ArtifactRegex.LABEL, ("name", "snes_address"))
+    MEMORY_MAP = ComponentInfo("MemoryMap", MemoryMap, ArtifactRegex.MEMORY_MAP, ("mapping_mode",))
     POINTER = ComponentInfo("Pointer", Pointer, DataStructureRegex.POINTER, ("operand",))
     STRING = ComponentInfo("String", String, DataStructureRegex.STRING, ("string_type", "string", "delimiter"))
     VARIABLE_DECLARATION = ComponentInfo(
@@ -140,7 +142,7 @@ class Line:
     filename: str | Path | None = None
     raw_line: str | None = None
     clean_line: str | None = None
-    position: int | None = None
+    address: int | None = None
     component_info: ComponentInfo | None = None
     regex_groups: dict[str, str | None] | None = None
     component: Component | None = None
@@ -151,7 +153,7 @@ class Line:
             "Line("
             f"raw_line='{raw_line}', "
             f"clean_line='{self.clean_line}', "
-            f"position={self.position}, "
+            f"address={self.address}, "
             f"component_info={'ComponentInfo.' + self.component_info.name if self.component_info else None}, "
             f"regex_groups={self.regex_groups}, "
             f"component={repr(self.component)}, "
@@ -170,7 +172,7 @@ class Line:
         """
         line = cls()
         line.component = component
-        line.position = int(component.position) if hasattr(component, "position") else 0
+        line.address = int(component.address) if hasattr(component, "address") else 0
         line_types = [
             line_type for line_type in LineType.list() if line_type.cls and type(line.component) is line_type.cls
         ]

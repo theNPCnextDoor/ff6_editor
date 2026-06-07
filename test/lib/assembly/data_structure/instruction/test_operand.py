@@ -5,142 +5,140 @@ from src.lib.assembly.artifact.variables import Variables
 from src.lib.assembly.bytes import Bytes
 from src.lib.assembly.data_structure.instruction.operand import Operand, OperandType
 from src.lib.misc.exception import NoVariableException, UndefinedDestination
-from test.lib.assembly.conftest import VARIABLES, CHARLIE, BRAVO, ALFA, ECHO, pos
+from test.lib.assembly.conftest import VARIABLES, CHARLIE, BRAVO, ALFA, ECHO, addr
 
 
 class TestOperand:
 
     @pytest.mark.parametrize(
-        ["value", "parent_position", "operand_type", "expected"],
+        ["value", "parent_address", "operand_type", "expected"],
         [
             (
                 "#$12",
-                pos(0),
+                addr(0),
                 OperandType.DEFAULT,
                 Operand(value=Bytes.from_int(0x12), mode="#_", operand_type=OperandType.DEFAULT),
             ),
             (
                 "$1234,X",
-                pos(0),
+                addr(0),
                 OperandType.DEFAULT,
                 Operand(value=Bytes.from_int(0x1234), mode="_,X", operand_type=OperandType.DEFAULT),
             ),
             (
                 "($123456),Y",
-                pos(0),
+                addr(0),
                 OperandType.DEFAULT,
                 Operand(value=Bytes.from_int(0x123456), mode="(_),Y", operand_type=OperandType.DEFAULT),
             ),
             (
                 "#alfa",
-                pos(0),
+                addr(0),
                 OperandType.DEFAULT,
                 Operand(value=Bytes.from_int(0x12), mode="#_", operand_type=OperandType.DEFAULT, variable=ALFA),
             ),
             (
                 "bravo,X",
-                pos(0),
+                addr(0),
                 OperandType.DEFAULT,
                 Operand(value=Bytes.from_int(0x1234), mode="_,X", operand_type=OperandType.DEFAULT, variable=BRAVO),
             ),
             (
                 "(.charlie),Y",
-                pos(0x120000),
+                addr(0xD20000),
                 OperandType.DEFAULT,
                 Operand(value=Bytes.from_int(0xD2), mode="(_),Y", operand_type=OperandType.DEFAULT, variable=CHARLIE),
             ),
             (
                 "(!charlie),Y",
-                pos(0x120000),
+                addr(0x120000),
                 OperandType.DEFAULT,
                 Operand(value=Bytes.from_int(0x3456), mode="(_),Y", operand_type=OperandType.DEFAULT, variable=CHARLIE),
             ),
             (
                 "(charlie),Y",
-                pos(0x120000),
+                addr(0xD20000),
                 OperandType.DEFAULT,
-                Operand(
-                    value=Bytes.from_int(0x123456), mode="(_),Y", operand_type=OperandType.DEFAULT, variable=CHARLIE
-                ),
+                Operand(value=addr(0xD23456), mode="(_),Y", operand_type=OperandType.DEFAULT, variable=CHARLIE),
             ),
             (
                 "echo",
-                pos(0x7E0123),
+                addr(0x7E0123),
                 OperandType.DEFAULT,
-                Operand(value=pos(0x7E0123), variable=ECHO),
+                Operand(value=addr(0x7E0123), variable=ECHO),
             ),
         ],
     )
-    def test_from_line(self, value: str, parent_position: Bytes, operand_type: OperandType, expected: Operand):
-        assert Operand.from_line(value, parent_position, operand_type, VARIABLES) == expected
+    def test_from_line(self, value: str, parent_address: Bytes, operand_type: OperandType, expected: Operand):
+        assert Operand.from_line(value, parent_address, operand_type, VARIABLES) == expected
 
     def test_from_line_raises_value_error(self):
         with pytest.raises(NoVariableException):
             Operand.from_line(
                 value="zebra,X",
-                parent_position=pos(0),
+                parent_address=addr(0),
                 operand_type=OperandType.DEFAULT,
                 variables=Variables(*VARIABLES),
             )
 
     @pytest.mark.parametrize(
-        ["value", "mode", "operand_type", "parent_position", "expected"],
+        ["value", "mode", "operand_type", "parent_address", "expected"],
         [
             (
                 b"\x12",
                 "_",
                 OperandType.DEFAULT,
-                pos(0x123456),
+                addr(0x123456),
                 Operand(value=Bytes.from_int(0x12), mode="_", operand_type=OperandType.DEFAULT),
             ),
             (
                 b"\x56\x34",
                 "_,X",
                 OperandType.JUMPING,
-                pos(0x120000),
+                addr(0xD20000),
                 Operand(
                     value=Bytes.from_int(0x3456),
                     mode="_,X",
                     operand_type=OperandType.JUMPING,
-                    variable=Label(pos(0x123456), "charlie"),
+                    variable=Label(addr(0xD23456), "charlie"),
                 ),
             ),
             (
                 b"\x11\x11",
                 "_,X",
                 OperandType.JUMPING,
-                pos(0x120000),
+                addr(0xD20000),
                 Operand(
                     value=Bytes.from_int(0x1111),
                     mode="_,X",
                     operand_type=OperandType.JUMPING,
-                    variable=Label(pos(0x121111), "label_d21111"),
+                    variable=Label(addr(0xD21111), "label_d21111"),
                 ),
             ),
             (
                 b"\x23\x01\x7e",
                 "_",
                 OperandType.JUMPING,
-                pos(0x7E0123),
-                Operand(value=Bytes.from_int(0x7E0123), mode="_", operand_type=OperandType.JUMPING, variable=ECHO),
+                addr(0x7E0123),
+                Operand(value=addr(0x7E0123), mode="_", operand_type=OperandType.JUMPING, variable=ECHO),
             ),
             (
                 b"\x56\x34\xd2",
                 "_",
                 OperandType.JUMPING,
-                pos(0x123457),
-                Operand(value=Bytes.from_int(0x123456), mode="_", operand_type=OperandType.JUMPING, variable=CHARLIE),
+                addr(0xD23457),
+                Operand(value=addr(0xD23456), mode="_", operand_type=OperandType.JUMPING, variable=CHARLIE),
             ),
         ],
     )
     def test_from_bytes(
-        self, value: bytes, mode: str, operand_type: OperandType, parent_position: Bytes, expected: Operand
+        self, value: bytes, mode: str, operand_type: OperandType, parent_address: Bytes, expected: Operand
     ):
         operand = Operand.from_bytes(
             value=value,
             mode=mode,
             operand_type=operand_type,
-            parent_position=parent_position,
+            parent_address=parent_address,
             variables=VARIABLES,
         )
         assert operand == expected
@@ -172,158 +170,156 @@ class TestOperand:
         assert Operand._to_mode("charlie", operand_type) == "_"
 
     @pytest.mark.parametrize(
-        ["parent_position", "operand_type", "length", "destination", "expected"],
+        ["parent_address", "operand_type", "length", "destination", "expected"],
         [
-            (pos(0x010000), OperandType.JUMPING, 2, pos(0x011234), Bytes([0x12, 0x34])),
+            (addr(0x010000), OperandType.JUMPING, 2, addr(0x011234), Bytes([0x12, 0x34])),
             (
-                pos(0x010000),
+                addr(0x010000),
                 OperandType.LONG_JUMPING,
                 3,
-                pos(0x023456),
+                addr(0x023456),
                 Bytes([0x02, 0x34, 0x56]),
             ),
-            (pos(0x010000), OperandType.DEFAULT, 1, pos(0x023456), Bytes([0xC2])),
-            (pos(0x010000), OperandType.DEFAULT, 2, pos(0x023456), Bytes([0x34, 0x56])),
+            (addr(0x010000), OperandType.DEFAULT, 1, addr(0xC23456), Bytes([0xC2])),
+            (addr(0x010000), OperandType.DEFAULT, 2, addr(0xC23456), Bytes([0x34, 0x56])),
             (
-                pos(0x010000),
+                addr(0x010000),
                 OperandType.DEFAULT,
                 3,
-                pos(0x023456),
-                Bytes([0x02, 0x34, 0x56]),
+                addr(0xC23456),
+                Bytes([0xC2, 0x34, 0x56]),
             ),
-            (pos(0x013456), OperandType.BRANCHING, 1, pos(0x013458), Bytes([0x00])),
-            (pos(0x013456), OperandType.BRANCHING, 1, pos(0x013459), Bytes([0x01])),
-            (pos(0x013456), OperandType.BRANCHING, 1, pos(0x013457), Bytes([0xFF])),
-            (pos(0x013456), OperandType.BRANCHING, 1, pos(0x0134D7), Bytes([0x7F])),
-            (pos(0x013456), OperandType.BRANCHING, 1, pos(0x0133D8), Bytes([0x80])),
+            (addr(0x013456), OperandType.BRANCHING, 1, addr(0x013458), Bytes([0x00])),
+            (addr(0x013456), OperandType.BRANCHING, 1, addr(0x013459), Bytes([0x01])),
+            (addr(0x013456), OperandType.BRANCHING, 1, addr(0x013457), Bytes([0xFF])),
+            (addr(0x013456), OperandType.BRANCHING, 1, addr(0x0134D7), Bytes([0x7F])),
+            (addr(0x013456), OperandType.BRANCHING, 1, addr(0x0133D8), Bytes([0x80])),
             (
                 Bytes.from_int(0x013456),
                 OperandType.LONG_BRANCHING,
                 2,
-                Bytes.from_position(0x013459),
+                Bytes.from_address(0x013459),
                 Bytes([0x00, 0x00]),
             ),
             (
                 Bytes.from_int(0x013456),
                 OperandType.LONG_BRANCHING,
                 2,
-                Bytes.from_position(0x01345A),
+                Bytes.from_address(0x01345A),
                 Bytes([0x00, 0x01]),
             ),
             (
                 Bytes.from_int(0x013456),
                 OperandType.LONG_BRANCHING,
                 2,
-                Bytes.from_position(0x013458),
+                Bytes.from_address(0x013458),
                 Bytes([0xFF, 0xFF]),
             ),
             (
                 Bytes.from_int(0x013456),
                 OperandType.LONG_BRANCHING,
                 2,
-                Bytes.from_position(0x01B458),
+                Bytes.from_address(0x01B458),
                 Bytes([0x7F, 0xFF]),
             ),
             (
                 Bytes.from_int(0x013456),
                 OperandType.LONG_BRANCHING,
                 2,
-                Bytes.from_position(0x01B459),
+                Bytes.from_address(0x01B459),
                 Bytes([0x80, 0x00]),
             ),
         ],
     )
     def test_destination_to_value(
-        self, parent_position: Bytes, operand_type: OperandType, length: int, destination: Bytes, expected: Bytes
+        self, parent_address: Bytes, operand_type: OperandType, length: int, destination: Bytes, expected: Bytes
     ):
         value = Operand._destination_to_value(
-            parent_position=parent_position, operand_type=operand_type, length=length, destination=destination
+            parent_address=parent_address, operand_type=operand_type, length=length, destination=destination
         )
         assert value == expected
 
     @pytest.mark.parametrize(
-        ["parent_position", "operand_type", "length", "expected", "value"],
+        ["parent_address", "operand_type", "length", "expected", "value"],
         [
-            (Bytes.from_position(0x000000), OperandType.JUMPING, 2, Bytes.from_position(0x001234), Bytes([0x12, 0x34])),
-            (Bytes.from_position(0x010000), OperandType.JUMPING, 2, Bytes.from_position(0x011234), Bytes([0x12, 0x34])),
+            (Bytes.from_address(0x000000), OperandType.JUMPING, 2, Bytes.from_address(0x001234), Bytes([0x12, 0x34])),
+            (Bytes.from_address(0x010000), OperandType.JUMPING, 2, Bytes.from_address(0x011234), Bytes([0x12, 0x34])),
             (
-                Bytes.from_position(0x010000),
+                Bytes.from_address(0x010000),
                 OperandType.LONG_JUMPING,
                 3,
-                Bytes.from_position(0x023456),
+                Bytes.from_address(0x023456),
                 Bytes([0x02, 0x34, 0x56]),
             ),
-            (Bytes.from_position(0x010000), OperandType.DEFAULT, 2, Bytes.from_position(0x013456), Bytes([0x34, 0x56])),
+            (Bytes.from_address(0x010000), OperandType.DEFAULT, 2, Bytes.from_address(0x013456), Bytes([0x34, 0x56])),
             (
-                Bytes.from_position(0x010000),
+                Bytes.from_address(0x010000),
                 OperandType.DEFAULT,
                 3,
-                Bytes.from_position(0x023456),
+                Bytes.from_address(0x023456),
                 Bytes([0x02, 0x34, 0x56]),
             ),
-            (Bytes.from_position(0x013456), OperandType.BRANCHING, 1, Bytes.from_position(0x013458), Bytes([0x00])),
-            (Bytes.from_position(0x013456), OperandType.BRANCHING, 1, Bytes.from_position(0x013459), Bytes([0x01])),
-            (Bytes.from_position(0x013456), OperandType.BRANCHING, 1, Bytes.from_position(0x013457), Bytes([0xFF])),
-            (Bytes.from_position(0x013456), OperandType.BRANCHING, 1, Bytes.from_position(0x0134D7), Bytes([0x7F])),
-            (Bytes.from_position(0x013456), OperandType.BRANCHING, 1, Bytes.from_position(0x0133D8), Bytes([0x80])),
+            (Bytes.from_address(0x013456), OperandType.BRANCHING, 1, Bytes.from_address(0x013458), Bytes([0x00])),
+            (Bytes.from_address(0x013456), OperandType.BRANCHING, 1, Bytes.from_address(0x013459), Bytes([0x01])),
+            (Bytes.from_address(0x013456), OperandType.BRANCHING, 1, Bytes.from_address(0x013457), Bytes([0xFF])),
+            (Bytes.from_address(0x013456), OperandType.BRANCHING, 1, Bytes.from_address(0x0134D7), Bytes([0x7F])),
+            (Bytes.from_address(0x013456), OperandType.BRANCHING, 1, Bytes.from_address(0x0133D8), Bytes([0x80])),
             (
-                Bytes.from_position(0x013456),
+                Bytes.from_address(0x013456),
                 OperandType.LONG_BRANCHING,
                 2,
-                Bytes.from_position(0x013459),
+                Bytes.from_address(0x013459),
                 Bytes([0x00, 0x00]),
             ),
             (
-                Bytes.from_position(0x013456),
+                Bytes.from_address(0x013456),
                 OperandType.LONG_BRANCHING,
                 2,
-                Bytes.from_position(0x01345A),
+                Bytes.from_address(0x01345A),
                 Bytes([0x00, 0x01]),
             ),
             (
-                Bytes.from_position(0x013456),
+                Bytes.from_address(0x013456),
                 OperandType.LONG_BRANCHING,
                 2,
-                Bytes.from_position(0x013458),
+                Bytes.from_address(0x013458),
                 Bytes([0xFF, 0xFF]),
             ),
             (
-                Bytes.from_position(0x013456),
+                Bytes.from_address(0x013456),
                 OperandType.LONG_BRANCHING,
                 2,
-                Bytes.from_position(0x01B458),
+                Bytes.from_address(0x01B458),
                 Bytes([0x7F, 0xFF]),
             ),
             (
-                Bytes.from_position(0x013456),
+                Bytes.from_address(0x013456),
                 OperandType.LONG_BRANCHING,
                 2,
-                Bytes.from_position(0x01B459),
+                Bytes.from_address(0x01B459),
                 Bytes([0x80, 0x00]),
             ),
         ],
     )
     def test_value_to_destination(
-        self, parent_position: Bytes, operand_type: OperandType, length: int, expected: Bytes, value: Bytes
+        self, parent_address: Bytes, operand_type: OperandType, length: int, expected: Bytes, value: Bytes
     ):
         operand = Operand(value=value, mode="", operand_type=operand_type)
-        destination = operand.value_to_destination(parent_position=parent_position)
+        destination = operand.value_to_destination(parent_address=parent_address)
         assert destination == expected
 
     def test_value_to_destination_raises_undefined_destination(self):
         operand = Operand(value=Bytes.from_int(0x12), mode="_", operand_type=OperandType.DEFAULT)
         with pytest.raises(UndefinedDestination):
-            operand.value_to_destination(parent_position=Bytes.from_position(0x123456))
+            operand.value_to_destination(parent_address=Bytes.from_address(0x123456))
 
     def test_len(self):
-        assert len(Operand(value=Bytes.from_position(0x123456), mode="", operand_type=OperandType.DEFAULT)) == 3
+        assert len(Operand(value=Bytes.from_address(0x123456), mode="", operand_type=OperandType.DEFAULT)) == 3
 
     def test_bytes(self):
         assert (
             bytes(
-                Operand(
-                    value=Bytes.from_position(0x123456), mode="", operand_type=OperandType.DEFAULT, variable=CHARLIE
-                )
+                Operand(value=Bytes.from_address(0xD23456), mode="", operand_type=OperandType.DEFAULT, variable=CHARLIE)
             )
             == b"\x56\x34\xd2"
         )
@@ -400,17 +396,17 @@ class TestOperand:
         assert repr(operand) == expected
 
     @pytest.mark.parametrize(
-        ["parent_position", "length", "destination", "expected"],
+        ["parent_address", "length", "destination", "expected"],
         [
-            (Bytes.from_position(0x123456), 3, Bytes.from_position(0x12FFFF), True),
-            (Bytes.from_position(0x123456), 3, Bytes.from_position(0x00FFFF), True),
-            (Bytes.from_position(0x123456), 2, Bytes.from_position(0x12FFFF), True),
-            (Bytes.from_position(0x123456), 2, Bytes.from_position(0x00FFFF), False),
-            (Bytes.from_position(0x123456), 1, Bytes.from_position(0x1233D8), True),
-            (Bytes.from_position(0x123456), 1, Bytes.from_position(0x1233D7), False),
-            (Bytes.from_position(0x123456), 1, Bytes.from_position(0x1234D7), True),
-            (Bytes.from_position(0x123456), 1, Bytes.from_position(0x1234D8), False),
+            (Bytes.from_address(0x123456), 3, Bytes.from_address(0x12FFFF), True),
+            (Bytes.from_address(0x123456), 3, Bytes.from_address(0x00FFFF), True),
+            (Bytes.from_address(0x123456), 2, Bytes.from_address(0x12FFFF), True),
+            (Bytes.from_address(0x123456), 2, Bytes.from_address(0x00FFFF), False),
+            (Bytes.from_address(0x123456), 1, Bytes.from_address(0x1233D8), True),
+            (Bytes.from_address(0x123456), 1, Bytes.from_address(0x1233D7), False),
+            (Bytes.from_address(0x123456), 1, Bytes.from_address(0x1234D7), True),
+            (Bytes.from_address(0x123456), 1, Bytes.from_address(0x1234D8), False),
         ],
     )
-    def test_is_destination_possible(self, parent_position: Bytes, length: int, destination: Bytes, expected: bool):
-        assert Operand._is_destination_possible(parent_position, length, destination) is expected
+    def test_is_destination_possible(self, parent_address: Bytes, length: int, destination: Bytes, expected: bool):
+        assert Operand._is_destination_possible(parent_address, length, destination) is expected
