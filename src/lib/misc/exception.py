@@ -14,6 +14,10 @@ class IllegalRomPosition(Exception):
     pass
 
 
+class IllegalVariableLength(Exception):
+    pass
+
+
 class ImpossibleDestination(Exception):
     pass
 
@@ -71,10 +75,6 @@ class UnrecognizedSubsectionMode(Exception):
 
 
 class VariableConflict(Exception):
-    pass
-
-
-class VariableLengthMismatch(Exception):
     pass
 
 

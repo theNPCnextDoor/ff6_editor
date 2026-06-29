@@ -2,7 +2,7 @@ import pytest
 
 from src.lib.assembly.bytes import Bytes
 from src.lib.assembly.artifact.variable import SimpleVar, Label, Variable
-from src.lib.misc.exception import ForbiddenVarName, VariableLengthMismatch
+from src.lib.misc.exception import ForbiddenVarName, IllegalVariableLength
 from test.lib.assembly.conftest import ALFA, BRAVO, CHARLIE, ECHO, addr
 
 
@@ -38,39 +38,30 @@ class TestVariable:
 
 class TestSimpleVariable:
     @pytest.mark.parametrize(
-        ["length", "name", "operand", "variable"],
+        ["name", "operand", "variable"],
         [
-            ("b", "alfa", "$12", ALFA),
-            ("w", "bravo", "$1234", BRAVO),
+            ("alfa", "$12", ALFA),
+            ("bravo", "$1234", BRAVO),
         ],
     )
-    def test_from_line(self, length: str, name: str, operand: str, variable: SimpleVar):
-        assert SimpleVar.from_line(length, name, operand) == variable
+    def test_from_line(self, name: str, operand: str, variable: SimpleVar):
+        assert SimpleVar.from_line(name, operand) == variable
 
     @pytest.mark.parametrize(
         "name",
-        ["db", "x"],
+        ["let", "x"],
     )
     def test_from_line_but_name_is_forbidden(self, name: str):
         with pytest.raises(ForbiddenVarName):
-            SimpleVar.from_line("b", name, "$12")
+            SimpleVar.from_line(name, "$12")
 
-    @pytest.mark.parametrize(
-        ["length", "name", "operand"],
-        [
-            ("b", "bravo", "$1234"),
-            ("w", "alfa", "$12"),
-            ("b", "charlie", "$123456"),
-            ("w", "charlie", "$123456"),
-        ],
-    )
-    def test_from_line_but_length_doesnt_correspond_to_expectation(self, length: str, name: str, operand: str):
-        with pytest.raises(VariableLengthMismatch):
-            SimpleVar.from_line(length, name, operand)
+    def test_from_line_but_length_doesnt_correspond_to_expectation(self):
+        with pytest.raises(IllegalVariableLength):
+            SimpleVar.from_line("bravo", "$123456")
 
     @pytest.mark.parametrize(
         ["variable", "line"],
-        [(ALFA, "db alfa = $12"), (BRAVO, "dw bravo = $1234")],
+        [(ALFA, "let alfa = $12"), (BRAVO, "let bravo = $1234")],
     )
     def test_to_line(self, variable: SimpleVar, line: str):
         assert variable.to_line() == line
@@ -102,7 +93,7 @@ class TestLabel:
 
     @pytest.mark.parametrize(
         "name",
-        ["db", "x"],
+        ["let", "x"],
     )
     def test_from_line_but_name_is_forbidden(self, name: str):
         with pytest.raises(ForbiddenVarName):

@@ -813,9 +813,9 @@ class TestScript:
             script = f.read()
         assert script == (
             """map: HiROM
-db alfa = $12
-dw bravo = $1234
-db delta = $00
+let alfa = $12
+let bravo = $1234
+let delta = $00
 
 @start = $C00001
   ptr $1234

@@ -4,13 +4,12 @@
 
 map: HiROM
 
-m = 8, x = 8
-
-db shadow_id = $03
-db damage_mult = $BC ; Each increase of $BC result in 50% more damage.
-dw attacker = $3ED8
+let shadow_id = $03
+let damage_mult = $BC ; Each increase of $BC result in 50% more damage.
+let attacker = $3ED8
 
 @start = $C2340C
+m = 8, x = 8
   JSR !crit_mult_subroutine
   LDA #$20
   TSB $A0
