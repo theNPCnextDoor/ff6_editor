@@ -4,10 +4,10 @@ from typing import Self, Any
 
 from src.lib.assembly.artifact.artifact import Artifact
 from src.lib.assembly.bytes import Bytes
-from src.lib.misc.exception import ForbiddenVarName, VariableLengthMismatch
+from src.lib.misc.exception import ForbiddenVarName, IllegalVariableLength
 
 VAR_LENGTH = {"b": 1, "w": 2}
-FORBIDDEN_NAMES = ["db", "desc", "dw", "m", "map", "ptr", "rptr", "x"]
+FORBIDDEN_NAMES = ["desc", "let", "m", "map", "ptr", "rptr", "x"]
 
 
 class Variable(Artifact, ABC):
@@ -46,11 +46,9 @@ class SimpleVar(Variable):
     """
 
     @classmethod
-    def from_line(cls, length: str, name: str, operand: str) -> Self:
+    def from_line(cls, name: str, operand: str) -> Self:
         """
         Creates a Variable out of successful regex match.
-        :param length: Either 'b', for 'byte' or 'w' for 'word', to represent the length of the variable. A 'byte' is 1
-        byte and a word is 2.
         :param name: The name of the variable.
         :param operand: The value of the variable.
         :return: A Variable.
@@ -63,12 +61,11 @@ class SimpleVar(Variable):
             raise ForbiddenVarName(message)
 
         _operand = Bytes.from_str(operand.replace("$", ""))
-        _length = VAR_LENGTH[length]
 
-        if _length != len(_operand):
-            message = f"Length of value '{operand}' does not match expected length: {_length}."
+        if len(_operand) not in range(1, 3):
+            message = f"Length of value '{operand}' must be 1 or 2."
             logging.error(message)
-            raise VariableLengthMismatch(message)
+            raise IllegalVariableLength(message)
 
         simple_var = cls(_operand, name)
         logging.debug(f"Created {repr(simple_var)}.")
@@ -83,9 +80,8 @@ class SimpleVar(Variable):
         Converts a SimpleVar into the exact string which will be put in a script to declare it.
         :return: A script line.
         """
-        length_char = "b" if len(self.value) == 1 else "w"
 
-        return f"d{length_char} {self.name} = ${self.value}"
+        return f"let {self.name} = ${self.value}"
 
 
 class Label(SimpleVar):

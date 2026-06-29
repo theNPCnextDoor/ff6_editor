@@ -13,7 +13,7 @@ class ArtifactRegex:
     MEMORY_MAP = "map: (?P<mapping_mode>(Lo|Hi|ExHi)ROM)"
     FLAGS = r"m *= *(?P<m_flag>(8|16)), *x *= *(?P<x_flag>(8|16))"
     LABEL = rf"^@(?P<name>{Regex.VARIABLE}) *(= *(?P<snes_address>\${Regex.SNES_ADDRESS}))?"
-    VARIABLE_DECLARATION = rf"d(?P<length>[bw]) (?P<name>{Regex.VARIABLE}) *= *(?P<operand>\$({Regex.BYTE}){{1,2}})"
+    VARIABLE_DECLARATION = rf"let (?P<name>{Regex.VARIABLE}) *= *(?P<operand>\$({Regex.BYTE}){{1,2}})"
     ANCHOR = rf"#(?P<value>\${Regex.SNES_ADDRESS}|{Regex.VARIABLE})"
 
 

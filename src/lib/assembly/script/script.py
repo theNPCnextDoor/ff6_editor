@@ -341,9 +341,7 @@ class Script:
             return cursor
 
         if match := re.fullmatch(ArtifactRegex.VARIABLE_DECLARATION, cleaned_line):
-            line.component = SimpleVar.from_line(
-                length=match.group("length"), name=match.group("name"), operand=match.group("operand")
-            )
+            line.component = SimpleVar.from_line(name=match.group("name"), operand=match.group("operand"))
             line.component_info = LineType.VARIABLE_DECLARATION
             line.address = Bytes.from_address(0)
             return cursor

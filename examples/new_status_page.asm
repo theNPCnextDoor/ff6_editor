@@ -6,24 +6,22 @@
 
 map: HiROM
 
-m = 8, x = 16
+let palette_addr = $29
+let xp_switch_addr = $9E
 
-db palette_addr = $29
-db xp_switch_addr = $9E
+let xp_low_byte = $0011
+let xp_medium_byte = $0012
+let xp_high_byte = $0013
+let weapon_addr = $001F
+let shield_addr = $0020
+let helmet_addr = $0021
+let armor_addr = $0022
+let relic1_addr = $0023
+let relic2_addr = $0024
 
-dw xp_low_byte = $0011
-dw xp_medium_byte = $0012
-dw xp_high_byte = $0013
-dw weapon_addr = $001F
-dw shield_addr = $0020
-dw helmet_addr = $0021
-dw armor_addr = $0022
-dw relic1_addr = $0023
-dw relic2_addr = $0024
-
-dw multiplicand_addr = $4202
-dw multiplier_addr = $4203
-dw product_addr = $4216
+let multiplicand_addr = $4202
+let multiplier_addr = $4203
+let product_addr = $4216
 
 @reset_function = $C20006
 
@@ -41,6 +39,7 @@ dw product_addr = $4216
 @init_m7 = $C31206
 
 @initialize_status_menu = $C31C46
+m = 8, x = 16
   JSR !reset_stuff_for_status_menu
 
 @jump_to_handle_y_and_b_in_status_menu = $C32246

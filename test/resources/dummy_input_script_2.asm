@@ -1,7 +1,7 @@
 map: HiROM
-db alfa = $12
-dw bravo = $1234
-db delta = $00
+let alfa = $12
+let bravo = $1234
+let delta = $00
 
 @archie = $C00005
 m = 8, x = 16

@@ -147,20 +147,17 @@ class TestArtifactRegex:
         assert match.group("snes_address") == snes_address
 
     @pytest.mark.parametrize(
-        ["line", "is_match", "length", "name", "operand"],
+        ["line", "is_match", "name", "operand"],
         [
-            ("db alfa = $12", True, "b", "alfa", "$12"),
-            ("dw bravo=$1234", True, "w", "bravo", "$1234"),
-            ("dw bravo=$123456", False, None, None, None),
+            ("let alfa = $12", True, "alfa", "$12"),
+            ("let bravo=$1234", True, "bravo", "$1234"),
+            ("let bravo=$123456", False, None, None),
         ],
     )
-    def test_variable_declaration(
-        self, line: str, is_match: bool, length: str | None, name: str | None, operand: str | None
-    ):
+    def test_variable_declaration(self, line: str, is_match: bool, name: str | None, operand: str | None):
         match = re.fullmatch(ArtifactRegex.VARIABLE_DECLARATION, line)
         assert bool(match) == is_match
         if is_match:
-            assert match.group("length") == length
             assert match.group("name") == name
             assert match.group("operand") == operand
 
