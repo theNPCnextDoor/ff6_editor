@@ -58,11 +58,19 @@ class UnderflowError(Exception):
     pass
 
 
+class UnrecognizedArrayPattern(Exception):
+    pass
+
+
 class UnrecognizedPart(Exception):
     pass
 
 
 class UnrecognizedLine(Exception):
+    pass
+
+
+class UnrecognizedMappingMode(Exception):
     pass
 
 
@@ -75,8 +83,4 @@ class UnrecognizedSubsectionMode(Exception):
 
 
 class VariableConflict(Exception):
-    pass
-
-
-class UnrecognizedMappingMode(Exception):
     pass

@@ -2,6 +2,9 @@ map: HiROM
 let alfa = $12
 let bravo = $1234
 let delta = $00
+let item_dummy = $01
+let treasure_miab = $20
+let treasure_item = $40
 
 @archie = $C00005
 m = 8, x = 16
@@ -33,8 +36,10 @@ m = 8, x = 16
 
 #$D20002
   rptr !rptr_2
-m = 8, x = 8 ; Unnecessary flags redifinition here.
+m = 8, x = 8 ; Unnecessary flags redefinition here.
   JSR !archie
+  $12 | $34 | $56 | treasure_item | item_dummy
+  $78 | $AB | $CD | treasure_miab | $01
 
 @label_c0fedc = $C0FEDC
 @anchor_1 = $D20001
