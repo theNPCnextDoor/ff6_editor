@@ -9,7 +9,15 @@ from src.lib.assembly.artifact.memory_map import MemoryMap, AreaTypes
 from src.lib.assembly.artifact.variable import Label, SimpleVar
 from src.lib.assembly.artifact.variables import Variables
 from src.lib.assembly.data_structure.instruction.operand import Operand
-from src.lib.assembly.script.helpers import ScriptMode, ScriptSection, Line, LineType, clean_line, Component
+from src.lib.assembly.script.helpers import (
+    ScriptMode,
+    ScriptSection,
+    Line,
+    LineType,
+    clean_line,
+    Component,
+    ArrayPattern,
+)
 from src.lib.misc.exception import (
     MissingSectionAttribute,
     LineConflict,
@@ -203,6 +211,11 @@ class Script:
         script.lines.append(Line.from_component(script.memory_map))
         with open(filename, "rb") as f:
             for section in sections:
+                if section.variables:
+                    for var_dict in section.variables.values():
+                        for var in var_dict.values():
+                            script.lines.append(Line.from_component(var))
+
                 logging.info(f"Disassembling {section.mode} section starting at {Bytes.from_address(section.start)}.")
 
                 cursor = section.start
@@ -445,6 +458,14 @@ class Script:
 
                 cursor += len(blob)
                 array.parts.append(blob)
+
+            if section.attributes.get("pattern", False) == ArrayPattern.TREASURE_CHESTS:
+                value = int(array.parts[3].operand.value)
+                array.parts[3].operand.variable = section.variables["treasure_types"].get(value, None)
+                if value & 0x40 == 0x40:
+                    item_id = int(array.parts[4].operand.value)
+                    array.parts[4].operand.variable = section.variables["items"].get(item_id, None)
+
             self.lines.append(Line.from_component(array))
 
     def _disassemble_blobs(self, cursor: int, f: BinaryIO, section: ScriptSection) -> None:

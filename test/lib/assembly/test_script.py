@@ -13,7 +13,15 @@ from src.lib.assembly.data_structure.instruction.operand import Operand, Operand
 from src.lib.assembly.data_structure.pointer import Pointer
 from src.lib.assembly.data_structure.string.charset import MENU_CHARSET, Charset, DESCRIPTION_CHARSET
 from src.lib.assembly.data_structure.string.string import String, StringTypes
-from src.lib.assembly.script.helpers import ScriptMode, ScriptSection, SubSection, Line, LineType, Component
+from src.lib.assembly.script.helpers import (
+    ScriptMode,
+    ScriptSection,
+    SubSection,
+    Line,
+    LineType,
+    Component,
+    ArrayPattern,
+)
 from src.lib.assembly.script.script import (
     Script,
 )
@@ -70,8 +78,8 @@ class ScriptImpl:
                 filename=DUMMY_INPUT_SCRIPT_1,
             ),
             Line(
-                raw_line="db alfa = $12",
-                clean_line="db alfa = $12",
+                raw_line="let alfa = $12",
+                clean_line="let alfa = $12",
                 address=0x000000,
                 component_info=LineType.VARIABLE_DECLARATION,
                 regex_groups=None,
@@ -79,8 +87,8 @@ class ScriptImpl:
                 filename=DUMMY_INPUT_SCRIPT_2,
             ),
             Line(
-                raw_line="dw bravo = $1234",
-                clean_line="dw bravo = $1234",
+                raw_line="let bravo = $1234",
+                clean_line="let bravo = $1234",
                 address=0x000000,
                 component_info=LineType.VARIABLE_DECLARATION,
                 regex_groups=None,
@@ -88,12 +96,39 @@ class ScriptImpl:
                 filename=DUMMY_INPUT_SCRIPT_2,
             ),
             Line(
-                raw_line="db delta = $00",
-                clean_line="db delta = $00",
+                raw_line="let delta = $00",
+                clean_line="let delta = $00",
                 address=0x000000,
                 component_info=LineType.VARIABLE_DECLARATION,
                 regex_groups=None,
                 component=DELTA,
+                filename=DUMMY_INPUT_SCRIPT_2,
+            ),
+            Line(
+                raw_line="let item_dummy = $01",
+                clean_line="let item_dummy = $01",
+                address=0x000000,
+                component_info=LineType.VARIABLE_DECLARATION,
+                regex_groups=None,
+                component=SimpleVar(Bytes([0x01]), "item_dummy"),
+                filename=DUMMY_INPUT_SCRIPT_2,
+            ),
+            Line(
+                raw_line="let treasure_miab = $20",
+                clean_line="let treasure_miab = $20",
+                address=0x000000,
+                component_info=LineType.VARIABLE_DECLARATION,
+                regex_groups=None,
+                component=SimpleVar(Bytes([0x20]), "treasure_miab"),
+                filename=DUMMY_INPUT_SCRIPT_2,
+            ),
+            Line(
+                raw_line="let treasure_item = $40",
+                clean_line="let treasure_item = $40",
+                address=0x000000,
+                component_info=LineType.VARIABLE_DECLARATION,
+                regex_groups=None,
+                component=SimpleVar(Bytes([0x40]), "treasure_item"),
                 filename=DUMMY_INPUT_SCRIPT_2,
             ),
             Line(
@@ -414,6 +449,51 @@ class ScriptImpl:
                 filename=DUMMY_INPUT_SCRIPT_2,
             ),
             Line(
+                raw_line="  $12 | $34 | $56 | treasure_item | item_dummy",
+                clean_line="$12 | $34 | $56 | treasure_item | item_dummy",
+                address=0xC00043,
+                component_info=LineType.ARRAY,
+                regex_groups={},
+                component=Array(
+                    address=addr(0xC00043),
+                    parts=[
+                        Blob(address=addr(0xC00043), operand=Operand(Bytes([0x12]))),
+                        Blob(address=addr(0xC00044), operand=Operand(Bytes([0x34]))),
+                        Blob(address=addr(0xC00045), operand=Operand(Bytes([0x56]))),
+                        Blob(
+                            address=addr(0xC00046),
+                            operand=Operand(Bytes([0x40]), variable=SimpleVar(Bytes([0x40]), "treasure_item")),
+                        ),
+                        Blob(
+                            address=addr(0xC00047),
+                            operand=Operand(Bytes([0x01]), variable=SimpleVar(Bytes([0x01]), "item_dummy")),
+                        ),
+                    ],
+                ),
+                filename=DUMMY_INPUT_SCRIPT_2,
+            ),
+            Line(
+                raw_line="  $78 | $AB | $CD | treasure_miab | $01",
+                clean_line="$78 | $AB | $CD | treasure_miab | $01",
+                address=0xC00048,
+                component_info=LineType.ARRAY,
+                regex_groups={},
+                component=Array(
+                    address=addr(0xC00048),
+                    parts=[
+                        Blob(address=addr(0xC00048), operand=Operand(Bytes([0x78]))),
+                        Blob(address=addr(0xC00049), operand=Operand(Bytes([0x9A]))),
+                        Blob(address=addr(0xC0004A), operand=Operand(Bytes([0xBC]))),
+                        Blob(
+                            address=addr(0xC0004B),
+                            operand=Operand(Bytes([0x20]), variable=SimpleVar(Bytes([0x20]), "treasure_miab")),
+                        ),
+                        Blob(address=addr(0xC0004C), operand=Operand(Bytes([0x01]))),
+                    ],
+                ),
+                filename=DUMMY_INPUT_SCRIPT_2,
+            ),
+            Line(
                 raw_line="#$D20002",
                 clean_line="# $D20002",
                 address=0xD20002,
@@ -618,13 +698,15 @@ class TestScript:
             string_type=StringTypes.DESCRIPTION,
         )
 
-        assert len(script.arrays()) == 1
+        assert len(script.arrays()) == 3
         assert len(script.arrays()[0].parts) == 4
         assert script.arrays()[0].parts[0] == Blob(address=Bytes([0xC0, 0x00, 0x2E]), operand=Operand(Bytes([0xAA])))
         assert script.arrays()[0].parts[1] == String(address=Bytes([0xC0, 0x00, 0x2F]), operand=Operand(Bytes([0x9A])))
         assert script.arrays()[0].parts[2] == Blob(
             address=Bytes([0xC0, 0x00, 0x30]), operand=Operand(Bytes([0xBB])), delimiter=Operand(Bytes([0xFF]))
         )
+        assert len(script.arrays()[1].parts) == 5
+        assert len(script.arrays()[2].parts) == 5
 
         assert len(script.flags()) == 4
         assert script.flags()[0] == Flags(m=8, x=16, address=addr(0x000000))
@@ -731,6 +813,26 @@ class TestScript:
                 flags=Flags(m=8, x=8, address=addr(0xC00040)),
             ),
             ScriptSection(
+                start=0x000043,
+                end=0x00004C,
+                mode=ScriptMode.ARRAYS,
+                pattern=ArrayPattern.TREASURE_CHESTS,
+                sub_sections=[
+                    SubSection(mode=ScriptMode.BLOBS, length=1),
+                    SubSection(mode=ScriptMode.BLOBS, length=1),
+                    SubSection(mode=ScriptMode.BLOBS, length=1),
+                    SubSection(mode=ScriptMode.BLOBS, length=1),
+                    SubSection(mode=ScriptMode.BLOBS, length=1),
+                ],
+                variables={
+                    "items": {0x01: SimpleVar(Bytes([0x01]), "item_dummy")},
+                    "treasure_types": {
+                        0x20: SimpleVar(Bytes([0x20]), "treasure_miab"),
+                        0x40: SimpleVar(Bytes([0x40]), "treasure_item"),
+                    },
+                },
+            ),
+            ScriptSection(
                 start=0x123457,
                 end=0x12345A,
                 mode=ScriptMode.INSTRUCTIONS,
@@ -816,6 +918,9 @@ class TestScript:
 let alfa = $12
 let bravo = $1234
 let delta = $00
+let item_dummy = $01
+let treasure_miab = $20
+let treasure_item = $40
 
 @start = $C00001
   ptr $1234
@@ -848,6 +953,8 @@ m = 8, x = 16
 #$D20002
   rptr !rptr_2
   JSR !archie
+  $12 | $34 | $56 | treasure_item | item_dummy
+  $78 | $9A | $BC | treasure_miab | $01
 
 @label_c0fedc = $C0FEDC
 

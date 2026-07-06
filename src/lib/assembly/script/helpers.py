@@ -10,6 +10,7 @@ from src.lib.assembly.artifact.artifact import Artifact
 from src.lib.assembly.artifact.flags import Flags
 from src.lib.assembly.artifact.memory_map import MemoryMap
 from src.lib.assembly.artifact.variable import Label, Variable
+from src.lib.assembly.artifact.variables import Variables
 from src.lib.assembly.bytes import Bytes
 from src.lib.assembly.data_structure.array import Array
 from src.lib.assembly.data_structure.blob import Blob
@@ -36,6 +37,14 @@ class ScriptMode:
     ARRAYS = "Arrays"
 
 
+class ArrayPattern:
+    """
+    ArrayPatterns are used to disassemble known structures and pre-filled the Script with related variables.
+    """
+
+    TREASURE_CHESTS = "treasure_chests"
+
+
 def clean_line(line: str) -> str:
     """
     Removes the white spaces and the comment of the script line, if it exists.
@@ -60,7 +69,15 @@ class ScriptSection:
     Script sections are used to define how to interpret a specific section of the ROM when disassembling.
     """
 
-    def __init__(self, start: int, end: int, mode: ScriptMode, **attributes: Any):
+    def __init__(
+        self,
+        start: int,
+        end: int,
+        mode: ScriptMode,
+        variables: dict[str, dict[int, Variable]] | None = None,
+        **attributes: Any,
+    ):
+        self.variables = variables or dict()
         self.start = start
         self.end = end
         self.mode = mode
@@ -142,7 +159,7 @@ class Line:
     filename: str | Path | None = None
     raw_line: str | None = None
     clean_line: str | None = None
-    address: Bytes | None = None
+    address: int | None = None
     component_info: ComponentInfo | None = None
     regex_groups: dict[str, str | None] | None = None
     component: Component | None = None
