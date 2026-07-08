@@ -18,15 +18,13 @@ class Instruction(DataStructure):
     moving block instructions (MVP and MVN) are considered having two operands.
     """
 
-    def __init__(self, opcode: Bytes, address: Bytes | None = None, operands: list[Operand] | None = None):
+    def __init__(self, opcode: Bytes, operands: list[Operand] | None = None):
         """
         Instantiates an instruction.
         :param opcode: The command to be interpreted by the processor.
-        :param address: The address of the instruction in the ROM.
         :param operands: The data to be interpreted by the processor.
         """
         operands = operands or list()
-        super().__init__(address=address)
         self.opcode = opcode
         self.operands = operands
 
@@ -78,7 +76,7 @@ class Instruction(DataStructure):
 
         opcode = cls._find_opcode(command=command, mode=mode, length=length, flags=flags)
 
-        instruction = cls(address=address, opcode=opcode, operands=operands)
+        instruction = cls(opcode=opcode, operands=operands)
         logging.debug(f"Created {repr(instruction)}.")
         return instruction
 
@@ -113,7 +111,7 @@ class Instruction(DataStructure):
         elif length:
             operands.append(Operand.from_bytes(value[1 : length + 1], mode, operand_type, address, variables))
 
-        instruction = Instruction(address=address, opcode=opcode, operands=operands)
+        instruction = Instruction(opcode=opcode, operands=operands)
         logging.debug(f"Created {repr(instruction)}.")
         return instruction
 
@@ -212,7 +210,7 @@ class Instruction(DataStructure):
         :param other: The second instruction.
         :return: Whether the values of the fields of the instruction are the same.
         """
-        return self.address == other.address and self.opcode == other.opcode and self.operands == other.operands
+        return self.opcode == other.opcode and self.operands == other.operands
 
     def __str__(self) -> str:
         """
@@ -225,15 +223,18 @@ class Instruction(DataStructure):
             output += ",".join([str(operand) for operand in self.operands])
         return output
 
-    def to_line(self, show_address: bool = False, labels: list[Label] | None = None) -> str:
+    def to_line(
+        self, show_address: bool = False, address: Bytes | None = None, labels: list[Label] | None = None
+    ) -> str:
         """
         Converts an instruction into the exact string which will be put in a script.
         :param show_address: Whether the address of the instruction should be added as a comment.
+        :param address: The address of the Instruction.
         :param labels: A list of labels. Unused.
         :return: A script line.
         """
         output = f"  {self}"
-        output += f" ; ${self.address}" if show_address else ""
+        output += f" ; ${address}" if show_address else ""
         return output
 
     def __repr__(self) -> str:
@@ -243,7 +244,7 @@ class Instruction(DataStructure):
         hexa = str(self.opcode)
         for operand in self.operands:
             hexa += str(operand.value)
-        output = f"Instruction(address=0x{self.address}, as_str='{str(self)}', as_bytes={bytes(self)}, as_hexa=0x{hexa}"
+        output = f"Instruction(as_str='{str(self)}', as_bytes={bytes(self)}, as_hexa=0x{hexa}"
 
         if self.operands:
             if self.operands[0].variable:

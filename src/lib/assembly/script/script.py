@@ -15,7 +15,6 @@ from src.lib.assembly.script.helpers import (
     Line,
     LineType,
     clean_line,
-    Component,
     ArrayPattern,
 )
 from src.lib.misc.exception import (
@@ -79,36 +78,47 @@ class Script:
 
         for i, line in enumerate(data_lines[:-1]):
             length = len(line.component)
-            if line.address + length > data_lines[i + 1].address:
+            if (
+                line.address is not None
+                and data_lines[i + 1].address is not None
+                and line.address + length > data_lines[i + 1].address
+            ):
                 message = f"Conflicting lines: '{repr(line)}' and " f"'{repr(data_lines[i + 1])}'."
                 logging.error(message)
                 raise LineConflict(message)
 
         flag_lines = [line for line in self.lines if line.component and line.component_info == LineType.FLAGS]
         for i, line in enumerate(flag_lines[:-1]):
-            if line.address == flag_lines[i + 1].address and line.component != flag_lines[i + 1].component:
+            if (
+                line.address is not None
+                and flag_lines[i + 1].address is not None
+                and line.address == flag_lines[i + 1].address
+                and line.component != flag_lines[i + 1].component
+            ):
                 message = (
                     f"Flags lines {repr(line)} and {repr(flag_lines[i + 1])} "
-                    f"at address 0x{str(line.component.address)} are conflicting with one another."
+                    f"at address 0x{str(line.address)} are conflicting with one another."
                 )
                 logging.error(message)
                 raise LineConflict(message)
 
-        for component in self.data_structures():
-            if not self._is_data_structure_in_rom_area(component):
-                message = (
-                    f"Illegal address for Anchor {repr(component)}. Allowed address: {self.memory_map.mapping_mode.rom}"
-                )
+        for line in self.data_structure_lines():
+            if not self._is_data_structure_in_rom_area(line):
+                message = f"Illegal address for Anchor {repr(line.component)}. Allowed address: {self.memory_map.mapping_mode.rom}"
                 logging.error(message)
                 raise IllegalAddress(message)
 
         if not self.memory_map.mapping_mode.invalid:
             return
 
-        for component in self._get_components(LineType.LABEL, LineType.FLAGS):
-            address = component.address if hasattr(component, "address") else component.parent_address
-            if component and self.memory_map.is_in_area_type(address, AreaTypes.INVALID):
-                message = f"Illegal address for {repr(component)}. Allowed address: {self.memory_map.mapping_mode.rom}"
+        for line in self._get_lines(LineType.LABEL, LineType.FLAGS):
+            address = line.address
+            if (
+                line.component
+                and line.address is not None
+                and self.memory_map.is_in_area_type(address, AreaTypes.INVALID)
+            ):
+                message = f"Illegal address for {repr(line)}. Allowed address: {self.memory_map.mapping_mode.rom}"
                 logging.error(message)
                 raise IllegalAddress(message)
 
@@ -127,36 +137,37 @@ class Script:
         cursor = 0
         current_anchor = Operand(Bytes.from_address(0))
 
-        first_component = self.data_structures()[0]
+        first_component_address = self.data_structure_lines()[0].address
         flags = Flags(m=RegisterWidth.INVALID, x=RegisterWidth.INVALID)
 
-        if not self.labels().find_by_address(first_component.address):
+        if not self.labels().find_by_address(first_component_address):
             name = "start" if not self.labels().find_by_name("start") else None
-            start_label = Label(name=name, value=first_component.address)
+            start_label = Label(name=name, value=first_component_address)
             logging.info(f"Added {repr(start_label)}.")
-            self.lines.append(Line.from_component(start_label))
+            self.lines.append(Line.from_component(start_label, first_component_address))
             self.sort_lines()
 
         logging.info(f"Dumping {repr(self.memory_map)}.")
         output.append(self.memory_map.to_line())
 
-        for component in self.components():
+        for line in self.line_with_components():
+            component = line.component
             if isinstance(component, MemoryMap):
                 continue
-            logging.info(f"Dumping {repr(component)}.")
+            logging.info(f"Dumping {repr(line)}.")
             if flags and isinstance(component, Flags):
                 if flags.m == component.m and flags.x == component.x:
-                    logging.debug("Unnecessary flags redifinition. Skipping.")
+                    logging.debug("Unnecessary flags redefinition. Skipping.")
                     continue
-                flags = component
-            if cursor != int(component.address):
+                flags = line
+            if line.address is not None and cursor != self.memory_map.to_position(line.address):
                 if isinstance(component, Label):
                     output.append(component.to_line(show_address=True))
                     logging.debug(f"Setting cursor at 0x{Bytes.from_address(cursor)}.")
-                    cursor = int(component.value)
+                    cursor = self.memory_map.to_position(component.value)
                     continue
 
-                label = Label(value=component.address)
+                label = Label(value=line.address)
                 logging.info(f"Created {repr(label)}.")
                 self.lines.append(Line.from_component(label))
                 logging.info(f"Writing {repr(label)} to file.")
@@ -167,13 +178,17 @@ class Script:
 
             if isinstance(component, Pointer) and component.is_relative:
                 output.append(
-                    component.to_line(labels=self.labels(), show_address=debug, current_anchor=current_anchor)
+                    component.to_line(
+                        labels=self.labels(), show_address=debug, address=line.address, current_anchor=current_anchor
+                    )
                 )
                 current_anchor = component.anchor
             else:
-                output.append(component.to_line(labels=self.labels(), show_address=debug))
-            cursor = int(component.address) + len(component)
-            logging.debug(f"Advancing cursor to 0x{Bytes.from_address(cursor)}.")
+                output.append(component.to_line(labels=self.labels(), show_address=debug, address=line.address))
+
+            if line.address is not None:
+                cursor = self.memory_map.to_position(line.address) + len(component)
+                logging.debug(f"Advancing cursor to 0x{Bytes.from_address(cursor)}.")
 
         with open(filename, "w", encoding="utf-8") as f:
             f.write("\n".join(output))
@@ -190,11 +205,11 @@ class Script:
         with open(input_path, "rb") as input_rom, open(output_path, "wb") as output_rom:
             rom = input_rom.read()
             output_rom.write(rom)
-            for line in self.data_structures():
+            for line in self.data_structure_lines():
                 logging.info(f"Assembling {repr(line)} to ROM.")
                 position = self.memory_map.to_position(line.address)
                 output_rom.seek(position)
-                output_rom.write(bytes(line))
+                output_rom.write(bytes(line.component))
 
     @classmethod
     def disassemble(cls, filename: str | Path, sections: list[ScriptSection], mapping_mode: str) -> Self:
@@ -244,7 +259,7 @@ class Script:
         """
         self.lines.sort(key=lambda x: x.component_info != LineType.FLAGS)
         self.lines.sort(key=lambda x: x.component_info != LineType.LABEL)
-        self.lines.sort(key=lambda x: x.address)
+        self.lines.sort(key=lambda x: (x.address is not None, x.address))
         self.lines.sort(key=lambda x: x.component_info != LineType.MEMORY_MAP)
 
     @classmethod
@@ -263,7 +278,6 @@ class Script:
                 if clean_string := clean_line(raw_string):
                     lines.append(Line(filename, raw_string, clean_string))
 
-        lines[0].address = 0
         return lines
 
     def _parse_lines(self) -> None:
@@ -277,22 +291,21 @@ class Script:
 
         for line in self.lines:
             logging.info(f"Parsing {repr(line)}.")
-            address = line.address
 
             if line.component_info in (LineType.MEMORY_MAP, LineType.VARIABLE_DECLARATION, LineType.LABEL):
                 continue
 
             if line.component_info == LineType.ANCHOR:
-                anchor = Operand.from_line(**line.regex_groups, parent_address=address, variables=self.variables())
+                anchor = Operand.from_line(**line.regex_groups, parent_address=line.address, variables=self.variables())
                 logging.info(f"New anchor: {repr(anchor)}.")
             elif line.component_info == LineType.ARRAY:
-                array = Array.from_line(line=line.clean_line, address=address, variables=self.simple_vars())
+                array = Array.from_line(line=line.clean_line, address=line.address, variables=self.simple_vars())
                 line.component = array
             elif line.component_info == LineType.BLOB:
-                blob = Blob.from_line(**line.regex_groups, address=address, variables=self.simple_vars())
+                blob = Blob.from_line(**line.regex_groups, address=line.address, variables=self.simple_vars())
                 line.component = blob
             elif line.component_info == LineType.FLAGS:
-                new_flags = Flags.from_line(**line.regex_groups, address=address)
+                new_flags = Flags.from_line(**line.regex_groups)
                 if new_flags != flags:
                     logging.info(f"New flags have been detected. {repr(new_flags)}")
                 flags = new_flags
@@ -303,17 +316,19 @@ class Script:
                     logging.error(message)
                     raise UndefinedFlags(message)
                 instruction = Instruction.from_line(
-                    **line.regex_groups, flags=flags, address=address, variables=self.variables()
+                    **line.regex_groups, flags=flags, address=line.address, variables=self.variables()
                 )
                 if instruction.is_flag_setter():
                     flags = instruction.set_flags(flags)
                     logging.info(f"Instruction is a flag setter. New flags: {repr(flags)}.")
                 line.component = instruction
             elif line.component_info == LineType.POINTER:
-                pointer = Pointer.from_line(**line.regex_groups, address=address, anchor=anchor, labels=self.labels())
+                pointer = Pointer.from_line(
+                    **line.regex_groups, address=line.address, anchor=anchor, labels=self.labels()
+                )
                 line.component = pointer
             elif line.component_info == LineType.STRING:
-                string = String.from_line(**line.regex_groups, address=address, variables=self.simple_vars())
+                string = String.from_line(**line.regex_groups, address=line.address, variables=self.simple_vars())
                 line.component = string
             elif line.component_info == LineType.VARIABLE_DECLARATION:
                 continue
@@ -333,8 +348,8 @@ class Script:
         :raises MismatchedMappingMode: Raised when two different MemoryMaps are set in the files being parsed.
         """
 
-        if line.address is not None:
-            cursor = line.address
+        # if line.address is not None:
+        #    cursor = self.memory_map.to_position(line.address)
 
         cleaned_line = line.clean_line  # if isinstance(line, Line) else line
 
@@ -347,7 +362,6 @@ class Script:
                 )
                 logging.error(message)
                 raise MismatchedMappingModes(message)
-            line.address = Bytes.from_address(0)
             line.component = memory_map
             line.component_info = LineType.MEMORY_MAP
             self.memory_map = memory_map
@@ -356,16 +370,15 @@ class Script:
         if match := re.fullmatch(ArtifactRegex.VARIABLE_DECLARATION, cleaned_line):
             line.component = SimpleVar.from_line(name=match.group("name"), operand=match.group("operand"))
             line.component_info = LineType.VARIABLE_DECLARATION
-            line.address = Bytes.from_address(0)
             return cursor
 
-        line.address = Bytes.from_address(cursor)
+        line.address = self.memory_map.to_address(cursor)
 
         if match := re.fullmatch(ArtifactRegex.LABEL, cleaned_line):
             label = Label.from_line(
-                name=match.group("name"), snes_address=match.group("snes_address"), address=Bytes.from_address(cursor)
+                name=match.group("name"), snes_address=match.group("snes_address"), address=line.address
             )
-            cursor = int(label.value)
+            cursor = self.memory_map.to_position(label.value)
             logging.debug(f"Cursor set at 0x{Bytes.from_address(cursor)}.")
             line.component_info = LineType.LABEL
             line.component = label
@@ -430,24 +443,22 @@ class Script:
         f.seek(cursor)
         while cursor < section.end:
             address = self.memory_map.to_address(cursor)
-            array = Array(address=Bytes.from_address(cursor))
+            array = Array()
 
             for sub_section in section.attributes["sub_sections"]:
                 data = self._extract_blob_bytes(f=f, length=sub_section.length, delimiter=sub_section.delimiter)
                 delimiter = sub_section.delimiter
                 if sub_section.mode == ScriptMode.BLOBS:
-                    blob = Blob.from_bytes(data=data, address=address, delimiter=delimiter)
+                    blob = Blob.from_bytes(data=data, delimiter=delimiter)
                 elif sub_section.mode == ScriptMode.MENU_STRINGS:
                     blob = String.from_bytes(
                         data=data,
-                        address=address,
                         delimiter=delimiter,
                         string_type=StringTypes.MENU,
                     )
                 elif sub_section.mode == ScriptMode.MENU_DESCRIPTIONS:
                     blob = String.from_bytes(
                         data=data,
-                        address=address,
                         delimiter=delimiter,
                         string_type=StringTypes.DESCRIPTION,
                     )
@@ -466,7 +477,7 @@ class Script:
                     item_id = int(array.parts[4].operand.value)
                     array.parts[4].operand.variable = section.variables["items"].get(item_id, None)
 
-            self.lines.append(Line.from_component(array))
+            self.lines.append(Line.from_component(array, address))
 
     def _disassemble_blobs(self, cursor: int, f: BinaryIO, section: ScriptSection) -> None:
         """
@@ -500,18 +511,17 @@ class Script:
                 continue
 
             if section.mode == ScriptMode.BLOBS:
-                blob = Blob.from_bytes(data=data, address=address, delimiter=delimiter)
+                blob = Blob.from_bytes(data=data, delimiter=delimiter)
             elif section.mode == ScriptMode.MENU_STRINGS:
-                blob = String.from_bytes(data=data, address=address, delimiter=delimiter, string_type=StringTypes.MENU)
+                blob = String.from_bytes(data=data, delimiter=delimiter, string_type=StringTypes.MENU)
             else:  # section.mode == ScriptMode.DESCRIPTION_STRINGS
                 blob = String.from_bytes(
                     data=data,
-                    address=address,
                     delimiter=delimiter,
                     string_type=StringTypes.DESCRIPTION,
                 )
 
-            self.lines.append(Line.from_component(blob))
+            self.lines.append(Line.from_component(blob, address))
             cursor += len(blob)
 
     def _disassemble_pointers(self, cursor: int, f: BinaryIO, section: ScriptSection) -> None:
@@ -527,17 +537,17 @@ class Script:
         if address := section.attributes.get("anchor", 0):
             anchor = Operand(Bytes.from_address(address))
             label = Label(value=anchor.value)
-            if not self.labels().find_by_address(label.address):
-                self.lines.append(Line.from_component(label))
+            if not self.labels().find_by_address(label.value):
+                self.lines.append(Line.from_component(label, label.value))
 
         while cursor < section.end:
             pointer_bytes = f.read(2)
             address = self.memory_map.to_address(cursor)
             pointer = Pointer.from_bytes(address=address, value=pointer_bytes, anchor=anchor)
             label = Label(value=pointer.destination)
-            if not self.labels().find_by_address(label.address):
-                self.lines.append(Line.from_component(label))
-            self.lines.append(Line.from_component(pointer))
+            if not self.labels().find_by_address(label.value):
+                self.lines.append(Line.from_component(label, label.value))
+            self.lines.append(Line.from_component(pointer, address))
             cursor += 2
 
     def _disassemble_instructions(self, cursor: int, f: BinaryIO, section: ScriptSection) -> None:
@@ -556,7 +566,7 @@ class Script:
 
         flags = section.attributes["flags"]
         address = self.memory_map.to_address(section.start)
-        self.lines.append(Line.from_component(Flags(m=flags.m, x=flags.x, address=address)))
+        self.lines.append(Line.from_component(Flags(m=flags.m, x=flags.x), address))
         while cursor < section.end:
             address = self.memory_map.to_address(cursor)
             f.seek(cursor)
@@ -568,10 +578,10 @@ class Script:
                 flags = instruction.set_flags(flags)
             elif instruction.labels:
                 for label in instruction.labels:
-                    if not self.labels().find_by_address(label.address):
+                    if not self.labels().find_by_address(label.value):
                         self.lines.append(Line.from_component(label))
 
-            self.lines.append(Line.from_component(instruction))
+            self.lines.append(Line.from_component(instruction, address))
             cursor += len(instruction)
 
     def _extract_labels(self) -> None:
@@ -579,15 +589,17 @@ class Script:
         Extracts all labels from pointers and instructions.
         :return: None.
         """
-        for pointer in self.pointers():
+        for line in self.pointer_lines():
+            pointer = line.component
             if pointer.operand.variable:
                 label = pointer.operand.variable
-                if not self.variables().find_by_address(label.address):
+                if not self.variables().find_by_address(label.value):
                     self.lines.append(Line.from_component(label))
-        for instruction in self.instructions():
+        for line in self.instruction_lines():
+            instruction = line.component
             for label in instruction.labels:
-                if not self.variables().find_by_address(label.address):
-                    self.lines.append(Line.from_component(label))
+                if not self.variables().find_by_address(label.value):
+                    self.lines.append(Line.from_component(label, label.value))
 
     @staticmethod
     def _extract_blob_bytes(f: BinaryIO, length: int | None = None, delimiter: bytes | None = None) -> bytes:
@@ -609,65 +621,65 @@ class Script:
         return data
 
     def variables(self) -> Variables:
-        return Variables(*self._get_components(LineType.VARIABLE_DECLARATION, LineType.LABEL))
+        return Variables(*[line.component for line in self._get_lines(LineType.VARIABLE_DECLARATION, LineType.LABEL)])
 
     def simple_vars(self) -> Variables:
-        return Variables(*self._get_components(LineType.VARIABLE_DECLARATION))
+        return Variables(*[line.component for line in self._get_lines(LineType.VARIABLE_DECLARATION)])
 
     def labels(self) -> Variables:
-        return Variables(*self._get_components(LineType.LABEL))
+        return Variables(*[line.component for line in self._get_lines(LineType.LABEL)])
 
-    def flags(self) -> list[Flags]:
-        return self._get_components(LineType.FLAGS)
+    def flags_lines(self) -> list[Line]:
+        return self._get_lines(LineType.FLAGS)
 
-    def pointers(self) -> list[Pointer]:
-        return self._get_components(LineType.POINTER)
+    def pointer_lines(self) -> list[Line]:
+        return self._get_lines(LineType.POINTER)
 
-    def instructions(self) -> list[Instruction]:
-        return self._get_components(LineType.INSTRUCTION)
+    def instruction_lines(self) -> list[Line]:
+        return self._get_lines(LineType.INSTRUCTION)
 
-    def blobs(self) -> list[Blob]:
-        return self._get_components(LineType.BLOB)
+    def blob_lines(self) -> list[Line]:
+        return self._get_lines(LineType.BLOB)
 
-    def strings(self) -> list[String]:
-        return self._get_components(LineType.STRING)
+    def string_lines(self) -> list[Line]:
+        return self._get_lines(LineType.STRING)
 
-    def arrays(self) -> list[Array]:
-        return self._get_components(LineType.ARRAY)
+    def array_lines(self) -> list[Line]:
+        return self._get_lines(LineType.ARRAY)
 
-    def memory_maps(self) -> list[MemoryMap]:
-        return self._get_components(LineType.MEMORY_MAP)
+    def memory_map_lines(self) -> list[Line]:
+        return self._get_lines(LineType.MEMORY_MAP)
 
-    def components(self) -> list[Component]:
-        return [line.component for line in self.lines if line.component]
+    def line_with_components(self) -> list[Line]:
+        return [line for line in self.lines if line.component]
 
-    def data_structures(self) -> list[DataStructure]:
-        return [line.component for line in self.lines if isinstance(line.component, DataStructure)]
+    def data_structure_lines(self) -> list[Line]:
+        return [line for line in self.lines if isinstance(line.component, DataStructure)]
 
-    def _get_components(self, *component_infos: LineType) -> list[Component]:
+    def _get_lines(self, *component_infos: LineType) -> list[Line]:
         """
         Obtains the Components inside the Lines.
         :param component_infos: If provided, will filter the results by Component type.
         :return: A list of Components.
         """
-        return [line.component for line in self.lines if line.component_info in component_infos]
+        return [line for line in self.lines if line.component_info in component_infos]
 
-    def _is_data_structure_in_rom_area(self, data_structure: DataStructure) -> bool:
+    def _is_data_structure_in_rom_area(self, line: Line) -> bool:
         """
         Determines if the entirety of the DataStructure is inside the ROM area in the MemoryMap. Also,
         if the DataStructure is a relative Pointer, it will do the same for the
-        :param data_structure: A DataStructure.
+        :param line: A DataStructure.
         :return: True if the DataStructure and its anchor, if applicable, are contained within the ROM area.
         """
-        first_byte = data_structure.address
-        last_byte = Bytes.from_address(int(data_structure.address) + len(data_structure) - 1)
+        first_byte = line.address
+        last_byte = Bytes.from_address(int(line.address) + len(line.component) - 1)
         for address in first_byte, last_byte:
             if not self.memory_map.is_in_area_type(address, AreaTypes.ROM):
                 return False
         if (
-            isinstance(data_structure, Pointer)
-            and data_structure.anchor
-            and not self.memory_map.is_in_area_type(data_structure.anchor.value, AreaTypes.ROM)
+            isinstance(line, Pointer)
+            and line.anchor
+            and not self.memory_map.is_in_area_type(line.anchor.value, AreaTypes.ROM)
         ):
             return False
         return True

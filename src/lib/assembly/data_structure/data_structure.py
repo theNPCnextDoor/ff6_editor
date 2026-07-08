@@ -1,17 +1,10 @@
 from __future__ import annotations
 from typing import Self
 
-from src.lib.assembly.bytes import Bytes
 from abc import ABC, abstractmethod
 
 
 class DataStructure(ABC):
-    def __init__(self, address: Bytes | None = None):
-        self.address = address if address is not None else Bytes.from_address(0)
-
-    def __eq__(self, other: Self) -> bool:
-        return self.address == other.address
-
     @classmethod
     @abstractmethod
     def from_line(cls, *args, **kwargs) -> Self:

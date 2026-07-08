@@ -54,6 +54,10 @@ class UndefinedFlags(Exception):
     pass
 
 
+class UndefinedMappingMode(Exception):
+    pass
+
+
 class UnderflowError(Exception):
     pass
 

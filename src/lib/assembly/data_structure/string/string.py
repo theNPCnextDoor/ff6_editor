@@ -50,12 +50,11 @@ class String(Blob):
     def __init__(
         self,
         operand: Operand,
-        address: Bytes | None = None,
         delimiter: Operand | None = None,
         charset: Charset | None = None,
         string_type: StringType | None = None,
     ):
-        super().__init__(operand=operand, address=address, delimiter=delimiter)
+        super().__init__(operand=operand, delimiter=delimiter)
         self.charset = charset or Charset(charset=MENU_CHARSET)
         self.string_type = string_type or StringTypes.MENU
 
@@ -97,7 +96,7 @@ class String(Blob):
             data += _string_type.charset.get_bytes(char)
         data_bytes = Operand(Bytes.from_bytes(value=data, endian=Endian.BIG))
 
-        string = cls(operand=data_bytes, address=address, delimiter=_delimiter, string_type=_string_type)
+        string = cls(operand=data_bytes, delimiter=_delimiter, string_type=_string_type)
         logging.debug(f"Created {repr(string)}.")
         return string
 
@@ -105,14 +104,12 @@ class String(Blob):
     def from_bytes(
         cls,
         data: bytes,
-        address: Bytes | None = None,
         delimiter: bytes | None = None,
         string_type: StringType | None = None,
     ) -> Self:
         """
         Converts bytes into a String.
         :param data: The bytes to be converted.
-        :param address: The address of the String.
         :param delimiter: The byte that helps determine where the String ends in-game.
         :param string_type: The StringType of the line to determine how to convert the bytes into a String.
         :return: A String.
@@ -121,7 +118,7 @@ class String(Blob):
         if delimiter is not None:
             delimiter = Operand(Bytes.from_bytes(value=delimiter))
 
-        string = String(address=address, operand=data, delimiter=delimiter, string_type=string_type)
+        string = String(operand=data, delimiter=delimiter, string_type=string_type)
         logging.debug(f"Created {repr(string)}.")
         return string
 
@@ -141,26 +138,27 @@ class String(Blob):
         return output
 
     def __repr__(self) -> str:
-        hexa = str(self.operand.value) + (str(self.delimiter.value) if self.delimiter else "")
-        output = f"String(address=0x{self.address}, as_str='{str(self)}', as_bytes={bytes(self)}, as_hexa=0x{hexa}"
-        if self.delimiter and self.delimiter.variable:
+        hexa = str(self.operand.value) + (str(self.delimiter.value) if self.delimiter is not None else "")
+        output = f"String(as_str='{str(self)}', as_bytes={bytes(self)}, as_hexa=0x{hexa}"
+        if self.delimiter is not None and self.delimiter.variable:
             output += f", delimiter_var={repr(self.delimiter.variable)}"
         output += ")"
         return output
 
     def __eq__(self, other: Self) -> bool:
-        return self.address == other.address and self.operand == other.operand
+        return self.operand == other.operand
 
-    def to_line(self, show_address: bool = False, **kwargs: Any) -> str:
+    def to_line(self, show_address: bool = False, address: Bytes | None = None, **kwargs: Any) -> str:
         """
         Converts a String into a script line.
         :param show_address: Whether the address of the script line will be added as a comment.
+        :param address: The address of the String.
         :param kwargs: Unused. Added to prevent errors.
         :return: A script line.
         """
         output = f"  {self}"
         if show_address:
-            output += f" ; ${self.address}"
+            output += f" ; ${address}"
         return output
 
     @classmethod

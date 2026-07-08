@@ -7,17 +7,15 @@ from src.lib.assembly.data_structure.array import Array
 from src.lib.assembly.data_structure.instruction.operand import Operand
 from src.lib.assembly.data_structure.string.string import String, StringTypes
 from src.lib.assembly.bytes import Bytes
-from test.lib.assembly.conftest import TEST_WORD, VARIABLES, DEFAULT_ADDRESS
+from test.lib.assembly.conftest import VARIABLES, addr
 
 GROUP = Array(
-    address=DEFAULT_ADDRESS,
     parts=[
-        Blob(address=DEFAULT_ADDRESS, operand=Operand(Bytes([0xAA]))),
-        String(operand=Operand(Bytes([0x9A])), address=Bytes([0xC0, 0x00, 0x01]), string_type=StringTypes.DESCRIPTION),
-        Blob(operand=Operand(Bytes([0xBB])), address=Bytes([0xC0, 0x00, 0x02]), delimiter=Operand(Bytes([0xFF]))),
+        Blob(operand=Operand(Bytes([0xAA]))),
+        String(operand=Operand(Bytes([0x9A])), string_type=StringTypes.DESCRIPTION),
+        Blob(operand=Operand(Bytes([0xBB])), delimiter=Operand(Bytes([0xFF]))),
         String(
             operand=Operand(Bytes([0x9B])),
-            address=Bytes([0xC0, 0x00, 0x04]),
             delimiter=Operand(Bytes([0x00]), variable=SimpleVar(Bytes([0x00]), "zero")),
             string_type=StringTypes.MENU,
         ),
@@ -34,8 +32,34 @@ class TestArray:
                 '"This is a string # " | $01',
                 Array(
                     parts=[
-                        String(operand=Operand(TEST_WORD)),
-                        Blob(operand=Operand(Bytes([0x01])), address=Bytes([0x00, 0x00, 0x13])),
+                        String(
+                            operand=Operand(
+                                Bytes(
+                                    [
+                                        0x93,
+                                        0xA1,
+                                        0xA2,
+                                        0xAC,
+                                        0xFE,
+                                        0xA2,
+                                        0xAC,
+                                        0xFE,
+                                        0x9A,
+                                        0xFE,
+                                        0xAC,
+                                        0xAD,
+                                        0xAB,
+                                        0xA2,
+                                        0xA7,
+                                        0xA0,
+                                        0xFE,
+                                        0xC9,
+                                        0xFE,
+                                    ]
+                                )
+                            )
+                        ),
+                        Blob(operand=Operand(Bytes([0x01]))),
                     ]
                 ),
             ),
@@ -44,7 +68,10 @@ class TestArray:
                 Array(
                     parts=[
                         Blob(operand=Operand(Bytes([0xCD, 0x78]))),
-                        String(operand=Operand(TEST_WORD), delimiter=Operand(Bytes([0x00]))),
+                        String(
+                            operand=Operand(Bytes([0x92, 0xAD, 0x9A, 0xAD, 0xAE, 0xAC])),
+                            delimiter=Operand(Bytes([0x00])),
+                        ),
                     ]
                 ),
             ),
@@ -54,11 +81,11 @@ class TestArray:
     def test_from_line(self, line: str, comment: str, group: Array):
         assert (
             Array.from_line(
-                line=line,
+                line=line + comment,
                 address=Bytes([0x00, 0x00, 0x00]),
                 variables=Variables(SimpleVar(Bytes.from_int(0), "zero")),
             )
-            == Array()
+            == group
         )
 
     @pytest.mark.parametrize(
@@ -74,11 +101,11 @@ class TestArray:
         ["expected", "group"],
         [
             (
-                "Array(address=0xC00000, as_str='$AA | desc \"a\" | $BB,$FF | \"b\",zero', as_bytes=b'\\xaa\\x9a\\xbb\\xff\\x9b\\x00', as_hexa=0xAA9ABB9B, parts=["
-                "Blob(address=0xC00000, as_str='$AA', as_bytes=b'\\xaa', as_hexa=0xAA), "
-                "String(address=0xC00001, as_str='desc \"a\"', as_bytes=b'\\x9a', as_hexa=0x9A), "
-                "Blob(address=0xC00002, as_str='$BB,$FF', as_bytes=b'\\xbb\\xff', as_hexa=0xBBFF), "
-                "String(address=0xC00004, as_str='\"b\",zero', as_bytes=b'\\x9b\\x00', as_hexa=0x9B00, delimiter_var=SimpleVar(name='zero', value=0x00))])",
+                "Array(as_str='$AA | desc \"a\" | $BB,$FF | \"b\",zero', as_bytes=b'\\xaa\\x9a\\xbb\\xff\\x9b\\x00', as_hexa=0xAA9ABBFF9B00, parts=["
+                "Blob(as_str='$AA', as_bytes=b'\\xaa', as_hexa=0xAA), "
+                "String(as_str='desc \"a\"', as_bytes=b'\\x9a', as_hexa=0x9A), "
+                "Blob(as_str='$BB,$FF', as_bytes=b'\\xbb\\xff', as_hexa=0xBBFF), "
+                "String(as_str='\"b\",zero', as_bytes=b'\\x9b\\x00', as_hexa=0x9B00, delimiter_var=SimpleVar(name='zero', value=0x00))])",
                 GROUP,
             ),
         ],
@@ -87,16 +114,14 @@ class TestArray:
         assert repr(group) == expected
 
     @pytest.mark.parametrize(
-        ["expected", "group"],
+        ["address", "expected"],
         [
-            ('  $AA | desc "a" | $BB,$FF | "b",zero', GROUP),
+            (None, '  $AA | desc "a" | $BB,$FF | "b",zero'),
+            (addr(0xC01234), '  $AA | desc "a" | $BB,$FF | "b",zero ; $C01234'),
         ],
     )
-    @pytest.mark.parametrize("show_address", [True, False])
-    def test_to_line(self, group: Array, show_address: bool, expected: str):
-        if show_address:
-            expected += " ; $C00000"
-        assert group.to_line(show_address=show_address) == expected
+    def test_to_line(self, address: Bytes | None, expected: str):
+        assert GROUP.to_line(show_address=address is not None, address=address) == expected
 
     @pytest.mark.parametrize(
         ["group", "length"],

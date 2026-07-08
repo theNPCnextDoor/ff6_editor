@@ -10,7 +10,6 @@ from src.lib.assembly.artifact.artifact import Artifact
 from src.lib.assembly.artifact.flags import Flags
 from src.lib.assembly.artifact.memory_map import MemoryMap
 from src.lib.assembly.artifact.variable import Label, Variable
-from src.lib.assembly.artifact.variables import Variables
 from src.lib.assembly.bytes import Bytes
 from src.lib.assembly.data_structure.array import Array
 from src.lib.assembly.data_structure.blob import Blob
@@ -159,7 +158,7 @@ class Line:
     filename: str | Path | None = None
     raw_line: str | None = None
     clean_line: str | None = None
-    address: int | None = None
+    address: Bytes | None = None
     component_info: ComponentInfo | None = None
     regex_groups: dict[str, str | None] | None = None
     component: Component | None = None
@@ -170,7 +169,7 @@ class Line:
             "Line("
             f"raw_line='{raw_line}', "
             f"clean_line='{self.clean_line}', "
-            f"address={self.address}, "
+            f"address=0x{self.address}, "
             f"component_info={'ComponentInfo.' + self.component_info.name if self.component_info else None}, "
             f"regex_groups={self.regex_groups}, "
             f"component={repr(self.component)}, "
@@ -178,10 +177,14 @@ class Line:
             ")"
         )
 
+    def __eq__(self, other: Self) -> bool:
+        return self.component == other.component and self.address == other.address
+
     @classmethod
-    def from_component(cls, component: Component) -> Self:
+    def from_component(cls, component: Component, address: Bytes | None = None) -> Self:
         """
         Converts a Component into a Line.
+        :param address:
         :param component: An Artifact or DataStructure.
         :return: A Line.
         :note: The Line being returned won't have all its fields filled. This method is used mostly to wrap a Component
@@ -189,10 +192,11 @@ class Line:
         """
         line = cls()
         line.component = component
-        line.address = int(component.address) if hasattr(component, "address") else 0
+        line.address = address
         line_types = [
             line_type for line_type in LineType.list() if line_type.cls and type(line.component) is line_type.cls
         ]
         if line_types:
             line.component_info = line_types[0]
+        line.raw_line = line.component.to_line()
         return line
