@@ -1,6 +1,6 @@
 import pytest
 
-from src.lib.assembly.artifact.memory_map import MappingModes, MappingMode, MemoryMap, Area, AreaType
+from src.lib.assembly.artifact.memory_map import MappingModes, MappingMode, MemoryMap, Area
 from src.lib.assembly.bytes import Bytes
 from src.lib.misc.exception import UnrecognizedMappingMode, IllegalRomPosition, IllegalAddress
 from test.lib.assembly.conftest import addr

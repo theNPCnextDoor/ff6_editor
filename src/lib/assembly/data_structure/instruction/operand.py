@@ -86,7 +86,7 @@ class Operand:
         else:
             length = 3
 
-        destination = variable.address
+        destination = variable.value
         if (
             length != 1
             and operand_type != OperandType.DEFAULT

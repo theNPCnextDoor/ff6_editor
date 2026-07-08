@@ -19,29 +19,29 @@ class Pointer(DataStructure):
     def __init__(
         self,
         operand: Operand,
-        address: Bytes | None = None,
+        destination: Bytes,
         anchor: Operand | None = None,
     ):
-        super().__init__(address=address)
         self.anchor = anchor
+        self.destination = destination
         self.operand = operand
 
     @property
     def is_relative(self) -> bool:
         return bool(self.anchor)
 
-    @property
-    def destination(self) -> Bytes:
+    @classmethod
+    def determine_destination(cls, operand: Operand, address: Bytes, anchor: Operand | None = None) -> Bytes:
         """
         Determines the destination of the Pointer. It is either derived from the value and the Pointer's bank
         when the Pointer is direct, or it is the value of the anchor plus the value of the Pointer.
         :return: A Bytes object.
         """
-        if self.operand.variable:
-            return self.operand.variable.value
-        if self.anchor:
-            return Bytes.from_address(int(self.anchor.value) + int(self.operand.value))
-        return Bytes.from_address(self.address.bank() + int(self.operand.value))
+        if operand.variable:
+            return operand.variable.value
+        if anchor:
+            return Bytes.from_address(int(anchor.value) + int(operand.value))
+        return Bytes.from_address(address.bank() + int(operand.value))
 
     @classmethod
     def from_line(
@@ -80,12 +80,12 @@ class Pointer(DataStructure):
             logging.error(message)
             raise ImpossibleDestination(message)
 
-        pointer = cls(address=address, operand=_operand, anchor=anchor)
+        pointer = cls(operand=_operand, anchor=anchor, destination=destination)
         logging.debug(f"Created {repr(pointer)}.")
         return pointer
 
     @classmethod
-    def from_bytes(cls, value: bytes, address: Bytes, anchor: Bytes | None = None) -> Self:
+    def from_bytes(cls, value: bytes, address: Bytes, anchor: Operand | None = None) -> Self:
         """
         Converts bytes into a Pointer.
         :param value: The bytes representing the data of the Pointer.
@@ -94,13 +94,18 @@ class Pointer(DataStructure):
         :return: A Pointer.
         """
         operand = Operand(Bytes.from_bytes(value))
+        destination = cls.determine_destination(operand, address, anchor)
 
-        pointer = Pointer(address=address, operand=operand, anchor=anchor)
+        pointer = Pointer(operand=operand, anchor=anchor, destination=destination)
         logging.debug(f"Created {repr(pointer)}.")
         return pointer
 
     def to_line(
-        self, show_address: bool = False, labels: Variables | None = None, current_anchor: Bytes | None = None
+        self,
+        show_address: bool = False,
+        labels: Variables | None = None,
+        current_anchor: Bytes | None = None,
+        address: Bytes | None = None,
     ) -> str:
         """
         Converts a Pointer into a script line.
@@ -108,6 +113,7 @@ class Pointer(DataStructure):
         :param labels: A list of labels in order to represent the destination as a label and not a SNES address.
         :param current_anchor: If the Pointer is relative and the current_anchor is different from the Pointer's one,
          an anchor line will be prepended to the output.
+        :param address: The address of the Pointer.
         :return: A string.
         """
         output = ""
@@ -122,12 +128,12 @@ class Pointer(DataStructure):
             output += "\n"
 
         output += f"  {'r' if self.is_relative else ''}ptr {str(self.operand)}"
-        output += f" ; {self.address}" if show_address else ""
+        output += f" ; {address}" if show_address else ""
 
         return output
 
     def __eq__(self, other: Self) -> bool:
-        return self.address == other.address and self.operand == other.operand and self.anchor == other.anchor
+        return self.operand == other.operand and self.anchor == other.anchor and self.destination == other.destination
 
     def __bytes__(self) -> bytes:
         return bytes(self.operand)
@@ -138,7 +144,6 @@ class Pointer(DataStructure):
     def __repr__(self) -> str:
         output = (
             "Pointer("
-            f"address=0x{self.address}, "
             f"as_str='{str(self)}', "
             f"as_bytes={bytes(self)}, "
             f"as_hexa=0x{str(self.operand.value)}, "

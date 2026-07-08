@@ -62,7 +62,7 @@ class ScriptImpl:
             Line(
                 raw_line="map: HiROM",
                 clean_line="map: HiROM",
-                address=0x000000,
+                address=None,
                 component_info=LineType.MEMORY_MAP,
                 regex_groups={"mapping_mode": "HiROM"},
                 component=MemoryMap(mapping_mode=MappingModes.HI_ROM),
@@ -71,16 +71,16 @@ class ScriptImpl:
             Line(
                 raw_line="m = 8, x = 16",
                 clean_line="m = 8, x = 16",
-                address=0xC00005,
+                address=addr(0xC00005),
                 component_info=LineType.FLAGS,
                 regex_groups={"m_flag": "8", "x_flag": "16"},
-                component=Flags(m=8, address=addr(0xC00005)),
+                component=Flags(m=8),
                 filename=DUMMY_INPUT_SCRIPT_1,
             ),
             Line(
                 raw_line="let alfa = $12",
                 clean_line="let alfa = $12",
-                address=0x000000,
+                address=None,
                 component_info=LineType.VARIABLE_DECLARATION,
                 regex_groups=None,
                 component=ALFA,
@@ -89,7 +89,7 @@ class ScriptImpl:
             Line(
                 raw_line="let bravo = $1234",
                 clean_line="let bravo = $1234",
-                address=0x000000,
+                address=None,
                 component_info=LineType.VARIABLE_DECLARATION,
                 regex_groups=None,
                 component=BRAVO,
@@ -98,7 +98,7 @@ class ScriptImpl:
             Line(
                 raw_line="let delta = $00",
                 clean_line="let delta = $00",
-                address=0x000000,
+                address=None,
                 component_info=LineType.VARIABLE_DECLARATION,
                 regex_groups=None,
                 component=DELTA,
@@ -107,7 +107,7 @@ class ScriptImpl:
             Line(
                 raw_line="let item_dummy = $01",
                 clean_line="let item_dummy = $01",
-                address=0x000000,
+                address=None,
                 component_info=LineType.VARIABLE_DECLARATION,
                 regex_groups=None,
                 component=SimpleVar(Bytes([0x01]), "item_dummy"),
@@ -116,7 +116,7 @@ class ScriptImpl:
             Line(
                 raw_line="let treasure_miab = $20",
                 clean_line="let treasure_miab = $20",
-                address=0x000000,
+                address=None,
                 component_info=LineType.VARIABLE_DECLARATION,
                 regex_groups=None,
                 component=SimpleVar(Bytes([0x20]), "treasure_miab"),
@@ -125,7 +125,7 @@ class ScriptImpl:
             Line(
                 raw_line="let treasure_item = $40",
                 clean_line="let treasure_item = $40",
-                address=0x000000,
+                address=None,
                 component_info=LineType.VARIABLE_DECLARATION,
                 regex_groups=None,
                 component=SimpleVar(Bytes([0x40]), "treasure_item"),
@@ -134,7 +134,7 @@ class ScriptImpl:
             Line(
                 raw_line="@start = $C00001",
                 clean_line="@start = $C00001",
-                address=0xC00001,
+                address=addr(0xC00001),
                 component_info=LineType.LABEL,
                 regex_groups={"name": "start", "snes_address": "$C00001"},
                 component=LABELS[0],
@@ -143,25 +143,25 @@ class ScriptImpl:
             Line(
                 raw_line="  ptr $1234",
                 clean_line="ptr $1234",
-                address=0xC00001,
+                address=addr(0xC00001),
                 component_info=LineType.POINTER,
                 regex_groups={"operand": "$1234"},
-                component=Pointer(address=addr(0xC00001), operand=Operand(Bytes([0x12, 0x34]))),
+                component=Pointer(operand=Operand(Bytes([0x12, 0x34])), destination=addr(0xC01234)),
                 filename=DUMMY_INPUT_SCRIPT_1,
             ),
             Line(
                 raw_line="  ptr $0005",
                 clean_line="ptr $0005",
-                address=0xC00003,
+                address=addr(0xC00003),
                 component_info=LineType.POINTER,
                 regex_groups={"operand": "$0005"},
-                component=Pointer(address=addr(0xC00003), operand=Operand(Bytes([0x00, 0x05]))),
+                component=Pointer(operand=Operand(Bytes([0x00, 0x05])), destination=addr(0xC00005)),
                 filename=DUMMY_INPUT_SCRIPT_1,
             ),
             Line(
                 raw_line="@archie = $C00005",
                 clean_line="@archie = $C00005",
-                address=0xC00005,
+                address=addr(0xC00005),
                 component_info=LineType.LABEL,
                 regex_groups={"name": "archie", "snes_address": "$C00005"},
                 component=LABELS[1],
@@ -170,20 +170,19 @@ class ScriptImpl:
             Line(
                 raw_line="  TAX ; some comment",
                 clean_line="TAX",
-                address=0xC00005,
+                address=addr(0xC00005),
                 component_info=LineType.INSTRUCTION,
                 regex_groups={"command": "TAX", "operand": None},
-                component=Instruction(address=addr(0xC00005), opcode=Bytes([0xAA]), operands=None),
+                component=Instruction(opcode=Bytes([0xAA]), operands=None),
                 filename=DUMMY_INPUT_SCRIPT_2,
             ),
             Line(
                 raw_line="  LDA (alfa,X)",
                 clean_line="LDA(alfa, X)",
-                address=0xC00006,
+                address=addr(0xC00006),
                 component_info=LineType.INSTRUCTION,
                 regex_groups={"command": "LDA", "operand": "(alfa, X)"},
                 component=Instruction(
-                    address=addr(0xC00006),
                     opcode=Bytes([0xA1]),
                     operands=[Operand(TEST_BYTE, "(_,X)", variable=ALFA)],
                 ),
@@ -192,33 +191,28 @@ class ScriptImpl:
             Line(
                 raw_line="  LDX #$FEDC",
                 clean_line="LDX #$FEDC",
-                address=0xC00008,
+                address=addr(0xC00008),
                 component_info=LineType.INSTRUCTION,
                 regex_groups={"command": "LDX", "operand": "#$FEDC"},
-                component=Instruction(
-                    address=addr(0xC00008), opcode=Bytes([0xA2]), operands=[Operand(Bytes([0xFE, 0xDC]), "#_")]
-                ),
+                component=Instruction(opcode=Bytes([0xA2]), operands=[Operand(Bytes([0xFE, 0xDC]), "#_")]),
                 filename=DUMMY_INPUT_SCRIPT_2,
             ),
             Line(
                 raw_line="  REP #$30",
                 clean_line="REP #$30",
-                address=0xC0000B,
+                address=addr(0xC0000B),
                 component_info=LineType.INSTRUCTION,
                 regex_groups={"command": "REP", "operand": "#$30"},
-                component=Instruction(
-                    address=addr(0xC0000B), opcode=Bytes([0xC2]), operands=[Operand(Bytes([0x30]), "#_")]
-                ),
+                component=Instruction(opcode=Bytes([0xC2]), operands=[Operand(Bytes([0x30]), "#_")]),
                 filename=DUMMY_INPUT_SCRIPT_2,
             ),
             Line(
                 raw_line="  LDA #bravo",
                 clean_line="LDA #bravo",
-                address=0xC0000D,
+                address=addr(0xC0000D),
                 component_info=LineType.INSTRUCTION,
                 regex_groups={"command": "LDA", "operand": "#bravo"},
                 component=Instruction(
-                    address=addr(0xC0000D),
                     opcode=Bytes([0xA9]),
                     operands=[Operand(Bytes([0x12, 0x34]), "#_", variable=BRAVO)],
                 ),
@@ -227,33 +221,28 @@ class ScriptImpl:
             Line(
                 raw_line="  LDX #$FEDC",
                 clean_line="LDX #$FEDC",
-                address=0xC00010,
+                address=addr(0xC00010),
                 component_info=LineType.INSTRUCTION,
                 regex_groups={"command": "LDX", "operand": "#$FEDC"},
-                component=Instruction(
-                    address=addr(0xC00010), opcode=Bytes([0xA2]), operands=[Operand(Bytes([0xFE, 0xDC]), "#_")]
-                ),
+                component=Instruction(opcode=Bytes([0xA2]), operands=[Operand(Bytes([0xFE, 0xDC]), "#_")]),
                 filename=DUMMY_INPUT_SCRIPT_2,
             ),
             Line(
                 raw_line="  SEP #$30",
                 clean_line="SEP #$30",
-                address=0xC00013,
+                address=addr(0xC00013),
                 component_info=LineType.INSTRUCTION,
                 regex_groups={"command": "SEP", "operand": "#$30"},
-                component=Instruction(
-                    address=addr(0xC00013), opcode=Bytes([0xE2]), operands=[Operand(Bytes([0x30]), "#_")]
-                ),
+                component=Instruction(opcode=Bytes([0xE2]), operands=[Operand(Bytes([0x30]), "#_")]),
                 filename=DUMMY_INPUT_SCRIPT_2,
             ),
             Line(
                 raw_line="  LDA #.label_c0fedc",
                 clean_line="LDA #.label_c0fedc",
-                address=0xC00015,
+                address=addr(0xC00015),
                 component_info=LineType.INSTRUCTION,
                 regex_groups={"command": "LDA", "operand": "#.label_c0fedc"},
                 component=Instruction(
-                    address=addr(0xC00015),
                     opcode=Bytes([0xA9]),
                     operands=[Operand(Bytes([0xC0]), "#_", variable=LABELS[3])],
                 ),
@@ -262,22 +251,19 @@ class ScriptImpl:
             Line(
                 raw_line="  LDX #$CC",
                 clean_line="LDX #$CC",
-                address=0xC00017,
+                address=addr(0xC00017),
                 component_info=LineType.INSTRUCTION,
                 regex_groups={"command": "LDX", "operand": "#$CC"},
-                component=Instruction(
-                    address=addr(0xC00017), opcode=Bytes([0xA2]), operands=[Operand(Bytes([0xCC]), "#_")]
-                ),
+                component=Instruction(opcode=Bytes([0xA2]), operands=[Operand(Bytes([0xCC]), "#_")]),
                 filename=DUMMY_INPUT_SCRIPT_2,
             ),
             Line(
                 raw_line="  MVP #$34,#alfa",
                 clean_line="MVP #$34,#alfa",
-                address=0xC00019,
+                address=addr(0xC00019),
                 component_info=LineType.INSTRUCTION,
                 regex_groups={"command": "MVP", "operand": "#$34,#alfa"},
                 component=Instruction(
-                    address=addr(0xC00019),
                     opcode=Bytes([0x44]),
                     operands=[Operand(Bytes([0x34]), "#_"), Operand(Bytes([0x12]), "#_", variable=ALFA)],
                 ),
@@ -286,11 +272,10 @@ class ScriptImpl:
             Line(
                 raw_line="  JMP !archie",
                 clean_line="JMP !archie",
-                address=0xC0001C,
+                address=addr(0xC0001C),
                 component_info=LineType.INSTRUCTION,
                 regex_groups={"command": "JMP", "operand": "!archie"},
                 component=Instruction(
-                    address=addr(0xC0001C),
                     opcode=Bytes([0x4C]),
                     operands=[Operand(Bytes([0x00, 0x05]), "_", OperandType.JUMPING, LABELS[1])],
                 ),
@@ -299,11 +284,10 @@ class ScriptImpl:
             Line(
                 raw_line="  BRA start ; some other comment",
                 clean_line="BRA start",
-                address=0xC0001F,
+                address=addr(0xC0001F),
                 component_info=LineType.INSTRUCTION,
                 regex_groups={"command": "BRA", "operand": "start"},
                 component=Instruction(
-                    address=addr(0xC0001F),
                     opcode=Bytes([0x80]),
                     operands=[Operand(Bytes([0xE0]), "_", OperandType.BRANCHING, LABELS[0])],
                 ),
@@ -312,31 +296,28 @@ class ScriptImpl:
             Line(
                 raw_line="  bravo",
                 clean_line="bravo",
-                address=0xC00021,
+                address=addr(0xC00021),
                 component_info=LineType.BLOB,
                 regex_groups={"operand": "bravo", "delimiter": None},
-                component=Blob(address=addr(0xC00021), operand=Operand(TEST_WORD, variable=BRAVO)),
+                component=Blob(operand=Operand(TEST_WORD, variable=BRAVO)),
                 filename=DUMMY_INPUT_SCRIPT_2,
             ),
             Line(
                 raw_line="  $5678,$FF",
                 clean_line="$5678,$FF",
-                address=0xC00023,
+                address=addr(0xC00023),
                 component_info=LineType.BLOB,
                 regex_groups={"operand": "$5678", "delimiter": "$FF"},
-                component=Blob(
-                    address=addr(0xC00023), operand=Operand(Bytes([0x56, 0x78])), delimiter=Operand(Bytes([0xFF]))
-                ),
+                component=Blob(operand=Operand(Bytes([0x56, 0x78])), delimiter=Operand(Bytes([0xFF]))),
                 filename=DUMMY_INPUT_SCRIPT_2,
             ),
             Line(
                 raw_line="  $ABCD,delta",
                 clean_line="$ABCD,delta",
-                address=0xC00026,
+                address=addr(0xC00026),
                 component_info=LineType.BLOB,
                 regex_groups={"operand": "$ABCD", "delimiter": "delta"},
                 component=Blob(
-                    address=addr(0xC00026),
                     operand=Operand(Bytes([0xAB, 0xCD])),
                     delimiter=Operand(Bytes([0x00]), variable=DELTA),
                 ),
@@ -345,11 +326,10 @@ class ScriptImpl:
             Line(
                 raw_line='  "<0x00>A<KNIFE>_",$88',
                 clean_line='"<0x00>A<KNIFE>_",$88',
-                address=0xC00029,
+                address=addr(0xC00029),
                 component_info=LineType.STRING,
                 regex_groups={"string_type": None, "string": "<0x00>A<KNIFE>_", "delimiter": "$88"},
                 component=String(
-                    address=addr(0xC00029),
                     operand=Operand(Bytes([0x00, 0x80, 0xD8, 0xFF], endian=Endian.BIG)),
                     delimiter=Operand(Bytes([0x88])),
                 ),
@@ -358,17 +338,15 @@ class ScriptImpl:
             Line(
                 raw_line='  $AA | "a" | $BB,$FF | "b",$00',
                 clean_line='$AA | "a" | $BB,$FF | "b",$00',
-                address=0xC0002E,
+                address=addr(0xC0002E),
                 component_info=LineType.ARRAY,
                 regex_groups={},
                 component=Array(
-                    address=addr(0xC0002E),
                     parts=[
-                        Blob(address=addr(0xC0002E), operand=Operand(Bytes([0xAA]))),
-                        String(address=addr(0xC0002F), operand=Operand(Bytes([0x9A], endian=Endian.BIG))),
-                        Blob(address=addr(0xC00030), operand=Operand(Bytes([0xBB])), delimiter=Operand(Bytes([0xFF]))),
+                        Blob(operand=Operand(Bytes([0xAA]))),
+                        String(operand=Operand(Bytes([0x9A], endian=Endian.BIG))),
+                        Blob(operand=Operand(Bytes([0xBB])), delimiter=Operand(Bytes([0xFF]))),
                         String(
-                            address=addr(0xC00032),
                             operand=Operand(Bytes([0x9B], endian=Endian.BIG)),
                             delimiter=Operand(Bytes([0x00])),
                         ),
@@ -379,11 +357,10 @@ class ScriptImpl:
             Line(
                 raw_line='  desc "Bob<LINE><FIRE>",$00',
                 clean_line='desc "Bob<LINE><FIRE>",$00',
-                address=0xC00034,
+                address=addr(0xC00034),
                 component_info=LineType.STRING,
                 regex_groups={"string_type": "desc", "string": "Bob<LINE><FIRE>", "delimiter": "$00"},
                 component=String(
-                    address=addr(0xC00034),
                     operand=Operand(Bytes([0x81, 0xA8, 0x9B, 0x01, 0xDC], endian=Endian.BIG)),
                     charset=DESCRIPTION_CHARSET,
                     string_type=StringTypes.DESCRIPTION,
@@ -394,7 +371,7 @@ class ScriptImpl:
             Line(
                 raw_line="#anchor_1",
                 clean_line="#anchor_1",
-                address=0xC0003A,
+                address=addr(0xC0003A),
                 component_info=LineType.ANCHOR,
                 regex_groups={"value": "anchor_1"},
                 component=None,
@@ -403,46 +380,45 @@ class ScriptImpl:
             Line(
                 raw_line="  rptr !rptr_1",
                 clean_line="rptr !rptr_1",
-                address=0xC0003A,
+                address=addr(0xC0003A),
                 component_info=LineType.POINTER,
                 regex_groups={"operand": "!rptr_1"},
                 component=Pointer(
-                    address=addr(0xC0003A),
                     anchor=Operand(Bytes([0xD2, 0x00, 0x01]), variable=LABELS[4]),
                     operand=Operand(Bytes([0x34, 0x55]), variable=LABELS[5]),
+                    destination=addr(0xD23456),
                 ),
                 filename=DUMMY_INPUT_SCRIPT_2,
             ),
             Line(
                 raw_line="  rptr !rptr_2",
                 clean_line="rptr !rptr_2",
-                address=0xC0003C,
+                address=addr(0xC0003C),
                 component_info=LineType.POINTER,
                 regex_groups={"operand": "!rptr_2"},
                 component=Pointer(
-                    address=addr(0xC0003C),
                     anchor=Operand(Bytes([0xD2, 0x00, 0x01]), variable=LABELS[4]),
                     operand=Operand(Bytes([0x34, 0x56]), variable=LABELS[6]),
+                    destination=addr(0xD23457),
                 ),
                 filename=DUMMY_INPUT_SCRIPT_2,
             ),
             Line(
                 raw_line="m = 8, x = 8",
                 clean_line="m = 8, x = 8",
-                address=0xC00040,
+                address=addr(0xC00040),
                 component_info=LineType.FLAGS,
                 regex_groups={"m": "8", "x": "8"},
-                component=Flags(m=8, x=8, address=addr(0xC00040)),
+                component=Flags(m=8, x=8),
                 filename=DUMMY_INPUT_SCRIPT_2,
             ),
             Line(
                 raw_line="  JSR !archie",
                 clean_line="JSR !archie",
-                address=0xC00040,
+                address=addr(0xC00040),
                 component_info=LineType.INSTRUCTION,
                 regex_groups={"command": "JSR", "operand": "!archie"},
                 component=Instruction(
-                    address=addr(0xC00040),
                     opcode=Bytes([0x20]),
                     operands=[Operand(Bytes([0x00, 0x05]), "_", OperandType.JUMPING, LABELS[1])],
                 ),
@@ -451,21 +427,18 @@ class ScriptImpl:
             Line(
                 raw_line="  $12 | $34 | $56 | treasure_item | item_dummy",
                 clean_line="$12 | $34 | $56 | treasure_item | item_dummy",
-                address=0xC00043,
+                address=addr(0xC00043),
                 component_info=LineType.ARRAY,
                 regex_groups={},
                 component=Array(
-                    address=addr(0xC00043),
                     parts=[
-                        Blob(address=addr(0xC00043), operand=Operand(Bytes([0x12]))),
-                        Blob(address=addr(0xC00044), operand=Operand(Bytes([0x34]))),
-                        Blob(address=addr(0xC00045), operand=Operand(Bytes([0x56]))),
+                        Blob(operand=Operand(Bytes([0x12]))),
+                        Blob(operand=Operand(Bytes([0x34]))),
+                        Blob(operand=Operand(Bytes([0x56]))),
                         Blob(
-                            address=addr(0xC00046),
                             operand=Operand(Bytes([0x40]), variable=SimpleVar(Bytes([0x40]), "treasure_item")),
                         ),
                         Blob(
-                            address=addr(0xC00047),
                             operand=Operand(Bytes([0x01]), variable=SimpleVar(Bytes([0x01]), "item_dummy")),
                         ),
                     ],
@@ -475,20 +448,18 @@ class ScriptImpl:
             Line(
                 raw_line="  $78 | $AB | $CD | treasure_miab | $01",
                 clean_line="$78 | $AB | $CD | treasure_miab | $01",
-                address=0xC00048,
+                address=addr(0xC00048),
                 component_info=LineType.ARRAY,
                 regex_groups={},
                 component=Array(
-                    address=addr(0xC00048),
                     parts=[
-                        Blob(address=addr(0xC00048), operand=Operand(Bytes([0x78]))),
-                        Blob(address=addr(0xC00049), operand=Operand(Bytes([0x9A]))),
-                        Blob(address=addr(0xC0004A), operand=Operand(Bytes([0xBC]))),
+                        Blob(operand=Operand(Bytes([0x78]))),
+                        Blob(operand=Operand(Bytes([0x9A]))),
+                        Blob(operand=Operand(Bytes([0xBC]))),
                         Blob(
-                            address=addr(0xC0004B),
                             operand=Operand(Bytes([0x20]), variable=SimpleVar(Bytes([0x20]), "treasure_miab")),
                         ),
-                        Blob(address=addr(0xC0004C), operand=Operand(Bytes([0x01]))),
+                        Blob(operand=Operand(Bytes([0x01]))),
                     ],
                 ),
                 filename=DUMMY_INPUT_SCRIPT_2,
@@ -496,7 +467,7 @@ class ScriptImpl:
             Line(
                 raw_line="#$D20002",
                 clean_line="# $D20002",
-                address=0xD20002,
+                address=addr(0xD20002),
                 component_info=LineType.ANCHOR,
                 regex_groups={"value": "$D20002"},
                 component=None,
@@ -505,20 +476,20 @@ class ScriptImpl:
             Line(
                 raw_line="  rptr !rptr_2",
                 clean_line="rptr !rptr_2",
-                address=0xC0003E,
+                address=addr(0xC0003E),
                 component_info=LineType.POINTER,
                 regex_groups={"operand": "!rptr_2"},
                 component=Pointer(
-                    address=Bytes([0xC0, 0x00, 0x3E]),
                     anchor=Operand(Bytes([0xD2, 0x00, 0x02])),
                     operand=Operand(Bytes([0x34, 0x55]), variable=LABELS[6]),
+                    destination=addr(0xD23457),
                 ),
                 filename=DUMMY_INPUT_SCRIPT_2,
             ),
             Line(
                 raw_line="@anchor_1 = $D20001",
                 clean_line="@anchor_1 = $D20001",
-                address=0xD20001,
+                address=addr(0xD20001),
                 component_info=LineType.LABEL,
                 regex_groups={"name": "anchor_1", "snes_address": "$D20001"},
                 component=LABELS[4],
@@ -527,7 +498,7 @@ class ScriptImpl:
             Line(
                 raw_line="@rptr_1 = $D23456",
                 clean_line="@rptr_1 = $D23456",
-                address=0xD23456,
+                address=addr(0xD23456),
                 component_info=LineType.LABEL,
                 regex_groups={"name": "rptr_1", "snes_address": "$D23456"},
                 component=LABELS[5],
@@ -536,7 +507,7 @@ class ScriptImpl:
             Line(
                 raw_line="@rptr_2 = $D23457",
                 clean_line="@rptr_2 = $D23457",
-                address=0xD23457,
+                address=addr(0xD23457),
                 component_info=LineType.LABEL,
                 regex_groups={"name": "rptr_2", "snes_address": "$D23457"},
                 component=LABELS[6],
@@ -545,20 +516,19 @@ class ScriptImpl:
             Line(
                 raw_line="m = 16, x = 16",
                 clean_line="m = 16, x = 16",
-                address=0xD23457,
+                address=addr(0xD23457),
                 component_info=LineType.FLAGS,
                 regex_groups={"m_flag": "16", "x_flag": "16"},
-                component=Flags(m=16, x=16, address=addr(0xD23457)),
+                component=Flags(m=16, x=16),
                 filename=DUMMY_INPUT_SCRIPT_1,
             ),
             Line(
                 raw_line="  JSL archie",
                 clean_line="JSL archie",
-                address=0xD23457,
+                address=addr(0xD23457),
                 component_info=LineType.INSTRUCTION,
                 regex_groups={"command": "JSL", "operand": "archie"},
                 component=Instruction(
-                    address=addr(0xD23457),
                     opcode=Bytes([0x22]),
                     operands=[Operand(Bytes([0xC0, 0x00, 0x05]), "_", OperandType.LONG_JUMPING, LABELS[1])],
                 ),
@@ -585,69 +555,66 @@ class TestScript:
         assert labels[4] == Label(value=TEST_ADDRESS, name="rptr_1")
         assert labels[5] == Label(value=Bytes([0xD2, 0x34, 0x57]), name="rptr_2")
 
-        assert len(script.pointers()) == 5
-        assert script.pointers()[0] == Pointer(address=Bytes([0xC0, 0x00, 0x01]), operand=Operand(Bytes([0x12, 0x34])))
-        assert script.pointers()[1] == Pointer(address=Bytes([0xC0, 0x00, 0x03]), operand=Operand(Bytes([0x00, 0x05])))
-        assert script.pointers()[2] == Pointer(
-            address=Bytes([0xC0, 0x00, 0x3A]),
+        assert len(script.pointer_lines()) == 5
+        assert script.pointer_lines()[0].component == Pointer(
+            operand=Operand(Bytes([0x12, 0x34])), destination=addr(0xC01234)
+        )
+        assert script.pointer_lines()[1].component == Pointer(
+            operand=Operand(Bytes([0x00, 0x05])), destination=addr(0xC00005)
+        )
+        assert script.pointer_lines()[2].component == Pointer(
             anchor=Operand(Bytes([0xD2, 0x00, 0x01]), variable=labels[3]),
             operand=Operand(Bytes([0x34, 0x55]), variable=labels[4]),
+            destination=addr(0xD23456),
         )
-        assert script.pointers()[3] == Pointer(
-            address=Bytes([0xC0, 0x00, 0x3C]),
+        assert script.pointer_lines()[3].component == Pointer(
             anchor=Operand(Bytes([0xD2, 0x00, 0x01]), variable=labels[3]),
             operand=Operand(Bytes([0x34, 0x56]), variable=labels[5]),
+            destination=addr(0xD23457),
         )
-        assert script.pointers()[4] == Pointer(
-            address=Bytes([0xC0, 0x00, 0x3E]),
+        assert script.pointer_lines()[4].component == Pointer(
             anchor=Operand(Bytes([0xD2, 0x00, 0x02])),
             operand=Operand(Bytes([0x34, 0x55]), variable=labels[5]),
+            destination=addr(0xD23457),
         )
 
-        assert len(script.instructions()) == 14
-        assert script.instructions()[0] == Instruction(
-            address=Bytes([0xC0, 0x00, 0x05]), opcode=Bytes([0xAA]), operands=None
-        )
-        assert script.instructions()[1] == Instruction(
-            address=Bytes([0xC0, 0x00, 0x06]),
+        assert len(script.instruction_lines()) == 14
+        assert script.instruction_lines()[0].component == Instruction(opcode=Bytes([0xAA]), operands=None)
+        assert script.instruction_lines()[1].component == Instruction(
             opcode=Bytes([0xA1]),
             operands=[Operand(TEST_BYTE, "(_,X)", variable=ALFA)],
         )
-        assert script.instructions()[2] == Instruction(
-            address=Bytes([0xC0, 0x00, 0x08]), opcode=Bytes([0xA2]), operands=[Operand(Bytes([0xFE, 0xDC]), "#_")]
+        assert script.instruction_lines()[2].component == Instruction(
+            opcode=Bytes([0xA2]), operands=[Operand(Bytes([0xFE, 0xDC]), "#_")]
         )
 
-        assert script.instructions()[3] == Instruction(
-            address=Bytes([0xC0, 0x00, 0x0B]), opcode=Bytes([0xC2]), operands=[Operand(Bytes([0x30]), "#_")]
+        assert script.instruction_lines()[3].component == Instruction(
+            opcode=Bytes([0xC2]), operands=[Operand(Bytes([0x30]), "#_")]
         )
-        assert script.instructions()[4] == Instruction(
-            address=Bytes([0xC0, 0x00, 0x0D]),
+        assert script.instruction_lines()[4].component == Instruction(
             opcode=Bytes([0xA9]),
             operands=[Operand(Bytes([0x12, 0x34]), "#_", variable=BRAVO)],
         )
-        assert script.instructions()[5] == Instruction(
-            address=Bytes([0xC0, 0x00, 0x10]), opcode=Bytes([0xA2]), operands=[Operand(Bytes([0xFE, 0xDC]), "#_")]
+        assert script.instruction_lines()[5].component == Instruction(
+            opcode=Bytes([0xA2]), operands=[Operand(Bytes([0xFE, 0xDC]), "#_")]
         )
 
-        assert script.instructions()[6] == Instruction(
-            address=Bytes([0xC0, 0x00, 0x13]), opcode=Bytes([0xE2]), operands=[Operand(Bytes([0x30]), "#_")]
+        assert script.instruction_lines()[6].component == Instruction(
+            opcode=Bytes([0xE2]), operands=[Operand(Bytes([0x30]), "#_")]
         )
-        assert script.instructions()[7] == Instruction(
-            address=Bytes([0xC0, 0x00, 0x15]),
+        assert script.instruction_lines()[7].component == Instruction(
             opcode=Bytes([0xA9]),
             operands=[Operand(Bytes([0xC0]), "#_", variable=labels[2])],
         )
-        assert script.instructions()[8] == Instruction(
-            address=Bytes([0xC0, 0x00, 0x17]), opcode=Bytes([0xA2]), operands=[Operand(Bytes([0xCC]), "#_")]
+        assert script.instruction_lines()[8].component == Instruction(
+            opcode=Bytes([0xA2]), operands=[Operand(Bytes([0xCC]), "#_")]
         )
 
-        assert script.instructions()[9] == Instruction(
-            address=Bytes([0xC0, 0x00, 0x19]),
+        assert script.instruction_lines()[9].component == Instruction(
             opcode=Bytes([0x44]),
             operands=[Operand(Bytes([0x34]), "#_"), Operand(Bytes([0x12]), "#_", variable=ALFA)],
         )
-        assert script.instructions()[10] == Instruction(
-            address=Bytes([0xC0, 0x00, 0x1C]),
+        assert script.instruction_lines()[10].component == Instruction(
             opcode=Bytes([0x4C]),
             operands=[
                 Operand(
@@ -655,64 +622,58 @@ class TestScript:
                 )
             ],
         )
-        assert script.instructions()[11] == Instruction(
-            address=Bytes([0xC0, 0x00, 0x1F]),
+        assert script.instruction_lines()[11].component == Instruction(
             opcode=Bytes([0x80]),
             operands=[
                 Operand(Bytes([0xE0]), "_", OperandType.BRANCHING, Label(value=Bytes([0xC0, 0x00, 0x01]), name="start"))
             ],
         )
-        assert script.instructions()[12] == Instruction(
-            address=Bytes([0xC0, 0x00, 0x40]),
+        assert script.instruction_lines()[12].component == Instruction(
             opcode=Bytes([0x20]),
             operands=[Operand(Bytes([0x00, 0x05]), "_", OperandType.JUMPING, LABELS[1])],
         )
-        assert script.instructions()[13] == Instruction(
-            address=Bytes([0xD2, 0x34, 0x57]),
+        assert script.instruction_lines()[13].component == Instruction(
             opcode=Bytes([0x22]),
             operands=[Operand(Bytes([0xC0, 0x00, 0x05]), "_", OperandType.LONG_JUMPING, LABELS[1])],
         )
 
-        assert len(script.blobs()) == 3
+        assert len(script.blob_lines()) == 3
 
-        assert script.blobs()[0] == Blob(address=Bytes([0xC0, 0x00, 0x21]), operand=Operand(TEST_WORD, variable=BRAVO))
-        assert script.blobs()[1] == Blob(
-            address=Bytes([0xC0, 0x00, 0x23]), operand=Operand(Bytes([0x56, 0x78])), delimiter=Operand(Bytes([0xFF]))
+        assert script.blob_lines()[0].component == Blob(operand=Operand(TEST_WORD, variable=BRAVO))
+        assert script.blob_lines()[1].component == Blob(
+            operand=Operand(Bytes([0x56, 0x78])), delimiter=Operand(Bytes([0xFF]))
         )
-        assert script.blobs()[2] == Blob(
-            address=Bytes([0xC0, 0x00, 0x26]),
+        assert script.blob_lines()[2].component == Blob(
             operand=Operand(Bytes([0xAB, 0xCD])),
             delimiter=Operand(Bytes([0x00]), variable=SimpleVar(Bytes.from_int(0), "delta")),
         )
 
-        assert len(script.strings()) == 2
-        assert script.strings()[0] == String(
-            address=Bytes([0xC0, 0x00, 0x29]),
+        assert len(script.string_lines()) == 2
+        assert script.string_lines()[0].component == String(
             operand=Operand(Bytes([0x00, 0x80, 0xD8, 0xFF], endian=Endian.BIG)),
             delimiter=Operand(Bytes([0x88])),
         )
-        assert script.strings()[1] == String(
-            address=Bytes([0xC0, 0x00, 0x34]),
+        assert script.string_lines()[1].component == String(
             operand=Operand(Bytes([0x81, 0xA8, 0x9B, 0x01, 0xDC], endian=Endian.BIG)),
             delimiter=Operand(Bytes([0x00])),
             string_type=StringTypes.DESCRIPTION,
         )
 
-        assert len(script.arrays()) == 3
-        assert len(script.arrays()[0].parts) == 4
-        assert script.arrays()[0].parts[0] == Blob(address=Bytes([0xC0, 0x00, 0x2E]), operand=Operand(Bytes([0xAA])))
-        assert script.arrays()[0].parts[1] == String(address=Bytes([0xC0, 0x00, 0x2F]), operand=Operand(Bytes([0x9A])))
-        assert script.arrays()[0].parts[2] == Blob(
-            address=Bytes([0xC0, 0x00, 0x30]), operand=Operand(Bytes([0xBB])), delimiter=Operand(Bytes([0xFF]))
+        assert len(script.array_lines()) == 3
+        assert len(script.array_lines()[0].component.parts) == 4
+        assert script.array_lines()[0].component.parts[0] == Blob(operand=Operand(Bytes([0xAA])))
+        assert script.array_lines()[0].component.parts[1] == String(operand=Operand(Bytes([0x9A])))
+        assert script.array_lines()[0].component.parts[2] == Blob(
+            operand=Operand(Bytes([0xBB])), delimiter=Operand(Bytes([0xFF]))
         )
-        assert len(script.arrays()[1].parts) == 5
-        assert len(script.arrays()[2].parts) == 5
+        assert len(script.array_lines()[1].component.parts) == 5
+        assert len(script.array_lines()[2].component.parts) == 5
 
-        assert len(script.flags()) == 4
-        assert script.flags()[0] == Flags(m=8, x=16, address=addr(0x000000))
-        assert script.flags()[1] == Flags(m=8, x=16, address=addr(0xC00005))
-        assert script.flags()[2] == Flags(m=8, x=8, address=addr(0xC00040))
-        assert script.flags()[3] == Flags(m=16, x=16, address=addr(0xD23457))
+        assert len(script.flags_lines()) == 4
+        assert script.flags_lines()[0].component == Flags(m=8, x=16)
+        assert script.flags_lines()[1].component == Flags(m=8, x=16)
+        assert script.flags_lines()[2].component == Flags(m=8, x=8)
+        assert script.flags_lines()[3].component == Flags(m=16, x=16)
 
     def test_parse_raises_error_when_line_is_unrecognized(self):
         with pytest.raises(UnrecognizedLine) as e:
@@ -773,9 +734,7 @@ class TestScript:
     def test_disassemble(self):
         sections = [
             ScriptSection(start=0x000001, end=0x000005, mode=ScriptMode.POINTERS),
-            ScriptSection(
-                start=0x000005, end=0x000021, mode=ScriptMode.INSTRUCTIONS, flags=Flags(m=8, address=addr(0xC00005))
-            ),
+            ScriptSection(start=0x000005, end=0x000021, mode=ScriptMode.INSTRUCTIONS, flags=Flags(m=8)),
             ScriptSection(start=0x000021, end=0x000023, mode=ScriptMode.BLOBS, length=2),
             ScriptSection(start=0x000023, end=0x000026, mode=ScriptMode.BLOBS, delimiter=b"\xff"),
             ScriptSection(start=0x000026, end=0x000029, mode=ScriptMode.BLOBS, delimiter=b"\x00"),
@@ -810,7 +769,7 @@ class TestScript:
                 start=0x000040,
                 end=0x000043,
                 mode=ScriptMode.INSTRUCTIONS,
-                flags=Flags(m=8, x=8, address=addr(0xC00040)),
+                flags=Flags(m=8, x=8),
             ),
             ScriptSection(
                 start=0x000043,
@@ -836,7 +795,7 @@ class TestScript:
                 start=0x123457,
                 end=0x12345A,
                 mode=ScriptMode.INSTRUCTIONS,
-                flags=Flags(m=16, x=16, address=addr(0xD23457)),
+                flags=Flags(m=16, x=16),
             ),
         ]
 
@@ -844,35 +803,42 @@ class TestScript:
 
         script = Script.disassemble(filename=DUMMY_INPUT_ROM, sections=sections, mapping_mode="HiROM")
 
-        assert len(script.memory_maps()) == 1
-        assert script.memory_maps()[0] == MemoryMap(MappingModes.HI_ROM)
+        assert len(script.memory_map_lines()) == 1
+        assert script.memory_map_lines()[0].component == MemoryMap(MappingModes.HI_ROM)
 
-        assert len(script.pointers()) == len(test_script.pointers())
+        assert len(script.pointer_lines()) == len(test_script.pointer_lines())
 
-        for i in range(len(script.pointers())):
-            assert script.pointers()[i].address == test_script.pointers()[i].address
-            assert script.pointers()[i].operand.value == test_script.pointers()[i].operand.value
+        for i in range(len(script.pointer_lines())):
+            assert (
+                script.pointer_lines()[i].component.operand.value
+                == test_script.pointer_lines()[i].component.operand.value
+            )
 
         # assert len(script.instructions()) == len(test_script.instructions())
-        for i in range(len(script.instructions())):
+        for i in range(len(script.instruction_lines())):
             if i >= 13:
                 pass
-            assert script.instructions()[i].address == test_script.instructions()[i].address
-            assert script.instructions()[i].opcode == test_script.instructions()[i].opcode
-            if test_script.instructions()[i].operands:
-                assert len(script.instructions()[i].operands) == len(test_script.instructions()[i].operands)
-                for j in range(len(test_script.instructions()[i].operands)):
-                    assert script.instructions()[i].operands[j].value == test_script.instructions()[i].operands[j].value
+            assert script.instruction_lines()[i].component.opcode == test_script.instruction_lines()[i].component.opcode
+            if test_script.instruction_lines()[i].component.operands:
+                assert len(script.instruction_lines()[i].component.operands) == len(
+                    test_script.instruction_lines()[i].component.operands
+                )
+                for j in range(len(test_script.instruction_lines()[i].component.operands)):
+                    assert (
+                        script.instruction_lines()[i].component.operands[j].value
+                        == test_script.instruction_lines()[i].component.operands[j].value
+                    )
 
-        assert len(script.blobs()) == len(test_script.blobs())
-        for i in range(len(script.blobs())):
-            assert script.blobs()[i].address == test_script.blobs()[i].address
-            assert script.blobs()[i].operand.value == test_script.blobs()[i].operand.value
+        assert len(script.blob_lines()) == len(test_script.blob_lines())
+        for i in range(len(script.blob_lines())):
+            assert script.blob_lines()[i].component.operand.value == test_script.blob_lines()[i].component.operand.value
 
-        assert len(script.strings()) == len(test_script.strings())
-        for i in range(len(script.strings())):
-            assert script.strings()[i].address == test_script.strings()[i].address
-            assert script.strings()[i].operand.value == test_script.strings()[i].operand.value
+        assert len(script.string_lines()) == len(test_script.string_lines())
+        for i in range(len(script.string_lines())):
+            assert (
+                script.string_lines()[i].component.operand.value
+                == test_script.string_lines()[i].component.operand.value
+            )
 
         test_labels = [LABELS[0], LABELS[1], LABELS[2], LABELS[4], Label(addr(0xD20002)), LABELS[5], LABELS[6]]
 
@@ -880,29 +846,33 @@ class TestScript:
         for i in range(len(script.labels())):
             assert script.labels()[i].value == test_labels[i].value
 
-        assert len(script.arrays()) == len(test_script.arrays())
-        for i in range(len(script.arrays())):
-            assert len(script.arrays()[i].parts) == len(test_script.arrays()[i].parts)
-            for j in range(len(script.arrays()[i].parts)):
-                assert script.arrays()[i].parts[j].operand == test_script.arrays()[i].parts[j].operand
-                assert script.arrays()[i].parts[j].delimiter == test_script.arrays()[i].parts[j].delimiter
-                if script.arrays()[i].parts[j].delimiter:
+        assert len(script.array_lines()) == len(test_script.array_lines())
+        for i in range(len(script.array_lines())):
+            assert len(script.array_lines()[i].component.parts) == len(test_script.array_lines()[i].component.parts)
+            for j in range(len(script.array_lines()[i].component.parts)):
+                assert (
+                    script.array_lines()[i].component.parts[j].operand
+                    == test_script.array_lines()[i].component.parts[j].operand
+                )
+                assert (
+                    script.array_lines()[i].component.parts[j].delimiter
+                    == test_script.array_lines()[i].component.parts[j].delimiter
+                )
+                if script.array_lines()[i].component.parts[j].delimiter:
                     assert (
-                        script.arrays()[i].parts[j].delimiter.value == test_script.arrays()[i].parts[j].delimiter.value
+                        script.array_lines()[i].component.parts[j].delimiter.value
+                        == test_script.array_lines()[i].component.parts[j].delimiter.value
                     )
-        assert len(script.flags()) == len(test_script.flags())
-        for i in range(len(script.flags())):
-            assert script.flags()[i].m == test_script.flags()[i].m
-            assert script.flags()[i].x == test_script.flags()[i].x
-            assert script.flags()[i].address == test_script.flags()[i].address
+        assert len(script.flags_lines()) == len(test_script.flags_lines())
+        for i in range(len(script.flags_lines())):
+            assert script.flags_lines()[i].component.m == test_script.flags_lines()[i].component.m
+            assert script.flags_lines()[i].component.x == test_script.flags_lines()[i].component.x
 
     def test_disassemble_raises_error_when_illegal_rom_position(self):
         with open(ILLEGAL_ROM_POSITION, "wb") as f:
             f.write(b"\xea" * 0x400001)
         sections = [
-            ScriptSection(
-                start=0x400000, end=0x400001, mode=ScriptMode.INSTRUCTIONS, flags=Flags(address=addr(0x400000))
-            ),
+            ScriptSection(start=0x400000, end=0x400001, mode=ScriptMode.INSTRUCTIONS, flags=Flags()),
         ]
         with pytest.raises(IllegalRomPosition):
             Script.disassemble(filename=ILLEGAL_ROM_POSITION, sections=sections, mapping_mode="HiROM")
@@ -970,12 +940,14 @@ m = 16, x = 16
     @pytest.mark.parametrize(
         ["component", "expected"],
         [
-            (Instruction(address=addr(0x400000), opcode=Bytes([0x00])), False),
-            (Instruction(address=addr(0x3FFFFF), opcode=Bytes([0x00])), True),
-            (Pointer(address=addr(0x3FFFFF), operand=Operand(Bytes([0x00, 0x00]))), True),
-            (Pointer(address=addr(0x400000), operand=Operand(Bytes([0x00, 0x00]))), False),
+            (Instruction(opcode=Bytes([0x00])), False),
+            (Instruction(opcode=Bytes([0x00])), True),
+            (Pointer(operand=Operand(Bytes([0x00, 0x00])), destination=addr(0)), True),
+            (Pointer(operand=Operand(Bytes([0x00, 0x00])), destination=addr(0)), False),
             (
-                Pointer(address=addr(0x3FFFFF), operand=Operand(Bytes([0x00, 0x00])), anchor=Operand(addr(0x400000))),
+                Pointer(
+                    operand=Operand(Bytes([0x00, 0x00])), destination=addr(0x400000), anchor=Operand(addr(0x400000))
+                ),
                 False,
             ),
         ],

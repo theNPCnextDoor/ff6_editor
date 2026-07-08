@@ -1,5 +1,5 @@
 import logging
-from abc import ABC, abstractmethod
+from abc import ABC
 from typing import Self, Any
 
 from src.lib.assembly.artifact.artifact import Artifact
@@ -18,11 +18,6 @@ class Variable(Artifact, ABC):
     def __init__(self, value: Bytes, name: str):
         self.value = value
         self.name = name
-
-    @property
-    @abstractmethod
-    def address(self) -> Bytes:
-        pass
 
     def __str__(self):
         return self.name
@@ -71,10 +66,6 @@ class SimpleVar(Variable):
         logging.debug(f"Created {repr(simple_var)}.")
         return cls(_operand, name)
 
-    @property
-    def address(self) -> Bytes:
-        return Bytes.from_address(0)
-
     def to_line(self, **kwargs: Any) -> str:
         """
         Converts a SimpleVar into the exact string which will be put in a script to declare it.
@@ -96,14 +87,6 @@ class Label(SimpleVar):
         """
         name = (name or f"label_{str(value)}").lower()
         super().__init__(name=name, value=value)
-
-    @property
-    def address(self) -> Bytes:
-        """
-        For a Label, its value is its address.
-        :return: The value of the Label.
-        """
-        return self.value
 
     @classmethod
     def from_line(cls, name: str, snes_address: str | None = None, address: Bytes | None = None) -> Self:

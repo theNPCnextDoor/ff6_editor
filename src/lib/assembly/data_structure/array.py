@@ -17,8 +17,7 @@ class Array(DataStructure):
     define, for example, a Menu String alongside its coordinates of the screen.
     """
 
-    def __init__(self, parts: list[Blob] | None = None, address: Bytes | None = None):
-        super().__init__(address=address)
+    def __init__(self, parts: list[Blob] | None = None):
         self.parts = parts or list()
 
     @classmethod
@@ -63,7 +62,7 @@ class Array(DataStructure):
             parts.append(part)
             cursor += len(part)
 
-        array = cls(parts=parts, address=address)
+        array = cls(parts=parts)
         logging.debug(f"Created {repr(array)}.")
         return array
 
@@ -76,25 +75,25 @@ class Array(DataStructure):
 
     def __repr__(self) -> str:
         hexa = ""
-        for blob in self.parts:
-            hexa += str(blob.operand.value)
+        for part in self.parts:
+            hexa += str(part.operand.value)
+            if part.delimiter is not None:
+                hexa += str(part.delimiter.value)
         parts_output = ", ".join(repr(blob) for blob in self.parts)
-        return (
-            f"Array(address=0x{self.address}, as_str='{str(self)}', as_bytes={bytes(self)}, as_hexa=0x{hexa}, "
-            f"parts=[{parts_output}])"
-        )
+        return f"Array(as_str='{str(self)}', as_bytes={bytes(self)}, as_hexa=0x{hexa}, " f"parts=[{parts_output}])"
 
-    def to_line(self, show_address: bool = False, **kwargs: Any) -> str:
+    def to_line(self, show_address: bool = False, address: Bytes | None = None, **kwargs: Any) -> str:
         """
         Converts an Array into the exact string which will be put in a script to declare it. It will match
         against DataStructureRegex.ARRAY.
-        :param show_address:
+        :param show_address: Will add the address of the Array as a comment.
+        :param address: The address of the Array.
         :param kwargs: Unused. Included to prevent errors.
         :return: A script line.
         """
         output = f"  {self}"
         if show_address:
-            output += f" ; ${self.address}"
+            output += f" ; ${address}"
         return output
 
     def __len__(self) -> int:
@@ -124,3 +123,8 @@ class Array(DataStructure):
                 UnrecognizedPart(message)
         logging.debug(f"Array '{line}' length is {length}.")
         return length
+
+    def __eq__(self, other: Self) -> bool:
+        if len(self.parts) != len(other.parts):
+            return False
+        return all([self.parts[i] == other.parts[i] for i in range(len(self.parts))])

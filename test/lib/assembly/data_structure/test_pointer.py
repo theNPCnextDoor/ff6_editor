@@ -8,7 +8,7 @@ from src.lib.assembly.artifact.variable import Label
 from src.lib.assembly.data_structure.instruction.operand import Operand, OperandType
 from src.lib.assembly.data_structure.pointer import Pointer
 from src.lib.misc.exception import ImpossibleDestination, NoVariableException
-from test.lib.assembly.conftest import TEST_ADDRESS, TEST_WORD, CHARLIE, addr, DEFAULT_ADDRESS
+from test.lib.assembly.conftest import TEST_WORD, CHARLIE, addr
 
 
 class TestPointer:
@@ -19,18 +19,15 @@ class TestPointer:
                 "$1413",
                 addr(0x111111),
                 None,
-                Pointer(
-                    address=addr(0x111111),
-                    operand=Operand(Bytes([0x14, 0x13]), "_", OperandType.DEFAULT),
-                ),
+                Pointer(operand=Operand(Bytes([0x14, 0x13]), "_", OperandType.DEFAULT), destination=addr(0x111413)),
             ),
             (
                 "!label_1",
                 addr(0xD2FF00),
                 None,
                 Pointer(
-                    address=addr(0xD2FF00),
                     operand=Operand(Bytes([0x34, 0x56]), "_", OperandType.DEFAULT, Label(addr(0xD23456), "label_1")),
+                    destination=addr(0xD23456),
                 ),
             ),
             (
@@ -38,8 +35,8 @@ class TestPointer:
                 addr(0x000001),
                 Operand(addr(0xD21111)),
                 Pointer(
-                    address=addr(0x000001),
                     operand=Operand(Bytes([0x23, 0x45]), "_", OperandType.DEFAULT, Label(addr(0xD23456), "label_1")),
+                    destination=addr(0xD23456),
                     anchor=Operand(addr(0xD21111)),
                 ),
             ),
@@ -48,8 +45,8 @@ class TestPointer:
                 addr(0x000001),
                 Operand(addr(0x121111)),
                 Pointer(
-                    address=addr(0x000001),
                     operand=Operand(Bytes([0x14, 0x13]), "_", OperandType.DEFAULT, None),
+                    destination=addr(0x122524),
                     anchor=Operand(addr(0x121111)),
                 ),
             ),
@@ -78,14 +75,14 @@ class TestPointer:
                 b"\x00\x01",
                 addr(0),
                 None,
-                Pointer(address=addr(0), operand=Operand(Bytes([0x01, 0x00]))),
+                Pointer(operand=Operand(Bytes([0x01, 0x00])), destination=addr(0x000100)),
                 addr(0x000100),
             ),
             (
                 b"\x12\x34",
                 addr(0x123456),
                 None,
-                Pointer(address=addr(0x123456), operand=Operand(Bytes([0x34, 0x12]))),
+                Pointer(operand=Operand(Bytes([0x34, 0x12])), destination=addr(0x123412)),
                 addr(0x123412),
             ),
             (
@@ -93,8 +90,8 @@ class TestPointer:
                 addr(0x123456),
                 Operand(addr(0x300123)),
                 Pointer(
-                    address=addr(0x123456),
                     operand=Operand(Bytes([0x38, 0x26])),
+                    destination=addr(0x303949),
                     anchor=Operand(Bytes.from_address(0x300123)),
                 ),
                 Bytes.from_address(0x303949),
@@ -106,80 +103,94 @@ class TestPointer:
     ):
         pointer = Pointer.from_bytes(value=value, address=address, anchor=anchor)
         assert pointer == expected
-        assert pointer.destination == destination
 
     @pytest.mark.parametrize(
-        ["pointer", "show_address", "current_anchor", "line"],
+        ["pointer", "address", "current_anchor", "line"],
         [
             (
-                Pointer(address=Bytes.from_address(0), operand=Operand(Bytes([0x11, 0x22]))),
-                False,
+                Pointer(operand=Operand(Bytes([0x11, 0x22])), destination=addr(0x270123)),
+                None,
                 Bytes.from_address(0x270123),
                 "  ptr $1122",
             ),
             (
-                Pointer(address=Bytes.from_address(0x120123), operand=Operand(Bytes([0x34, 0x56]), variable=CHARLIE)),
-                False,
+                Pointer(operand=Operand(Bytes([0x34, 0x56]), variable=CHARLIE), destination=addr(0x273456)),
+                None,
                 Bytes.from_address(0x270123),
                 "  ptr !charlie",
             ),
             (
                 Pointer(
-                    address=Bytes.from_address(0),
                     operand=Operand(Bytes([0x01, 0x02])),
+                    destination=addr(0x001112),
                     anchor=Operand(Bytes.from_address(0x001010)),
                 ),
-                False,
+                None,
                 Operand(Bytes.from_address(0x001010)),
                 "  rptr $0102",
             ),
             (
                 Pointer(
-                    address=DEFAULT_ADDRESS,
                     operand=Operand(Bytes([0x01, 0x02])),
+                    destination=addr(0xC01112),
                     anchor=Operand(Bytes.from_address(0xC01010)),
                 ),
-                False,
+                None,
                 Operand(Bytes.from_address(0xE789AB)),
                 "\n#$C01010\n  rptr $0102",
             ),
             (
                 Pointer(
-                    address=Bytes.from_address(0),
                     operand=Operand(Bytes([0x01, 0x02])),
+                    destination=addr(0xD23557),
                     anchor=Operand(addr(0xD23456)),
                 ),
-                False,
+                None,
                 Operand(Bytes.from_address(0xE789AB)),
                 "\n#label_1\n  rptr $0102",
             ),
             (
                 Pointer(
-                    address=Bytes.from_address(0),
                     operand=Operand(Bytes([0x00, 0x00]), variable=CHARLIE),
+                    destination=addr(0xD23456),
                     anchor=Operand(Bytes.from_address(0xD23456)),
                 ),
-                False,
+                None,
                 Operand(Bytes.from_address(0xE789AB)),
                 "\n#label_1\n  rptr !charlie",
+            ),
+            (
+                Pointer(
+                    operand=Operand(Bytes([0x00, 0x00]), variable=CHARLIE),
+                    destination=addr(0xD23456),
+                    anchor=Operand(Bytes.from_address(0xD23456)),
+                ),
+                addr(0xC01234),
+                Operand(Bytes.from_address(0xE789AB)),
+                "\n#label_1\n  rptr !charlie ; C01234",
             ),
         ],
     )
     def test_to_line(
         self,
         pointer: Pointer,
-        show_address: bool,
+        address: Bytes | None,
         current_anchor: Bytes,
         line: str,
         labels: Variables,
     ):
-        assert pointer.to_line(show_address=show_address, labels=labels, current_anchor=current_anchor) == line
+        assert (
+            pointer.to_line(
+                show_address=address is not None, labels=labels, current_anchor=current_anchor, address=address
+            )
+            == line
+        )
 
     @pytest.mark.parametrize(
         ["pointer", "expected_bytes"],
         [
-            (Pointer(address=Bytes([0x00, 0x00, 0x00]), operand=Operand(Bytes([0x11, 0x22]))), b"\x22\x11"),
-            (Pointer(address=Bytes([0x33, 0x33, 0x33]), operand=Operand(Bytes([0x44, 0x55]))), b"\x55\x44"),
+            (Pointer(operand=Operand(Bytes([0x11, 0x22])), destination=addr(0x001122)), b"\x22\x11"),
+            (Pointer(operand=Operand(Bytes([0x44, 0x55])), destination=addr(0x004455)), b"\x55\x44"),
         ],
     )
     def test_bytes(self, pointer: Pointer, expected_bytes: bytes):
@@ -188,8 +199,8 @@ class TestPointer:
     @pytest.mark.parametrize(
         ["pointer", "expected"],
         [
-            (Pointer(address=Bytes([0x12, 0x00, 0x00]), operand=Operand(Bytes([0x34, 0x56]))), "ptr $3456"),
-            (Pointer(operand=Operand(TEST_WORD)), "ptr $1234"),
+            (Pointer(operand=Operand(Bytes([0x34, 0x56])), destination=addr(0x003456)), "ptr $3456"),
+            (Pointer(operand=Operand(TEST_WORD), destination=addr(0x001234)), "ptr $1234"),
         ],
     )
     def test_str(self, pointer: Pointer, expected: str):
@@ -199,16 +210,16 @@ class TestPointer:
         ["pointer", "expected"],
         [
             (
-                Pointer(address=Bytes([0x12, 0x00, 0x01]), operand=Operand(Bytes([0x34, 0x56]))),
-                "Pointer(address=0x120001, as_str='ptr $3456', as_bytes=b'V4', as_hexa=0x3456, destination=0x123456)",
+                Pointer(operand=Operand(Bytes([0x34, 0x56])), destination=addr(0x123456)),
+                "Pointer(as_str='ptr $3456', as_bytes=b'V4', as_hexa=0x3456, destination=0x123456)",
             ),
             (
                 Pointer(
-                    address=Bytes.from_address(0),
                     operand=Operand(TEST_WORD),
+                    destination=addr(0x3468AC),
                     anchor=Operand(Bytes([0x34, 0x56, 0x78])),
                 ),
-                "Pointer(address=0x000000, as_str='ptr $1234', as_bytes=b'4\\x12', as_hexa=0x1234, destination=0x3468AC, anchor=0x345678)",
+                "Pointer(as_str='ptr $1234', as_bytes=b'4\\x12', as_hexa=0x1234, destination=0x3468AC, anchor=0x345678)",
             ),
         ],
     )
@@ -216,7 +227,7 @@ class TestPointer:
         assert repr(pointer) == expected
 
     def test_len(self):
-        assert len(Pointer(address=TEST_ADDRESS, operand=Operand(Bytes([0x45, 0x67])))) == 2
+        assert len(Pointer(operand=Operand(Bytes([0x45, 0x67])), destination=addr(0))) == 2
 
     def test_find_length(self):
         assert Pointer.find_length() == 2

@@ -128,7 +128,6 @@ class MemoryMap(Artifact):
 
     def __init__(self, mapping_mode: MappingMode):
         self.mapping_mode = mapping_mode
-        self.address = Bytes.from_address(0)
 
     @classmethod
     def from_line(cls, mapping_mode: str) -> Self:
