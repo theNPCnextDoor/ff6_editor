@@ -78,7 +78,7 @@ class UnrecognizedMappingMode(Exception):
     pass
 
 
-class UnrecognizedPrefix(Exception):
+class UnrecognizedStringType(Exception):
     pass
 
 

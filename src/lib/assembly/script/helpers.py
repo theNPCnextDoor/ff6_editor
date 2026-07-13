@@ -17,7 +17,7 @@ from src.lib.assembly.data_structure.data_structure import DataStructure
 from src.lib.assembly.data_structure.instruction.instruction import Instruction
 from src.lib.assembly.data_structure.pointer import Pointer
 from src.lib.assembly.data_structure.regex import InstructionRegex, ArtifactRegex, DataStructureRegex
-from src.lib.assembly.data_structure.string.string import String
+from src.lib.assembly.data_structure.string.string import String, StringType
 from src.lib.misc.exception import MissingSectionAttribute
 
 Component = Artifact | DataStructure
@@ -31,8 +31,7 @@ class ScriptMode:
     INSTRUCTIONS = "Instructions"
     POINTERS = "Pointers"
     BLOBS = "Blobs"
-    MENU_STRINGS = "Menu strings"
-    MENU_DESCRIPTIONS = "Menu descriptions"
+    STRINGS = "Strings"
     ARRAYS = "Arrays"
 
 
@@ -94,12 +93,19 @@ class SubSection:
     Subsections are used to define each individual subsection inside a blob group.
     """
 
-    def __init__(self, mode: ScriptMode, length: int | None = None, delimiter: Bytes | None = None):
+    def __init__(
+        self,
+        mode: ScriptMode,
+        length: int | None = None,
+        delimiter: Bytes | None = None,
+        string_type: StringType | None = None,
+    ):
         """
         :param mode: The script mode of the subsection.
         :param length: An integer. If defined, will be used to determine the number of bytes shall be contained in the
         subsection.
         :param delimiter: A specific byte. If defined, will be used to determine the end of the blob.
+        :param string_type: For String subsections. Indicates the type of string to disassemble.
         :raises MissingSectionAttribute: Raised when neither the length nor the delimiter is used.
         """
         if length is None and delimiter is None:
@@ -109,6 +115,7 @@ class SubSection:
         self.mode = mode
         self.length = length
         self.delimiter = delimiter
+        self.string_type = string_type
 
 
 @dataclass

@@ -25,6 +25,7 @@ from src.lib.misc.exception import (
     UndefinedFlags,
     MismatchedMappingModes,
     IllegalAddress,
+    UnrecognizedStringType,
 )
 from src.lib.assembly.data_structure.blob import Blob
 from src.lib.assembly.data_structure.array import Array
@@ -242,7 +243,7 @@ class Script:
                 elif section.mode == ScriptMode.INSTRUCTIONS:
                     script._disassemble_instructions(cursor, f, section)
 
-                elif section.mode in (ScriptMode.BLOBS, ScriptMode.MENU_STRINGS, ScriptMode.MENU_DESCRIPTIONS):
+                elif section.mode in (ScriptMode.BLOBS, ScriptMode.STRINGS):
                     script._disassemble_blobs(cursor, f, section)
 
                 elif section.mode == ScriptMode.ARRAYS:
@@ -450,13 +451,13 @@ class Script:
                 delimiter = sub_section.delimiter
                 if sub_section.mode == ScriptMode.BLOBS:
                     blob = Blob.from_bytes(data=data, delimiter=delimiter)
-                elif sub_section.mode == ScriptMode.MENU_STRINGS:
+                elif sub_section.string_type == StringTypes.MENU:
                     blob = String.from_bytes(
                         data=data,
                         delimiter=delimiter,
                         string_type=StringTypes.MENU,
                     )
-                elif sub_section.mode == ScriptMode.MENU_DESCRIPTIONS:
+                elif sub_section.string_type == StringTypes.DESCRIPTION:
                     blob = String.from_bytes(
                         data=data,
                         delimiter=delimiter,
@@ -498,8 +499,8 @@ class Script:
 
         f.seek(cursor)
         delimiter = section.attributes.get("delimiter", None)
-        if delimiter is not None:
-            pass
+        string_type = section.attributes.get("string_type", None)
+
         while cursor < section.end:
             address = self.memory_map.to_address(cursor)
             data = self._extract_blob_bytes(
@@ -512,9 +513,9 @@ class Script:
 
             if section.mode == ScriptMode.BLOBS:
                 blob = Blob.from_bytes(data=data, delimiter=delimiter)
-            elif section.mode == ScriptMode.MENU_STRINGS:
+            elif string_type == StringTypes.MENU:
                 blob = String.from_bytes(data=data, delimiter=delimiter, string_type=StringTypes.MENU)
-            else:  # section.mode == ScriptMode.DESCRIPTION_STRINGS
+            else:
                 blob = String.from_bytes(
                     data=data,
                     delimiter=delimiter,
