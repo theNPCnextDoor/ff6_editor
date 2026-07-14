@@ -81,10 +81,10 @@ class String(Blob):
         chars = re.findall(Regex.CHAR, string)
         data = b""
 
-        simple_vars = variables.simple_variables if variables else None
+        constants = variables.constants if variables else None
 
         _delimiter = (
-            Operand.from_line(value=delimiter, variables=simple_vars, parent_address=address) if delimiter else None
+            Operand.from_line(value=delimiter, variables=constants, parent_address=address) if delimiter else None
         )
 
         if _delimiter and len(_delimiter) != 1:

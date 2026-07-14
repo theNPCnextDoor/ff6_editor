@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Self, BinaryIO
 
 from src.lib.assembly.artifact.memory_map import MemoryMap, AreaTypes
-from src.lib.assembly.artifact.variable import Label, SimpleVar
+from src.lib.assembly.artifact.variable import Label, Constant
 from src.lib.assembly.artifact.variables import Variables
 from src.lib.assembly.data_structure.instruction.operand import Operand
 from src.lib.assembly.script.helpers import (
@@ -299,10 +299,10 @@ class Script:
                 anchor = Operand.from_line(**line.regex_groups, parent_address=line.address, variables=self.variables())
                 logging.info(f"New anchor: {repr(anchor)}.")
             elif line.component_info == LineType.ARRAY:
-                array = Array.from_line(line=line.clean_line, address=line.address, variables=self.simple_vars())
+                array = Array.from_line(line=line.clean_line, address=line.address, variables=self.constants())
                 line.component = array
             elif line.component_info == LineType.BLOB:
-                blob = Blob.from_line(**line.regex_groups, address=line.address, variables=self.simple_vars())
+                blob = Blob.from_line(**line.regex_groups, address=line.address, variables=self.constants())
                 line.component = blob
             elif line.component_info == LineType.FLAGS:
                 new_flags = Flags.from_line(**line.regex_groups)
@@ -328,7 +328,7 @@ class Script:
                 )
                 line.component = pointer
             elif line.component_info == LineType.STRING:
-                string = String.from_line(**line.regex_groups, address=line.address, variables=self.simple_vars())
+                string = String.from_line(**line.regex_groups, address=line.address, variables=self.constants())
                 line.component = string
             elif line.component_info == LineType.VARIABLE_DECLARATION:
                 continue
@@ -368,7 +368,7 @@ class Script:
             return cursor
 
         if match := re.fullmatch(ArtifactRegex.VARIABLE_DECLARATION, cleaned_line):
-            line.component = SimpleVar.from_line(name=match.group("name"), operand=match.group("operand"))
+            line.component = Constant.from_line(name=match.group("name"), operand=match.group("operand"))
             line.component_info = LineType.VARIABLE_DECLARATION
             return cursor
 
@@ -399,7 +399,7 @@ class Script:
 
         elif match := re.fullmatch(DataStructureRegex.BLOB, cleaned_line):
             cursor += Blob.find_length(
-                operand=match.group("operand"), variables=self.simple_vars(), delimiter=match.group("delimiter")
+                operand=match.group("operand"), variables=self.constants(), delimiter=match.group("delimiter")
             )
             line.component_info = LineType.BLOB
 
@@ -623,7 +623,7 @@ class Script:
     def variables(self) -> Variables:
         return Variables(*[line.component for line in self._get_lines(LineType.VARIABLE_DECLARATION, LineType.LABEL)])
 
-    def simple_vars(self) -> Variables:
+    def constants(self) -> Variables:
         return Variables(*[line.component for line in self._get_lines(LineType.VARIABLE_DECLARATION)])
 
     def labels(self) -> Variables:

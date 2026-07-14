@@ -1,6 +1,6 @@
 import pytest
 
-from src.lib.assembly.artifact.variable import SimpleVar
+from src.lib.assembly.artifact.variable import Constant
 from src.lib.assembly.data_structure.instruction.operand import Operand
 from src.lib.assembly.data_structure.string.string import String
 from src.lib.assembly.bytes import Bytes
@@ -54,7 +54,7 @@ class TestString:
             (
                 String(
                     operand=Operand(Bytes([0x80, 0x81, 0x82])),
-                    delimiter=Operand(Bytes.from_int(0), variable=SimpleVar(Bytes.from_int(0), "zero")),
+                    delimiter=Operand(Bytes.from_int(0), variable=Constant(Bytes.from_int(0), "zero")),
                 ),
                 '"ABC",zero',
             ),
@@ -73,9 +73,9 @@ class TestString:
             (
                 String(
                     operand=Operand(Bytes([0x80, 0x81, 0x82])),
-                    delimiter=Operand(Bytes.from_int(0), variable=SimpleVar(Bytes.from_int(0), "zero")),
+                    delimiter=Operand(Bytes.from_int(0), variable=Constant(Bytes.from_int(0), "zero")),
                 ),
-                "String(as_str='\"ABC\",zero', as_bytes=b'\\x82\\x81\\x80\\x00', as_hexa=0x80818200, delimiter_var=SimpleVar(name='zero', value=0x00))",
+                "String(as_str='\"ABC\",zero', as_bytes=b'\\x82\\x81\\x80\\x00', as_hexa=0x80818200, delimiter_var=Constant(name='zero', value=0x00))",
             ),
         ],
     )

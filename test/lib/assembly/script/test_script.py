@@ -4,7 +4,7 @@ import pytest
 
 from src.lib.assembly.artifact.flags import Flags
 from src.lib.assembly.artifact.memory_map import MappingModes, MemoryMap
-from src.lib.assembly.artifact.variable import Label, SimpleVar
+from src.lib.assembly.artifact.variable import Label, Constant
 from src.lib.assembly.bytes import Bytes, Endian
 from src.lib.assembly.data_structure.array import Array
 from src.lib.assembly.data_structure.blob import Blob
@@ -110,7 +110,7 @@ class ScriptImpl:
                 address=None,
                 component_info=LineType.VARIABLE_DECLARATION,
                 regex_groups=None,
-                component=SimpleVar(Bytes([0x01]), "item_dummy"),
+                component=Constant(Bytes([0x01]), "item_dummy"),
                 filename=DUMMY_INPUT_SCRIPT_2,
             ),
             Line(
@@ -119,7 +119,7 @@ class ScriptImpl:
                 address=None,
                 component_info=LineType.VARIABLE_DECLARATION,
                 regex_groups=None,
-                component=SimpleVar(Bytes([0x20]), "treasure_miab"),
+                component=Constant(Bytes([0x20]), "treasure_miab"),
                 filename=DUMMY_INPUT_SCRIPT_2,
             ),
             Line(
@@ -128,7 +128,7 @@ class ScriptImpl:
                 address=None,
                 component_info=LineType.VARIABLE_DECLARATION,
                 regex_groups=None,
-                component=SimpleVar(Bytes([0x40]), "treasure_item"),
+                component=Constant(Bytes([0x40]), "treasure_item"),
                 filename=DUMMY_INPUT_SCRIPT_2,
             ),
             Line(
@@ -436,10 +436,10 @@ class ScriptImpl:
                         Blob(operand=Operand(Bytes([0x34]))),
                         Blob(operand=Operand(Bytes([0x56]))),
                         Blob(
-                            operand=Operand(Bytes([0x40]), variable=SimpleVar(Bytes([0x40]), "treasure_item")),
+                            operand=Operand(Bytes([0x40]), variable=Constant(Bytes([0x40]), "treasure_item")),
                         ),
                         Blob(
-                            operand=Operand(Bytes([0x01]), variable=SimpleVar(Bytes([0x01]), "item_dummy")),
+                            operand=Operand(Bytes([0x01]), variable=Constant(Bytes([0x01]), "item_dummy")),
                         ),
                     ],
                 ),
@@ -457,7 +457,7 @@ class ScriptImpl:
                         Blob(operand=Operand(Bytes([0x9A]))),
                         Blob(operand=Operand(Bytes([0xBC]))),
                         Blob(
-                            operand=Operand(Bytes([0x20]), variable=SimpleVar(Bytes([0x20]), "treasure_miab")),
+                            operand=Operand(Bytes([0x20]), variable=Constant(Bytes([0x20]), "treasure_miab")),
                         ),
                         Blob(operand=Operand(Bytes([0x01]))),
                     ],
@@ -645,7 +645,7 @@ class TestScript:
         )
         assert script.blob_lines()[2].component == Blob(
             operand=Operand(Bytes([0xAB, 0xCD])),
-            delimiter=Operand(Bytes([0x00]), variable=SimpleVar(Bytes.from_int(0), "delta")),
+            delimiter=Operand(Bytes([0x00]), variable=Constant(Bytes.from_int(0), "delta")),
         )
 
         assert len(script.string_lines()) == 2
@@ -784,10 +784,10 @@ class TestScript:
                     SubSection(mode=ScriptMode.BLOBS, length=1),
                 ],
                 variables={
-                    "items": {0x01: SimpleVar(Bytes([0x01]), "item_dummy")},
+                    "items": {0x01: Constant(Bytes([0x01]), "item_dummy")},
                     "treasure_types": {
-                        0x20: SimpleVar(Bytes([0x20]), "treasure_miab"),
-                        0x40: SimpleVar(Bytes([0x40]), "treasure_item"),
+                        0x20: Constant(Bytes([0x20]), "treasure_miab"),
+                        0x40: Constant(Bytes([0x40]), "treasure_item"),
                     },
                 },
             ),
