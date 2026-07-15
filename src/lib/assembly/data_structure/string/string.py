@@ -10,7 +10,7 @@ from src.lib.assembly.bytes import Bytes, Endian
 from src.lib.assembly.data_structure.regex import Regex
 
 from src.lib.assembly.data_structure.string.charset import Charset, MENU_CHARSET, DESCRIPTION_CHARSET
-from src.lib.misc.exception import DelimiterLengthError, UnrecognizedPrefix
+from src.lib.misc.exception import DelimiterLengthError, UnrecognizedStringType
 
 
 @dataclass
@@ -23,11 +23,12 @@ class StringType:
 
     prefix: str | None
     charset: Charset
+    name: str
 
 
 class StringTypes:
-    MENU = StringType(None, Charset(MENU_CHARSET))
-    DESCRIPTION = StringType("desc", Charset(DESCRIPTION_CHARSET))
+    MENU = StringType(None, Charset(MENU_CHARSET), "menu")
+    DESCRIPTION = StringType("desc", Charset(DESCRIPTION_CHARSET), "description")
 
     @classmethod
     def get_by_prefix(cls, prefix: str | None = None) -> StringType:
@@ -35,15 +36,31 @@ class StringTypes:
         Determines the StringType by the script line prefix.
         :param prefix: The word that precedes the string in a script line, such as "desc".
         :return: A StringType.
-        :raise UnrecognizedPrefix: Raised when the string prefix is unrecognized.
+        :raise UnrecognizedStringType: Raised when the string prefix is unrecognized.
         """
         for string_type in cls.__dict__.values():
             if isinstance(string_type, StringType) and string_type.prefix == prefix:
                 return string_type
         else:
-            message = f"Prefix {prefix} is not recognized."
+            message = f"Prefix '{prefix}' is not recognized."
             logging.error(message)
-            raise UnrecognizedPrefix(message)
+            raise UnrecognizedStringType(message)
+
+    @classmethod
+    def get_by_name(cls, name: str) -> StringType:
+        """
+        Determines the StringType by its name.
+        :param name: The name of the StringType.
+        :return: A StringType.
+        :raise Unrecognized StringType: Raised when the string prefix is unrecognized.
+        """
+        if name is not None:
+            for string_type in cls.__dict__.values():
+                if isinstance(string_type, StringType) and string_type.name == name:
+                    return string_type
+        message = f"StringType '{name}' is not recognized."
+        logging.error(message)
+        raise UnrecognizedStringType(message)
 
 
 class String(Blob):

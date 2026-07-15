@@ -4,9 +4,10 @@ import tomllib
 from src.lib.assembly.artifact.flags import Flags
 from src.lib.assembly.artifact.variable import SimpleVar
 from src.lib.assembly.bytes import Bytes
+from src.lib.assembly.data_structure.string.string import StringTypes
 from src.lib.assembly.script.script import Script
 from src.lib.assembly.script.helpers import ScriptSection, ScriptMode, SubSection, ArrayPattern
-from src.lib.misc.exception import UnrecognizedArrayPattern
+from src.lib.misc.exception import UnrecognizedArrayPattern, UnrecognizedStringType
 
 
 def disassemble(configs: dict) -> None:
@@ -23,7 +24,11 @@ def disassemble(configs: dict) -> None:
         if flags := el.get("flags", None):
             section.attributes["flags"] = Flags(m=flags["m"], x=flags["x"])
 
-        if (pattern := el.get("pattern", None)) is not None:
+        if section.mode == ScriptMode.STRINGS:
+            section.attributes["string_type"] = StringTypes.get_by_name(el.get("string_type", None))
+
+        subsections = list()
+        if pattern := el.get("pattern", None):
             section.attributes["pattern"] = pattern
             var_file = el.get("var_file", "variables.json")
             with open(var_file) as f:
@@ -37,21 +42,23 @@ def disassemble(configs: dict) -> None:
 
                 section.variables = variables
             if pattern == ArrayPattern.TREASURE_CHESTS:
-                subsections = list()
                 for _ in range(5):
                     subsections.append(SubSection(mode=ScriptMode.BLOBS, length=1))
             else:
                 raise UnrecognizedArrayPattern(f"Unrecognized ArrayPattern '{pattern}'.")
 
         elif elements := el.get("subsections", list()):
-            subsections = list()
             for s in elements:
                 subsection = SubSection(
                     mode=getattr(ScriptMode, s["mode"]),
                     length=s.get("length", None),
                     delimiter=s.get("delimiter", None),
                 )
+                if subsection.mode == ScriptMode.STRINGS:
+                    section.attributes["string_type"] = StringTypes.get_by_name(el.get("string_type", None))
+
                 subsections.append(subsection)
+
         section.attributes["sub_sections"] = subsections
         sections.append(section)
 
