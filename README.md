@@ -21,7 +21,7 @@
     * [Comments](#comments)
   * [Data Structures](#data-structures)
     * [Instructions](#instructions)
-      * [Flag setter instructions](#flag-setters-instructions)
+      * [Flag setter instructions](#flag-setter-instructions)
       * [Moving block instructions](#moving-block-instructions)
     * [Pointers](#pointers)
       * [Direct pointers](#direct-pointers)
@@ -120,7 +120,7 @@ map: HiROM
 
 Accepted values are: 'LoROM', 'HiROM' and 'ExHiROM'.
 
-> [!INFO]
+> [!NOTE]
 > All versions of Final Fantasy 6 are HiROM, although some romhacks, such as T-Edition,
 > have been upgraded to ExHiROM.
 
@@ -155,9 +155,10 @@ The only characters accepted for variables names are lowercase letters, undersco
 numbers. The name must start with a letter. Also, variable names can't be the same as words
 that are used to defined components, such as 'm', 'x', 'ptr', 'desc', etc.
 
-> [!WARNING]
+> [!TIP]
 > All variables are global, even when spread across multiple scripting files. An error will be
-> thrown if a variable is defined twice. It might therefore be a good idea to 
+> thrown if a variable is defined twice. It might therefore be a good idea to put all
+> commonly used variables and labels into their own file.
 
 ##### Constants
 
@@ -199,7 +200,7 @@ sections of the ROM that you want to modify.
 In this case, regardless of the address of the previous data structure, the address of
 the next one will be \$C01234.
 
-> [!NOTE]
+> [!TIP]
 > You can skip to a lower address, although it is not recommended as it can rapidly
 > become a mess when the code is not in order.
 
@@ -241,7 +242,7 @@ address. To do so, use the prefix '!'.
   JMP ($1234,X) => JMP (!some_label,X)
 ```
 
-> [!WARNING]
+> [!IMPORTANT]
 > Labels in branching instructions, such as 'BRA' or 'BCS', do not require a prefix as their
 > values are calculated in a different way.
 > ```
@@ -292,7 +293,7 @@ bytes and are not always required, depending on the instruction.
 The operand can be set with a value, as shown above, or a variable. In the case of variables,
 please refer to the [Variables](#variables) section on how to use them.
 
-##### Flag setters instructions
+##### Flag setter instructions
 
 The instructions "[REP](https://6502.org/tutorials/65c816opcodes.html#6.4.2)" and "SEP" are 
 important to set the width of the 'm' and the 'x' flags. FF6CMW will update its own flags' states
@@ -304,7 +305,7 @@ flag.
   SEP #$30 ; After parsing this instruction, both the 'm' and 'x' flag will become true, or 8-bit.  
 ```
 
-> [!WARNING]
+> [!IMPORTANT]
 > There lies in the 65C816 processor the 'e', or emulation, flag. This application assumes that
 > that flag is never set as it forces the 'm' and 'x' flags to be true (there are other effects,
 > but I haven't dwelt much into that part of the documentation.)
@@ -330,8 +331,8 @@ off a table. They either can be direct or relative pointers.
 
 > [!NOTE]
 > 'Direct' and 'relative' do not refer here to the addressing mode of the instructions with the
-> same names, but just if the same just be read directly to obtain the address of the destination
-> or relatively from a specific anchor.
+> same names, but just if the value can be derived directly to obtain the address of the 
+> destination or relatively from a specific anchor.
 
 ##### Direct pointers
 
@@ -374,7 +375,7 @@ Blobs are simple the simplest representation of bytes that can be written in the
 What you see is what you get, unless you're using variables. They either have a specific length
 or a delimiter. A delimiter is a one-byte character that tells the game that the blob is over.
 
-> [!NOTE]
+> [!TIP]
 > Blobs are displayed in little endian, regardless of their length. Therefore, it is
 > recommended to keep the length of each blob low, even though the application doesn't
 > provide any limit.
@@ -434,7 +435,8 @@ source = "source.smc"
 destination = "destination.asm"
 mapping_mode = "HiROM"
 sections = [
-    {start = 0x2D8634, end = 0x2D8BCA, mode = "ARRAYS", pattern="treasure_chests"},
+  {start = 0x03001B, end = 0x030057, mode = "INSTRUCTIONS", flags = {"m" = 8, "x" = 16} },
+  {start = 0x2D8634, end = 0x2D8BCA, mode = "ARRAYS", pattern="treasure_chests"},
 ]
 ```
 
@@ -454,7 +456,7 @@ to ExHiROM.
   * __Other parameters:__ They are used for specific section modes and will be
 explained in the following section as well.
 
-> [!INFO]
+> [!IMPORTANT]
 > "start" and "end" values must be ROM position, ranging from 0 to 0x3FFFFF for HiROMs,
 > and NOT the address in the memory space, which ranges from 0xC00000 to 0xFFFFFF for
 > HiROMs.
@@ -474,7 +476,7 @@ they need to be set when defining the section like this:
 {start = 0x03001B, end = 0x030057, mode = "INSTRUCTIONS", flags = {"m" = 8, "x" = 16} }
 ```
 
-> [!INFO]
+> [!NOTE]
 > Any branching or jumping instruction, as well as instructions with a 24-bit operand,
 > found while disassembling will automatically create a label of the destination and
 > change the operand to the label's name.
@@ -491,7 +493,7 @@ address \$C01234. Setting a pointers section can be done like this:
 {start = 0x0301DB, end = 0x0302DB, mode = "POINTERS"}
 ```
 
-> [!INFO]
+> [!NOTE]
 > Every pointer will generate a label of the destination and change the operand to 
 > the label's name.
 
@@ -510,7 +512,7 @@ of relative pointers, it needs to be done this:
 {start = 0x0301DB, end = 0x0302DB, mode = "POINTERS", anchor=0x123456}
 ```
 
-> [!INFO]
+> [!IMPORTANT]
 > Like for "start" and "end", the "anchor" value is the ROM position, not the address
 > in the memory space.
 
@@ -573,10 +575,13 @@ containing all 4 combinations can look like:
 Patterns are hard-coded types of arrays that adds related variables to facilitate
 modifying them.
 
-> [!INFO]
+> [!NOTE]
 > Currently, there is only "treasure_chests" available. But alongside setting the five 
 > subsections, it will also add the treasure type values and item names as variables.
-> It won't replace the enemy formations by a variable, for the moment.
+> It will take the variable names and values in the file 'variables.json'
+> It won't replace the enemy formations by a variable, for the moment. at the root of the
+> project. In a future update, that file will be customizable. Here, it was more a proof of
+> concept.
 
 For example, in unheadered vanilla, defining the arrays section looks like:
 
@@ -627,7 +632,7 @@ In order to prevent logging, either in the console or on file, simply modify `lo
 and modify line 6. You can remove either the mention of `file` or `console` or both, but
 you have to keep `handlers=` at the very minimum.
 
-> [!WARNING]
+> [!TIP]
 > Deleting `logging.conf` won't work as it will simply be recreated next time you execute
 > `assemble.py` or `disassemble.py`.
 
@@ -644,7 +649,7 @@ eventually ask you to formalize the bug report. When doing so, please provide th
 the script you're attempting to assembling, if applicable, and whether you're using the
 original ROM or some hacked version.
 
-### Special thanks
+## Special thanks
 
 I would like to thank my family and friends, especially Fred and Mathieu, whom I pestered
 relentlessly with unprompted updates on this project over the years! I would also like to
