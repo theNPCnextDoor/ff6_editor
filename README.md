@@ -1,4 +1,4 @@
-# Final Fantasy VI Cid's Magitek Workshop
+# Final Fantasy VI Cid's Magitek Toolbox
 
 ## Table of contents
 
@@ -46,7 +46,7 @@
 
 ## Disclaimer
 
-FF6CMW, or the Final Fantasy VI Cid's Magitek Workshop, 
+FF6CMT, or the Final Fantasy VI Cid's Magitek Toolbox, 
 is a text-based editor allowing to modify assembly code and various types of
 data in Final Fantasy 6.
 
@@ -91,7 +91,7 @@ instructions according to your OS.
 
 ### Download
 
-In order to use FF6CMW, simply download the code from Github by clicking on 
+In order to use FF6CMT, simply download the code from Github by clicking on 
 the "Code" button in green and select "Download Zip", extract it to the folder
 of your choice. Alternatively, you may just
 [clone the repository](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository).
@@ -275,7 +275,7 @@ composed of 3 capital letters.
 
 > [!NOTE]
 > The only difference between the instructions as explained in the link above and in 
-> FF6CMW is the usage of 'JML' instead of 'JMP' when the operand is 24-bit, similarly
+> FF6CMT is the usage of 'JML' instead of 'JMP' when the operand is 24-bit, similarly
 > to 'JSR' and 'JSL'. The reason came as a necessity during development in order to be 
 > able to "guess" the length of the instruction to properly assess the labels' addresses
 > further down the script.
@@ -296,7 +296,7 @@ please refer to the [Variables](#variables) section on how to use them.
 ##### Flag setter instructions
 
 The instructions "[REP](https://6502.org/tutorials/65c816opcodes.html#6.4.2)" and "SEP" are 
-important to set the width of the 'm' and the 'x' flags. FF6CMW will update its own flags' states
+important to set the width of the 'm' and the 'x' flags. FF6CMT will update its own flags' states
 when parsing such a line. '#\$10' correspond to the 'x' flag and '#\$20' correspond to the 'm'
 flag.
 
@@ -426,7 +426,7 @@ the others, so they can each have a defined length or a delimiter.
 Disassembly is the process of interpreting the binary code of a ROM and 
 transforming it into human-readable code.
 
-In order to do so with FF6CMW, you must first create a file called `config.toml`
+In order to do so with FF6CMT, you must first create a file called `config.toml`
 at the root of the project with a section called `disassembly` like this.
 
 ```
@@ -463,7 +463,7 @@ explained in the following section as well.
 
 ### Section Modes
 
-The section mode helps FF6CMW how it should disassemble the data.
+The section mode helps FF6CMT how it should disassemble the data.
 
 #### Instructions
 
@@ -612,7 +612,7 @@ script on top of it.
 ## Troubleshooting
 
 In order to facilitate troubleshooting, logging is available. Whenever the assemble.py or
-disassemble.py are executed, FF6CMW checks for the existence of the file `logging.conf` at
+disassemble.py are executed, FF6CMT checks for the existence of the file `logging.conf` at
 the root of the project and copied it from `template_logging.conf` is it doesn't exist. By
 default, it will grant access to logs in two forms:
 
