@@ -461,6 +461,19 @@ explained in the following section as well.
 > and NOT the address in the memory space, which ranges from 0xC00000 to 0xFFFFFF for
 > HiROMs.
 
+Once you created or modified the file, open a terminal, go to the project directory and
+enter the following command:
+
+On Windows
+```
+py disassemble.py
+```
+
+On Linux
+```
+python3 disassemble.py
+```
+
 ### Section Modes
 
 The section mode helps FF6CMT how it should disassemble the data.
@@ -608,6 +621,19 @@ scripts = [
 * `destination`: The destination ROM. It will be a copy of the source ROM with the assembled
 script on top of it.
 * `scripts`: A list of all script files that will be assembled in the destination ROM.
+
+Once you created or modified the section, open a terminal, go to the project folder and enter
+the following command:
+
+On Windows
+```
+py assemble.py
+```
+
+On Linux
+```
+python3 assemble.py
+```
 
 ## Troubleshooting
 
