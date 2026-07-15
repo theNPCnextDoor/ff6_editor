@@ -43,7 +43,7 @@ class Array(DataStructure):
                     string_type=blob_match.group("string_type"),
                     delimiter=blob_match.group("delimiter"),
                     address=Bytes.from_address(cursor),
-                    variables=variables.simple_variables,
+                    variables=variables.constants,
                 )
 
             elif blob_match := re.search(DataStructureRegex.BLOB, cleaned_part):

@@ -219,10 +219,10 @@ m = 8, x = 16
 @jump_to_put_portrait_in_status_menus = $C361AC
 
 @init_vars_for_portrait_by_upper_left_corner = $C361FB
-  JSR !load_anim_ptr ; Load anim ptr
-  LDA $2A         ; Y: 56
-  STA $344A,X     ; Set sprite's
-  JMP !init_m7      ; Set pose timer
+  JSR !load_anim_ptr
+  LDA $2A
+  STA $344A,X
+  JMP !init_m7
 
 @draw_status_effects = $C3625B
   LDY #$3A1D
@@ -315,10 +315,10 @@ m = 8, x = 16
   JMP !jump_to_put_portrait_in_status_menus
 
 @set_y_value_to_top_right_corner_then_jump_to_init_vars
-  JSR !load_anim_ptr      ; Load anim ptr
-  LDA #$17     ; Y: 56
-  STA $344A,X     ; Set sprite's
-  JMP !init_m7      ; Set pose timer
+  JSR !load_anim_ptr
+  LDA #$17
+  STA $344A,X
+  JMP !init_m7
 
 @draw_passive_abilities
   JSR !prepare_string
@@ -328,7 +328,7 @@ m = 8, x = 16
   ADC $2B           ; Add offset (0 for first line, 1 for second line...)
   STA multiplicand_addr  ; Store multiplicand_addr
   LDA #$10          ; Set multiplier_addr 16
-  STA multiplier_addr    ; Store mutiplier
+  STA multiplier_addr    ; Store multiplier
   NOP
   NOP
   NOP

@@ -388,7 +388,7 @@ class TestOperand:
             ),
             (
                 Operand(value=Bytes([0x12]), mode="_", operand_type=OperandType.DEFAULT, variable=ALFA),
-                "Operand(value=0x12, mode='_', operand_type=OperandType.DEFAULT, variable=SimpleVar(name='alfa', value=0x12))",
+                "Operand(value=0x12, mode='_', operand_type=OperandType.DEFAULT, variable=Constant(name='alfa', value=0x12))",
             ),
         ],
     )

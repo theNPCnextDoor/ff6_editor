@@ -1,8 +1,8 @@
 import pytest
 
 from src.lib.assembly.bytes import Bytes
-from src.lib.assembly.artifact.variable import SimpleVar, Label, Variable
-from src.lib.misc.exception import ForbiddenVarName, IllegalVariableLength
+from src.lib.assembly.artifact.variable import Constant, Label, Variable
+from src.lib.misc.exception import ForbiddenVarName, IllegalConstantLength
 from test.lib.assembly.conftest import ALFA, BRAVO, CHARLIE, ECHO, addr
 
 
@@ -14,7 +14,7 @@ class TestVariable:
     @pytest.mark.parametrize(
         ["variable", "expected"],
         [
-            (ALFA, "SimpleVar(name='alfa', value=0x12)"),
+            (ALFA, "Constant(name='alfa', value=0x12)"),
             (CHARLIE, "Label(name='charlie', value=0xD23456)"),
             (ECHO, "Label(name='echo', value=0x7E0123)"),
         ],
@@ -25,10 +25,10 @@ class TestVariable:
     @pytest.mark.parametrize(
         ["left", "right", "expected"],
         [
-            (ALFA, SimpleVar(Bytes.from_int(0x12), "alfa"), True),
+            (ALFA, Constant(Bytes.from_int(0x12), "alfa"), True),
             (CHARLIE, Label(addr(0xD23456), "charlie"), True),
-            (ALFA, SimpleVar(Bytes.from_int(0x13), "alfa"), False),
-            (ALFA, SimpleVar(Bytes.from_int(0x12), "alfo"), False),
+            (ALFA, Constant(Bytes.from_int(0x13), "alfa"), False),
+            (ALFA, Constant(Bytes.from_int(0x12), "alfo"), False),
             (ALFA, None, False),
         ],
     )
@@ -36,7 +36,7 @@ class TestVariable:
         assert (left == right) is expected
 
 
-class TestSimpleVariable:
+class TestConstant:
     @pytest.mark.parametrize(
         ["name", "operand", "variable"],
         [
@@ -44,8 +44,8 @@ class TestSimpleVariable:
             ("bravo", "$1234", BRAVO),
         ],
     )
-    def test_from_line(self, name: str, operand: str, variable: SimpleVar):
-        assert SimpleVar.from_line(name, operand) == variable
+    def test_from_line(self, name: str, operand: str, variable: Constant):
+        assert Constant.from_line(name, operand) == variable
 
     @pytest.mark.parametrize(
         "name",
@@ -53,17 +53,17 @@ class TestSimpleVariable:
     )
     def test_from_line_but_name_is_forbidden(self, name: str):
         with pytest.raises(ForbiddenVarName):
-            SimpleVar.from_line(name, "$12")
+            Constant.from_line(name, "$12")
 
     def test_from_line_but_length_doesnt_correspond_to_expectation(self):
-        with pytest.raises(IllegalVariableLength):
-            SimpleVar.from_line("bravo", "$123456")
+        with pytest.raises(IllegalConstantLength):
+            Constant.from_line("bravo", "$123456")
 
     @pytest.mark.parametrize(
         ["variable", "line"],
         [(ALFA, "let alfa = $12"), (BRAVO, "let bravo = $1234")],
     )
-    def test_to_line(self, variable: SimpleVar, line: str):
+    def test_to_line(self, variable: Constant, line: str):
         assert variable.to_line() == line
 
 

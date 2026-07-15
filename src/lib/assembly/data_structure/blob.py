@@ -34,16 +34,14 @@ class Blob(DataStructure):
         :param delimiter: The part of the script line that defines the byte used to let the game know that the Blob
         ended.
         :param address: The address of the Blob.
-        :param variables: The list of Variables. Both SimpleVars and Labels can be used to define a Blob value, but only
+        :param variables: The list of Variables. Both Constants and Labels can be used to define a Blob value, but only
         the former can be used for the delimiter.
         :return: A Blob.
         :raised DelimiterLengthError: Raised when the length of the delimiter is not 1.
         """
         _operand = Operand.from_line(operand, address, OperandType.DEFAULT, variables)
         _delimiter = (
-            Operand.from_line(delimiter, address, OperandType.DEFAULT, variables.simple_variables)
-            if delimiter
-            else None
+            Operand.from_line(delimiter, address, OperandType.DEFAULT, variables.constants) if delimiter else None
         )
 
         if _delimiter and len(_delimiter) != 1:

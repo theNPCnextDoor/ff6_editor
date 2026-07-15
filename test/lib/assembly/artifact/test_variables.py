@@ -1,6 +1,6 @@
 import pytest
 
-from src.lib.assembly.artifact.variable import SimpleVar, Variable, Label
+from src.lib.assembly.artifact.variable import Constant, Variable, Label
 from src.lib.assembly.artifact.variables import Variables
 from src.lib.misc.exception import VariableConflict
 from src.lib.assembly.bytes import Bytes
@@ -23,7 +23,7 @@ class TestVariables:
     def test_append_raises_variable_conflict_because_of_existing_name(self):
         variables = Variables(ALFA)
         with pytest.raises(VariableConflict) as e:
-            variables.append(SimpleVar(addr(0), "alfa"))
+            variables.append(Constant(addr(0), "alfa"))
         assert "name" in str(e.value).lower()
 
     @pytest.mark.parametrize(["name", "variable"], [("alfa", ALFA), ("charlie", CHARLIE), ("non_existing", None)])
@@ -45,7 +45,7 @@ class TestVariables:
         assert variables == Variables(ALFA, BRAVO, DELTA, ECHO, CHARLIE)
 
     @pytest.mark.parametrize(
-        ["variable", "expected"], [(ALFA, True), (CHARLIE, True), (SimpleVar(Bytes.from_int(0), "non_existing"), False)]
+        ["variable", "expected"], [(ALFA, True), (CHARLIE, True), (Constant(Bytes.from_int(0), "non_existing"), False)]
     )
     def test_contains(self, variable: Variable, expected: bool):
         assert (variable in VARIABLES) is expected

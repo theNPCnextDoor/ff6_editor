@@ -14,7 +14,7 @@ class Variables:
 
     def __init__(self, *variables: Variable):
         self._labels = list()
-        self._simple_variables = list()
+        self._constants = list()
         for variable in variables:
             self.append(variable)
         self._index = 0
@@ -30,7 +30,7 @@ class Variables:
         if isinstance(variable, Label):
             self._labels.append(variable)
         else:
-            self._simple_variables.append(variable)
+            self._constants.append(variable)
 
     def _detect_conflicts(self, variable: Variable) -> None:
         """
@@ -80,21 +80,21 @@ class Variables:
         Sorts the simple variables by name and the labels by their address.
         :return: None.
         """
-        self._simple_variables.sort(key=lambda x: x.name)
+        self._constants.sort(key=lambda x: x.name)
         self._labels.sort(key=lambda x: x.value)
 
     def all(self) -> list[Variable]:
         """
         :return: A list containing all simple variables and labels.
         """
-        return self._simple_variables + self._labels
+        return self._constants + self._labels
 
     @property
-    def simple_variables(self) -> Self:
+    def constants(self) -> Self:
         """
-        :return: A Variables object only containing this Variable object's SimpleVars.
+        :return: A Variables object only containing this Variable object's Constants.
         """
-        return type(self)(*self._simple_variables)
+        return type(self)(*self._constants)
 
     def __contains__(self, item: Variable) -> bool:
         """

@@ -1,6 +1,6 @@
 import pytest
 
-from src.lib.assembly.artifact.variable import SimpleVar
+from src.lib.assembly.artifact.variable import Constant
 from src.lib.assembly.artifact.variables import Variables
 from src.lib.assembly.data_structure.blob import Blob
 from src.lib.assembly.data_structure.array import Array
@@ -16,7 +16,7 @@ GROUP = Array(
         Blob(operand=Operand(Bytes([0xBB])), delimiter=Operand(Bytes([0xFF]))),
         String(
             operand=Operand(Bytes([0x9B])),
-            delimiter=Operand(Bytes([0x00]), variable=SimpleVar(Bytes([0x00]), "zero")),
+            delimiter=Operand(Bytes([0x00]), variable=Constant(Bytes([0x00]), "zero")),
             string_type=StringTypes.MENU,
         ),
     ],
@@ -83,7 +83,7 @@ class TestArray:
             Array.from_line(
                 line=line + comment,
                 address=Bytes([0x00, 0x00, 0x00]),
-                variables=Variables(SimpleVar(Bytes.from_int(0), "zero")),
+                variables=Variables(Constant(Bytes.from_int(0), "zero")),
             )
             == group
         )
@@ -105,7 +105,7 @@ class TestArray:
                 "Blob(as_str='$AA', as_bytes=b'\\xaa', as_hexa=0xAA), "
                 "String(as_str='desc \"a\"', as_bytes=b'\\x9a', as_hexa=0x9A), "
                 "Blob(as_str='$BB,$FF', as_bytes=b'\\xbb\\xff', as_hexa=0xBBFF), "
-                "String(as_str='\"b\",zero', as_bytes=b'\\x9b\\x00', as_hexa=0x9B00, delimiter_var=SimpleVar(name='zero', value=0x00))])",
+                "String(as_str='\"b\",zero', as_bytes=b'\\x9b\\x00', as_hexa=0x9B00, delimiter_var=Constant(name='zero', value=0x00))])",
                 GROUP,
             ),
         ],

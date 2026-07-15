@@ -10,11 +10,11 @@ class IllegalAddress(Exception):
     pass
 
 
-class IllegalRomPosition(Exception):
+class IllegalConstantLength(Exception):
     pass
 
 
-class IllegalVariableLength(Exception):
+class IllegalRomPosition(Exception):
     pass
 
 

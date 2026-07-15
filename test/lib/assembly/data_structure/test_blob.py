@@ -77,7 +77,8 @@ class TestBlob:
                     operand=Operand(Bytes([0x12, 0x34]), variable=BRAVO),
                     delimiter=Operand(Bytes([0x12]), variable=ALFA),
                 ),
-                "Blob(as_str='bravo,alfa', as_bytes=b'4\\x12\\x12', as_hexa=0x123412, operand_var=SimpleVar(name='bravo', value=0x1234), delimiter_var=SimpleVar(name='alfa', value=0x12))",
+                "Blob(as_str='bravo,alfa', as_bytes=b'4\\x12\\x12', as_hexa=0x123412, operand_var=Constant(name='bravo', value=0x1234), delimiter_var=Constant"
+                "(name='alfa', value=0x12))",
             ),
         ],
     )

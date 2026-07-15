@@ -2,7 +2,7 @@ import json
 import tomllib
 
 from src.lib.assembly.artifact.flags import Flags
-from src.lib.assembly.artifact.variable import SimpleVar
+from src.lib.assembly.artifact.variable import Constant
 from src.lib.assembly.bytes import Bytes
 from src.lib.assembly.data_structure.string.string import StringTypes
 from src.lib.assembly.script.script import Script
@@ -38,7 +38,7 @@ def disassemble(configs: dict) -> None:
                     variables[var_type] = dict()
                     for k, name in var_list.items():
                         value = Bytes.from_str(k)
-                        variables[var_type][int(value)] = SimpleVar(value, name)
+                        variables[var_type][int(value)] = Constant(value, name)
 
                 section.variables = variables
             if pattern == ArrayPattern.TREASURE_CHESTS:

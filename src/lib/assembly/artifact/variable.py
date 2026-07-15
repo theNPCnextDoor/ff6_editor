@@ -4,7 +4,7 @@ from typing import Self, Any
 
 from src.lib.assembly.artifact.artifact import Artifact
 from src.lib.assembly.bytes import Bytes
-from src.lib.misc.exception import ForbiddenVarName, IllegalVariableLength
+from src.lib.misc.exception import ForbiddenVarName, IllegalConstantLength
 
 VAR_LENGTH = {"b": 1, "w": 2}
 FORBIDDEN_NAMES = ["desc", "let", "m", "map", "ptr", "rptr", "x"]
@@ -35,7 +35,7 @@ class Variable(Artifact, ABC):
         return name in FORBIDDEN_NAMES
 
 
-class SimpleVar(Variable):
+class Constant(Variable):
     """
     Used to store a value in order to raise readability and/or use it in multiple places at once.
     """
@@ -43,12 +43,11 @@ class SimpleVar(Variable):
     @classmethod
     def from_line(cls, name: str, operand: str) -> Self:
         """
-        Creates a Variable out of successful regex match.
-        :param name: The name of the variable.
-        :param operand: The value of the variable.
-        :return: A Variable.
-        :raises ForbiddenVarName: Raised when we are trying to assign a forbidden name to a Variable.
-        :raises VariableLengthMismatch: Raised when the expected length of the Variable does not match its given value.
+        Creates a Constant out of successful regex match.
+        :param name: The name of the constant.
+        :param operand: The value of the constant.
+        :return: A Constant.
+        :raises IllegalConstantLength: Raised when the expected length of the Constant is neither 1 nor 2.
         """
         if cls.is_name_forbidden(name):
             message = f"Variable name '{name}' is forbidden. All forbidden names: {FORBIDDEN_NAMES}"
@@ -60,22 +59,22 @@ class SimpleVar(Variable):
         if len(_operand) not in range(1, 3):
             message = f"Length of value '{operand}' must be 1 or 2."
             logging.error(message)
-            raise IllegalVariableLength(message)
+            raise IllegalConstantLength(message)
 
-        simple_var = cls(_operand, name)
-        logging.debug(f"Created {repr(simple_var)}.")
+        constant = cls(_operand, name)
+        logging.debug(f"Created {repr(constant)}.")
         return cls(_operand, name)
 
     def to_line(self, **kwargs: Any) -> str:
         """
-        Converts a SimpleVar into the exact string which will be put in a script to declare it.
+        Converts a Constant into the exact string which will be put in a script to declare it.
         :return: A script line.
         """
 
         return f"let {self.name} = ${self.value}"
 
 
-class Label(SimpleVar):
+class Label(Constant):
     """
     A Label is a 24-bit Variable that is used to define an address in the ROM.
     """
